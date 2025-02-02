@@ -16,15 +16,18 @@ const CommunityPage = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="p-4 text-center">Loading Community...</div>;
+  if (loading)
+    return <div className="p-4 text-center text-lg">Loading Community...</div>;
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Community Memes</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {memes.map((meme) => (
-          <CommunityMemeCard key={meme.id} initialMeme={meme} />
-        ))}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-5xl mx-auto p-4">
+        <h1 className="text-3xl font-bold text-center mb-8">Community Memes</h1>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+          {memes.map((meme) => (
+            <CommunityMemeCard key={meme.id} initialMeme={meme} />
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -41,20 +44,23 @@ function CommunityMemeCard({ initialMeme }) {
       return;
     }
     try {
-      // small scale animation
+      // Trigger a quick scale animation on like
       setAnimating(true);
       setTimeout(() => setAnimating(false), 300);
 
-      const res = await fetch(`http://localhost:5000/api/community/${meme.id}/like`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        `http://localhost:5000/api/community/${meme.id}/like`,
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const data = await res.json();
       if (!res.ok) {
         alert(data.error || 'Error liking meme');
         return;
       }
-      // update local likeCount
+      // Update the like count in the card state
       setMeme((prev) => ({ ...prev, likeCount: data.likeCount }));
     } catch (err) {
       console.error(err);
@@ -63,22 +69,32 @@ function CommunityMemeCard({ initialMeme }) {
   };
 
   return (
-    <div className="border p-4 rounded bg-white shadow flex flex-col items-center">
-      <img
-        src={`http://localhost:5000/${meme.filePath}`}
-        alt="Community Meme"
-        className="w-full mb-3 object-contain"
-      />
-      <div className="flex items-center space-x-2">
+    <div className="bg-white rounded-lg overflow-hidden shadow-lg hover:shadow-2xl transition-all transform hover:-translate-y-1">
+      {/* Image Container */}
+      <div className="w-full bg-gray-200 flex items-center justify-center h-48 sm:h-64">
+        <img
+          src={`http://localhost:5000/${meme.filePath}`}
+          alt="Community Meme"
+          className="max-h-full w-full object-contain"
+        />
+      </div>
+      {/* Like Button & Count */}
+      <div className="p-4 flex items-center justify-between">
         <button
           onClick={handleLike}
           className={`text-red-500 transition-transform duration-300 ${
             animating ? 'scale-125' : ''
           }`}
         >
-          {meme.likeCount > 0 ? <AiFillHeart size={24} /> : <AiOutlineHeart size={24} />}
+          {meme.likeCount > 0 ? (
+            <AiFillHeart size={24} />
+          ) : (
+            <AiOutlineHeart size={24} />
+          )}
         </button>
-        <span>{meme.likeCount || 0}</span>
+        <span className="text-gray-700 font-semibold">
+          {meme.likeCount || 0}
+        </span>
       </div>
     </div>
   );
