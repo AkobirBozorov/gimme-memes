@@ -1,4 +1,4 @@
-// src/App.jsx
+// gimme-memes-frontend/src/App.jsx
 import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
@@ -17,21 +17,29 @@ import CreateMemePage from "./pages/CreateMemePage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
-import MemeViewPage from "./pages/MemeViewPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import CommunityPage from './pages/CommunityPage';
+
+// Blog pages
+import BlogListPage from "./pages/BlogListPage";
+import BlogPostPage from "./pages/BlogPostPage";
+import AdminBlogPage from "./pages/AdminBlogPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true); 
-  // a flag to show we’re verifying token
+  const [isAdmin, setIsAdmin] = useState(false); // NEW: store if user is admin
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
+      // No token => user not authenticated
       setIsAuthenticated(false);
+      setIsAdmin(false);
       setCheckingAuth(false);
       return;
     }
+
     // We do have a token => verify with backend
     fetch("http://localhost:5000/api/user/me", {
       headers: { Authorization: `Bearer ${token}` },
@@ -43,14 +51,16 @@ function App() {
         return res.json();
       })
       .then((data) => {
-        // If successful => we have a valid token
+        console.log('USER DATA from /api/user/me =>', data);
         setIsAuthenticated(true);
+        setIsAdmin(data.user?.isAdmin === true);
       })
       .catch((err) => {
         console.error(err);
-        // If we fail => remove token, set auth false
+        // If we fail => remove token, set auth false, admin false
         localStorage.removeItem("token");
         setIsAuthenticated(false);
+        setIsAdmin(false);
       })
       .finally(() => {
         setCheckingAuth(false);
@@ -58,7 +68,6 @@ function App() {
   }, []);
 
   if (checkingAuth) {
-    // Optionally, show a loading spinner while verifying
     return (
       <div className="flex items-center justify-center h-screen text-xl">
         Checking credentials...
@@ -76,6 +85,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/community" element={<CommunityPage />} />
 
             {/* Public Create (no ID) */}
             <Route path="/create" element={<CreateMemePage />} />
@@ -88,8 +98,23 @@ function App() {
               }
             />
 
-            <Route path="/meme/:id" element={<MemeViewPage />} />
+            {/* Blog public pages */}
+            <Route path="/blog" element={<BlogListPage />} />
+            <Route path="/blog/:slug" element={<BlogPostPage />} />
 
+            {/* Admin-only blog page */}
+            <Route
+              path="/admin/blog"
+              element={
+                isAuthenticated && isAdmin ? (
+                  <AdminBlogPage isAdmin={isAdmin} />
+                ) : (
+                  <Navigate to="/" />
+                )
+              }
+            />
+
+            {/* Auth routes */}
             <Route
               path="/signup"
               element={<SignUpPage setIsAuthenticated={setIsAuthenticated} />}
@@ -99,6 +124,7 @@ function App() {
               element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
             />
 
+            {/* Dashboard => protected */}
             <Route
               path="/dashboard"
               element={
@@ -113,6 +139,7 @@ function App() {
               }
             />
 
+            {/* 404 Not Found */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </main>

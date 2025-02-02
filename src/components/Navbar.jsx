@@ -23,6 +23,12 @@ const Navbar = ({ isAuthenticated }) => {
           <NavLink to="/" className={navLinkClasses}>
             Home
           </NavLink>
+          <NavLink to="/community" className={navLinkClasses}>
+            Community
+          </NavLink>
+          <NavLink to="/blog" className={navLinkClasses}>
+            Blog
+          </NavLink>
           <NavLink to="/about" className={navLinkClasses}>
             About
           </NavLink>
@@ -93,6 +99,12 @@ const Navbar = ({ isAuthenticated }) => {
         <div className="flex flex-col space-y-4 mt-8">
           <NavLink to="/" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             Home
+          </NavLink>
+          <NavLink to="/community" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
+            Community
+          </NavLink>
+          <NavLink to="/blog" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
+            Blog
           </NavLink>
           <NavLink to="/about" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             About

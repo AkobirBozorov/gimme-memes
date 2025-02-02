@@ -10,7 +10,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,15 +18,10 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       return;
     }
     const token = localStorage.getItem("token");
-    console.log("Fetching with token:", token);
-
     fetch("http://localhost:5000/api/user/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
-        if (res.status === 401) {
-          throw new Error("Session expired. Please log in again.");
-        }
         if (!res.ok) {
           const errMsg = await res.json();
           throw new Error(errMsg.error || "Failed to fetch user data");
@@ -36,20 +30,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       })
       .then((data) => {
         setUserData(data.user);
-
-        // Reverse memes so the newest appear first:
-        // (assuming `data.memes` is oldest-first from the server)
-        const reversedMemes = [...data.memes].reverse();
-        setMemes(reversedMemes);
-
+        // newest first
+        const reversed = [...data.memes].reverse();
+        setMemes(reversed);
         setAnalytics(data.analytics);
       })
       .catch((err) => {
         console.error(err);
         setError(err.message);
-        if (err.message.includes("Session expired")) {
-          handleLogout();
-        }
       })
       .finally(() => setLoading(false));
   }, [isAuthenticated, navigate]);
@@ -61,13 +49,13 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     }
   }, [notice]);
 
-  const handleLogout = () => {
+  function handleLogout() {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
     navigate("/login");
-  };
+  }
 
-  const handleDeleteMeme = async (memeId) => {
+  async function handleDeleteMeme(memeId) {
     if (!window.confirm("Are you sure you want to delete this meme?")) {
       return;
     }
@@ -82,9 +70,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         setError(data.error || "Error deleting meme");
         return;
       }
-      // Remove from UI
       setMemes((prev) => prev.filter((m) => m.id !== memeId));
-      // Adjust analytics
       setAnalytics((prev) => ({
         ...prev,
         totalMemes: Math.max((prev.totalMemes || 1) - 1, 0),
@@ -94,23 +80,41 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       console.error(err);
       setError("Server error deleting meme");
     }
-  };
+  }
+
+  async function handlePublish(memeId) {
+    if (!window.confirm("Publish this meme to the community?")) {
+      return;
+    }
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`http://localhost:5000/api/memes/${memeId}/publish`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || "Error publishing meme");
+        return;
+      }
+      setMemes((prev) =>
+        prev.map((m) => (m.id === memeId ? { ...m, sharedToCommunity: true } : m))
+      );
+      setNotice("Meme published to community");
+    } catch (err) {
+      console.error(err);
+      setError("Server error publishing meme");
+    }
+  }
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen text-xl">
-        Loading your dashboard...
-      </div>
-    );
+    return <div className="flex justify-center items-center h-screen text-xl">Loading...</div>;
   }
   if (error) {
     return (
       <div className="p-4 text-red-500 text-center">
         {error}{" "}
-        <button
-          onClick={handleLogout}
-          className="ml-2 text-blue-600 underline"
-        >
+        <button onClick={handleLogout} className="ml-2 text-blue-600 underline">
           Log Out
         </button>
       </div>
@@ -120,13 +124,11 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-4xl font-bold mb-6 text-center">Dashboard</h1>
-
       {notice && (
-        <div className="mb-4 text-green-600 font-semibold bg-green-100 p-3 rounded text-center transition duration-300">
+        <div className="mb-4 text-green-600 font-semibold bg-green-100 p-3 rounded text-center">
           {notice}
         </div>
       )}
-
       {userData && (
         <div className="mb-6 bg-white shadow-md p-6 rounded-lg">
           <h2 className="text-2xl font-semibold mb-2">User Info</h2>
@@ -146,14 +148,12 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
           </button>
         </div>
       )}
-
       <div className="mb-6 bg-white shadow-md p-6 rounded-lg">
         <h2 className="text-2xl font-semibold mb-2">Analytics</h2>
         <p className="text-gray-700">
           <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
         </p>
       </div>
-
       <div className="mb-6 bg-white shadow-md p-6 rounded-lg">
         <h2 className="text-2xl font-semibold mb-4">My Memes</h2>
         {memes.length > 0 ? (
@@ -163,20 +163,26 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                 key={meme.id}
                 className="border p-4 rounded bg-gray-50 flex flex-col items-center"
               >
-                {/* If there's a title, show it */}
+                <MiniMemePreview meme={meme} />
                 {meme.title && (
-                  <h3 className="font-semibold text-gray-700 mb-2 text-center">
+                  <h3 className="font-semibold text-gray-700 mt-2">
                     {meme.title}
                   </h3>
                 )}
-                <MiniMemePreview meme={meme} />
+                {meme.sharedToCommunity ? (
+                  <div className="text-green-600 text-sm mt-1">
+                    Published to Community
+                    <p className="text-gray-700 mt-1">
+                      Likes: {meme.likeCount || 0}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-sm mt-1">
+                    Not Published
+                  </div>
+                )}
                 <div className="flex justify-center space-x-2 mt-3">
-                  <button
-                    className="bg-gray-200 text-gray-800 px-3 py-1 rounded hover:bg-gray-300"
-                    onClick={() => navigate(`/meme/${meme.id}`)}
-                  >
-                    View
-                  </button>
+                  {/* Removed the "View" button as requested */}
                   <button
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
                     onClick={() => navigate(`/create/${meme.id}`)}
@@ -189,6 +195,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                   >
                     Delete
                   </button>
+                  {!meme.sharedToCommunity && (
+                    <button
+                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600"
+                      onClick={() => handlePublish(meme.id)}
+                    >
+                      Publish to Community
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
