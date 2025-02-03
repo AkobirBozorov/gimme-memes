@@ -10,10 +10,15 @@ const MiniMemePreview = ({ meme }) => {
     );
   }
 
-  // Append updatedAt timestamp as a query parameter to force image refresh when updated.
-  const imageUrl = meme.updatedAt
-    ? `${meme.filePath}?t=${new Date(meme.updatedAt).getTime()}`
-    : meme.filePath;
+  // If updatedAt is present, append ?t= to force image refresh
+  let imageUrl = meme.filePath;
+  if (meme.updatedAt) {
+    const timeValue = new Date(meme.updatedAt).getTime();
+    // Only append if it's a valid date
+    if (!isNaN(timeValue)) {
+      imageUrl += `?t=${timeValue}`;
+    }
+  }
 
   return (
     <div className="relative w-full h-0 pb-[100%] bg-gray-200 rounded-lg overflow-hidden shadow">
