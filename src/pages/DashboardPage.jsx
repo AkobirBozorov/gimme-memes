@@ -31,10 +31,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       })
       .then((data) => {
         setUserData(data.user);
-        // Sort memes by updatedAt (or createdAt as fallback) in descending order
+        // Sort memes by updatedAt (fallback to createdAt)
         const sorted = [...data.memes].sort((a, b) => {
-          const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
-          const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+          const aTime = a.updatedAt
+            ? new Date(a.updatedAt).getTime()
+            : new Date(a.createdAt).getTime();
+          const bTime = b.updatedAt
+            ? new Date(b.updatedAt).getTime()
+            : new Date(b.createdAt).getTime();
           return bTime - aTime;
         });
         setMemes(sorted);
@@ -198,16 +202,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                     {meme.title}
                   </h3>
                 )}
-                {/* Display last updated time */}
                 <p className="text-xs text-gray-500 mt-1">
                   Last updated:{" "}
-                  {new Date(meme.updatedAt).toLocaleString(undefined, {
-                    dateStyle: "short",
-                    timeStyle: "short",
-                  })}
+                  {meme.updatedAt
+                    ? new Date(meme.updatedAt).toLocaleString(undefined, {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })
+                    : "N/A"}
                 </p>
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
-                  {/* Edit button is back in Dashboard */}
                   <button
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                     onClick={() => navigate(`/create/${meme.id}`)}

@@ -10,7 +10,7 @@ const MiniMemePreview = ({ meme }) => {
     );
   }
 
-  // Append updatedAt timestamp to force reload when updated
+  // Append updatedAt timestamp as a query parameter to force image refresh when updated.
   const imageUrl = meme.updatedAt
     ? `${meme.filePath}?t=${new Date(meme.updatedAt).getTime()}`
     : meme.filePath;
