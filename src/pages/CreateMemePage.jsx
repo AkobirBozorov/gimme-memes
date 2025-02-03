@@ -28,6 +28,7 @@ const TEXT_COLORS = [
   "#808080",
   "#B22222",
 ];
+
 const BG_COLORS = [
   { label: "None", value: "" },
   { label: "White", value: "#FFFFFF" },
@@ -40,6 +41,7 @@ const BG_COLORS = [
   { label: "Pink", value: "#FF69B4" },
   { label: "Gray", value: "#808080" },
 ];
+
 const FONT_FAMILIES = [
   { label: "Arial", value: "Arial, sans-serif" },
   { label: "Impact", value: "Impact, Charcoal, sans-serif" },
@@ -54,31 +56,35 @@ const FONT_FAMILIES = [
 function CreateMemePage() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const token = localStorage.getItem("token");
   const hasToken = !!token;
 
   const [memeId, setMemeId] = useState(null);
   const [filePath, setFilePath] = useState("");
+  const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
+
   const [realWidth, setRealWidth] = useState(400);
   const [realHeight, setRealHeight] = useState(400);
   const [realOverlays, setRealOverlays] = useState([]);
   const [displayOverlays, setDisplayOverlays] = useState([]);
+
   const [pastStates, setPastStates] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
   const [selectedOverlayId, setSelectedOverlayId] = useState(null);
-  const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
 
   const hasImage = !!filePath || !!tempImageDataUrl;
 
-  // -----------------------------
-  // Load existing or ephemeral
-  // -----------------------------
+  // ----------------------------------------
+  // Load existing meme if :id, otherwise ephemeral
+  // ----------------------------------------
   useEffect(() => {
     if (id) {
       loadExistingMeme(id);
     } else {
+      // Check ephemeral localStorage
       const stored = localStorage.getItem(LOCAL_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
@@ -97,24 +103,29 @@ function CreateMemePage() {
           const scaled = parsed.realOverlays.map((ov) => realToDisplay(ov, scale));
           setDisplayOverlays(scaled);
         }
+
         if (parsed.tempImageDataUrl) {
           setTempImageDataUrl(parsed.tempImageDataUrl);
         }
       }
     }
+
     return () => {
-      // Cleanup ephemeral data if brand new
+      // Clear ephemeral if we are not editing an existing Meme
       if (!id) localStorage.removeItem(LOCAL_KEY);
     };
   }, [id]);
 
+  // ----------------------------------------
+  // Utility to store ephemeral (for non-logged in)
+  // ----------------------------------------
   function storeEphemeralData(
     newReal = realOverlays,
     w = realWidth,
     h = realHeight,
     dataUrl = tempImageDataUrl
   ) {
-    if (id) return; // If editing an existing meme, no ephemeral needed
+    if (id) return; // we only store ephemeral for "Create" not existing IDs
     const ephemeral = {
       realWidth: w,
       realHeight: h,
@@ -124,12 +135,12 @@ function CreateMemePage() {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
   }
 
-  // -----------------------------
-  // Loading existing meme
-  // -----------------------------
+  // ----------------------------------------
+  // Loading existing meme from the server
+  // ----------------------------------------
   async function loadExistingMeme(memeIdParam) {
     if (!hasToken) {
-      alert("You are not logged in to load an existing meme!");
+      alert("You must be logged in to load an existing meme!");
       navigate("/login");
       return;
     }
@@ -138,15 +149,17 @@ function CreateMemePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error loading meme");
+      if (!res.ok) {
+        throw new Error(data.error || "Error loading meme");
+      }
 
       const m = data.meme;
       setMemeId(m.id);
       setFilePath(m.filePath || "");
 
       let w = 400,
-        h = 400;
-      let overlays = [];
+        h = 400,
+        overlays = [];
 
       if (m.data) {
         overlays = m.data.overlays || [];
@@ -170,9 +183,9 @@ function CreateMemePage() {
     }
   }
 
-  // -----------------------------
-  // Immediately create Meme + upload if logged in
-  // -----------------------------
+  // ----------------------------------------
+  // Create a Meme record in the DB
+  // ----------------------------------------
   async function createMemeRecord() {
     if (!hasToken) return null;
     try {
@@ -185,7 +198,9 @@ function CreateMemePage() {
         body: JSON.stringify({ status: "draft" }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error creating meme record");
+      if (!res.ok) {
+        throw new Error(data.error || "Error creating meme record");
+      }
       setMemeId(data.meme.id);
       return data.meme.id;
     } catch (err) {
@@ -194,7 +209,11 @@ function CreateMemePage() {
     }
   }
 
+  // ----------------------------------------
+  // Upload file to existing Meme
+  // ----------------------------------------
   async function uploadFile(memeIdVal, file) {
+    if (!hasToken) return;
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -211,15 +230,16 @@ function CreateMemePage() {
       const data = await res.json();
       setFilePath(data.meme.filePath);
 
+      // Now measure the newly uploaded image from server
       measureServerImage(data.meme.filePath);
     } catch (err) {
       console.error("File upload error:", err);
     }
   }
 
-  // -----------------------------
-  // measure server image
-  // -----------------------------
+  // ----------------------------------------
+  // measure server image => sets realWidth, realHeight, etc.
+  // ----------------------------------------
   function measureServerImage(path) {
     const img = new Image();
     img.onload = () => {
@@ -232,26 +252,26 @@ function CreateMemePage() {
       setDisplayWidth(dispW);
       setDisplayHeight(dispH);
 
-      // Sync overlays with new dimensions if needed
+      // Possibly sync data if needed
       syncMemeData(realOverlays, w, h);
       // Clear ephemeral base64 since we now have a real file
       storeEphemeralData(realOverlays, w, h, null);
     };
     img.onerror = () => {
-      alert("Could not load server image. Try again?");
+      alert("Could not load image from server. Try again?");
     };
     img.src = `${baseApiUrl}/${path}`;
   }
 
-  // -----------------------------
-  // Sync meme data
-  // -----------------------------
-  async function syncMemeData(overlays, w, h) {
+  // ----------------------------------------
+  // Sync overlays in DB
+  // ----------------------------------------
+  async function syncMemeData(ov, w, h) {
     if (!memeId || !hasToken) return;
     try {
       const body = {
         data: {
-          overlays,
+          overlays: ov,
           width: w,
           height: h,
         },
@@ -266,24 +286,26 @@ function CreateMemePage() {
       });
       if (!res.ok) {
         const errMsg = await res.json();
-        throw new Error(errMsg.error || "syncMemeData error");
+        throw new Error(errMsg.error || "Error updating meme data");
       }
     } catch (err) {
       console.error("syncMemeData error:", err);
     }
   }
 
-  // -----------------------------
-  // handle file select => auto upload if logged in
-  // -----------------------------
+  // ----------------------------------------
+  // handleFileSelect => old preview style + immediate upload if logged in
+  // ----------------------------------------
   function handleFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = "";
 
-    // Reset everything for a new meme
+    // reset everything
     setMemeId(null);
     setFilePath("");
+    setTempImageDataUrl(null);
+
     setRealWidth(400);
     setRealHeight(400);
     setRealOverlays([]);
@@ -294,26 +316,32 @@ function CreateMemePage() {
     setDisplayWidth(PREVIEW_MAX_WIDTH);
     setDisplayHeight(PREVIEW_MAX_HEIGHT);
 
-    // read the file as base64 so user sees immediate preview
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result;
       setTempImageDataUrl(dataUrl);
+      measureBase64Image(dataUrl);
 
-      // If the user is logged in, create meme + upload
+      // If user is logged in => create Meme + upload right away
       if (hasToken) {
         const newId = await createMemeRecord();
         if (newId) {
-          await uploadFile(newId, file);
+          try {
+            await uploadFile(newId, file);
+          } catch (uploadErr) {
+            console.error(uploadErr);
+          }
         }
       } else {
-        // user is not logged in => ephemeral only
-        measureBase64Image(dataUrl);
+        // Not logged in => ephemeral only
       }
     };
     reader.readAsDataURL(file);
   }
 
+  // ----------------------------------------
+  // measure base64 => update scale
+  // ----------------------------------------
   function measureBase64Image(dataUrl) {
     const img = new Image();
     img.onload = () => {
@@ -325,6 +353,7 @@ function CreateMemePage() {
       const { scale, dispW, dispH } = computeScale(w, h);
       setDisplayWidth(dispW);
       setDisplayHeight(dispH);
+
       storeEphemeralData(realOverlays, w, h, dataUrl);
     };
     img.onerror = () => {
@@ -334,10 +363,22 @@ function CreateMemePage() {
     img.src = dataUrl;
   }
 
-  // -----------------------------
-  // commit overlays to DB
-  // -----------------------------
+  // ----------------------------------------
+  // commitOverlays => old approach
+  // ----------------------------------------
   async function commitOverlays(newDisplay) {
+    let currentId = memeId;
+    // If user is logged in but no meme record yet => create + upload
+    // (In theory we've already done it in handleFileSelect, but let's keep this logic in case)
+    if (!currentId && hasToken && tempImageDataUrl) {
+      const created = await createMemeRecord();
+      if (created) {
+        // no guaranteed file object here anymore, so might skip direct upload
+        // but let's keep this for fallback
+        currentId = created;
+      }
+    }
+
     const { scale } = computeScale(realWidth, realHeight);
     const newReal = newDisplay.map((ov) => displayToReal(ov, scale));
 
@@ -347,14 +388,14 @@ function CreateMemePage() {
     setDisplayOverlays(newDisplay);
     setRealOverlays(newReal);
 
-    // If user is logged in => sync
+    // If logged in => sync the new overlays
     syncMemeData(newReal, realWidth, realHeight);
     storeEphemeralData(newReal, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // -----------------------------
-  // undo / redo
-  // -----------------------------
+  // ----------------------------------------
+  // Undo / Redo
+  // ----------------------------------------
   function undo() {
     if (pastStates.length === 0) return;
     const prev = pastStates[pastStates.length - 1];
@@ -385,9 +426,9 @@ function CreateMemePage() {
     storeEphemeralData(nxt, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // -----------------------------
-  // overlay actions
-  // -----------------------------
+  // ----------------------------------------
+  // Overlay actions
+  // ----------------------------------------
   function handleAddText() {
     const newOverlay = {
       id: Date.now(),
@@ -471,9 +512,9 @@ function CreateMemePage() {
     );
   }
 
-  // -----------------------------
-  // download
-  // -----------------------------
+  // ----------------------------------------
+  // Download
+  // ----------------------------------------
   async function handleDownload() {
     if (!hasImage) {
       alert("No image to download.");
@@ -485,6 +526,7 @@ function CreateMemePage() {
       canvas.height = realHeight;
       const ctx = canvas.getContext("2d");
 
+      // If we have filePath => use server image; else use tempImageDataUrl
       const imageSrc = filePath
         ? `${baseApiUrl}/${filePath}`
         : tempImageDataUrl || "";
@@ -524,13 +566,14 @@ function CreateMemePage() {
     }
   }
 
-  // -----------------------------
-  // remove file
-  // -----------------------------
+  // ----------------------------------------
+  // Remove file
+  // ----------------------------------------
   function handleRemoveFile() {
     setTempImageDataUrl(null);
     setFilePath("");
     setMemeId(null);
+
     setRealWidth(400);
     setRealHeight(400);
     setRealOverlays([]);
@@ -541,21 +584,20 @@ function CreateMemePage() {
     setDisplayWidth(PREVIEW_MAX_WIDTH);
     setDisplayHeight(PREVIEW_MAX_HEIGHT);
 
-    // Clear ephemeral if not editing an existing ID
     if (!id) {
       localStorage.removeItem(LOCAL_KEY);
     }
   }
 
-  // -----------------------------
-  // publish to community
-  // -----------------------------
+  // ----------------------------------------
+  // Publish
+  // ----------------------------------------
   async function handlePublishToCommunity() {
     if (!window.confirm("Are you sure you want to publish to the Community?")) {
       return;
     }
     if (!hasToken || !memeId) {
-      alert("You must be logged in to publish.");
+      alert("You must be logged in to publish this meme.");
       return;
     }
     try {
@@ -574,16 +616,15 @@ function CreateMemePage() {
     }
   }
 
-  // -----------------------------
+  // ----------------------------------------
   // RENDER
-  // -----------------------------
+  // ----------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-200 p-6 flex flex-col items-center">
       <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
 
-      {/* Top toolbar if we have an image */}
       {hasImage && (
         <div className="flex flex-wrap gap-4 mb-6">
           <button
@@ -645,7 +686,6 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* If no image => upload area */}
       {!hasImage && (
         <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition duration-300 ease-in-out shadow-md bg-white">
           <input
@@ -669,9 +709,9 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* Image preview + overlays */}
       {hasImage && (
         <>
+          {/* MAIN PREVIEW */}
           <div
             className="relative border border-gray-300 bg-white rounded-xl overflow-hidden shadow-lg mx-auto"
             style={{
@@ -680,6 +720,7 @@ function CreateMemePage() {
               maxWidth: "100%",
             }}
           >
+            {/* The older "object-contain" approach for best preview */}
             {filePath ? (
               <img
                 src={`${baseApiUrl}/${filePath}`}
@@ -698,6 +739,7 @@ function CreateMemePage() {
               </div>
             )}
 
+            {/* Overlays */}
             {displayOverlays.map((ov) => (
               <Rnd
                 key={ov.id}
@@ -779,12 +821,11 @@ function CreateMemePage() {
             ))}
           </div>
 
-          {/* Overlay controls if something is selected */}
+          {/* Overlay Controls */}
           {selectedOverlayId && (
             <div className="w-full max-w-2xl bg-white border border-gray-300 rounded-xl shadow-lg p-4 mt-6">
               <h2 className="text-xl font-semibold mb-4">Overlay Controls</h2>
 
-              {/* Text Color */}
               <div className="mb-4">
                 <label className="block font-medium text-gray-700 mb-1">
                   Text Color:
@@ -801,7 +842,6 @@ function CreateMemePage() {
                 </div>
               </div>
 
-              {/* Background Color */}
               <div className="mb-4">
                 <label className="block font-medium text-gray-700 mb-1">
                   Surface Color:
@@ -810,8 +850,8 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetBgColor(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.bgColor ||
-                    ""
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.bgColor || ""
                   }
                 >
                   {BG_COLORS.map((bg) => (
@@ -822,7 +862,6 @@ function CreateMemePage() {
                 </select>
               </div>
 
-              {/* Font Family */}
               <div className="mb-4">
                 <label className="block font-medium text-gray-700 mb-1">
                   Font Family:
@@ -831,8 +870,8 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetFontFamily(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontFamily ||
-                    "Arial, sans-serif"
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.fontFamily || "Arial, sans-serif"
                   }
                 >
                   {FONT_FAMILIES.map((f) => (
@@ -843,7 +882,6 @@ function CreateMemePage() {
                 </select>
               </div>
 
-              {/* Font Size */}
               <div className="mb-4">
                 <label className="block font-medium text-gray-700 mb-1">
                   Font Size:
@@ -856,8 +894,8 @@ function CreateMemePage() {
                   onChange={(e) => handleSetFontSize(e.target.value)}
                   className="w-full"
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontSize ||
-                    20
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.fontSize || 20
                   }
                 />
               </div>
