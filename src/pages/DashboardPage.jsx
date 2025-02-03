@@ -1,7 +1,6 @@
 // gimme-memes-frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import MiniMemePreview from "../components/MiniMemePreview";
 import { baseApiUrl } from "../utils/api";
 
 const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
@@ -13,7 +12,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [notice, setNotice] = useState("");
   const navigate = useNavigate();
 
-  // 1. Fetch user data function
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    fetchUserData();
+  }, [isAuthenticated, navigate]);
+
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -21,12 +27,12 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Failed to fetch user data");
+        const errMsg = await res.json();
+        throw new Error(errMsg.error || "Failed to fetch user data");
       }
       const data = await res.json();
 
-      // Sort memes by updatedAt or createdAt
+      // Sort memes by updatedAt or createdAt => newest first
       const sorted = [...data.memes].sort((a, b) => {
         const aTime = a.updatedAt
           ? new Date(a.updatedAt).getTime()
@@ -34,7 +40,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         const bTime = b.updatedAt
           ? new Date(b.updatedAt).getTime()
           : new Date(b.createdAt).getTime();
-        return bTime - aTime; // newest first
+        return bTime - aTime;
       });
 
       setUserData(data.user);
@@ -48,29 +54,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     }
   };
 
-  // 2. useEffect to load data on mount *and* on window focus
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-    // Initial load
-    fetchUserData();
-
-    // On focus => re-fetch (handles "back" or window switching)
-    const handleFocus = () => {
-      if (isAuthenticated) {
-        fetchUserData();
-      }
-    };
-    window.addEventListener("focus", handleFocus);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-    };
-  }, [isAuthenticated, navigate]);
-
-  // 3. Notice auto-clear effect
   useEffect(() => {
     if (notice) {
       const timer = setTimeout(() => setNotice(""), 3000);
@@ -186,7 +169,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       )}
 
       {userData && (
-        <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
+        <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
           <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
           <p className="text-gray-700">
             <strong>Email:</strong> {userData.email}
@@ -205,65 +188,26 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </div>
       )}
 
-      <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
+      <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
         <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
         <p className="text-gray-700">
           <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
         </p>
       </div>
 
-      <div className="mb-6 bg-white shadow-lg p-6 rounded-lg">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
+      {/* Single column feed */}
+      <div className="max-w-2xl mx-auto space-y-6 px-2">
+        <h2 className="text-2xl font-semibold mb-2 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {memes.map((meme) => (
-              <div
-                key={meme.id}
-                className="bg-gray-50 rounded-lg overflow-hidden shadow hover:shadow-xl transition duration-300 flex flex-col items-center"
-              >
-                <MiniMemePreview meme={meme} />
-
-                {meme.title && (
-                  <h3 className="font-semibold text-gray-700 mt-2 text-center px-2">
-                    {meme.title}
-                  </h3>
-                )}
-                <p className="text-xs text-gray-500 mt-1">
-                  Last updated:{" "}
-                  {meme.updatedAt
-                    ? new Date(meme.updatedAt).toLocaleString(undefined, {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })
-                    : "N/A"}
-                </p>
-
-                <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
-                  <button
-                    className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
-                    onClick={() => handleDeleteMeme(meme.id)}
-                  >
-                    Delete
-                  </button>
-                  {meme.sharedToCommunity ? (
-                    <button
-                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
-                      onClick={() => handleUnpublish(meme.id)}
-                    >
-                      Unpublish
-                    </button>
-                  ) : (
-                    <button
-                      className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
-                      onClick={() => handlePublish(meme.id)}
-                    >
-                      Publish
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          memes.map((meme) => (
+            <DashboardMemeCard
+              key={meme.id}
+              meme={meme}
+              onDelete={handleDeleteMeme}
+              onPublish={handlePublish}
+              onUnpublish={handleUnpublish}
+            />
+          ))
         ) : (
           <p className="text-gray-700 text-center">
             No memes yet.{" "}
@@ -274,6 +218,61 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
               Create one!
             </button>
           </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
+  return (
+    <div className="bg-white rounded-lg shadow p-4">
+      {meme.title && (
+        <h3 className="mb-2 text-lg font-semibold text-gray-700">
+          {meme.title}
+        </h3>
+      )}
+
+      {/* Meme image => single column => fill container */}
+      <img
+        src={meme.filePath}
+        alt="Meme"
+        className="w-full h-auto object-contain mb-2"
+      />
+
+      {/* Publish status + actions */}
+      <p className="text-xs text-gray-500">
+        Last updated:{" "}
+        {meme.updatedAt
+          ? new Date(meme.updatedAt).toLocaleString(undefined, {
+              dateStyle: "short",
+              timeStyle: "short",
+            })
+          : "N/A"}
+      </p>
+
+      <div className="flex gap-2 mt-3 flex-wrap">
+        {/* We removed "Edit" button, so user can't jump from Dashboard to create/:id */}
+        <button
+          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+          onClick={() => onDelete(meme.id)}
+        >
+          Delete
+        </button>
+        {meme.sharedToCommunity ? (
+          <button
+            className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
+            onClick={() => onUnpublish(meme.id)}
+          >
+            Unpublish
+          </button>
+        ) : (
+          <button
+            className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
+            onClick={() => onPublish(meme.id)}
+          >
+            Publish
+          </button>
         )}
       </div>
     </div>
