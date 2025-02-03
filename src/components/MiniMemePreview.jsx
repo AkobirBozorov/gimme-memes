@@ -1,4 +1,6 @@
+// gimme-memes-frontend/src/components/MiniMemePreview.jsx
 import React from "react";
+import { baseApiUrl } from "../utils/api";
 
 const MiniMemePreview = ({ meme }) => {
   if (!meme || !meme.filePath) {
@@ -13,9 +15,9 @@ const MiniMemePreview = ({ meme }) => {
 
   return (
     <div className="relative bg-gray-200 w-48 h-48 overflow-hidden rounded-lg shadow">
-      {/* Base image filling the preview area correctly */}
+      {/* Base image filling the preview area */}
       <img
-        src={`http://localhost:5000/${meme.filePath}`}
+        src={`${baseApiUrl}/${meme.filePath}`}
         alt="Meme"
         className="absolute w-full h-full object-cover"
       />

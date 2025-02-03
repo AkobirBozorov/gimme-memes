@@ -1,13 +1,14 @@
-// src/pages/CommunityPage.jsx
-import React, { useEffect, useState } from 'react';
-import { AiFillHeart, AiOutlineHeart } from 'react-icons/ai';
+// gimme-memes-frontend/src/pages/CommunityPage.jsx
+import React, { useEffect, useState } from "react";
+import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
+import { baseApiUrl } from "../utils/api";
 
 const CommunityPage = () => {
   const [memes, setMemes] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/community')
+    fetch(`${baseApiUrl}/api/community`)
       .then((res) => res.json())
       .then((data) => {
         setMemes(data.memes || []);
@@ -38,9 +39,9 @@ function CommunityMemeCard({ initialMeme }) {
   const [animating, setAnimating] = useState(false);
 
   const handleLike = async () => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      alert('You must be logged in to like a meme.');
+      alert("You must be logged in to like a meme.");
       return;
     }
     try {
@@ -48,23 +49,20 @@ function CommunityMemeCard({ initialMeme }) {
       setAnimating(true);
       setTimeout(() => setAnimating(false), 300);
 
-      const res = await fetch(
-        `http://localhost:5000/api/community/${meme.id}/like`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const res = await fetch(`${baseApiUrl}/api/community/${meme.id}/like`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Error liking meme');
+        alert(data.error || "Error liking meme");
         return;
       }
-      // Update the like count in the card state
+      // Update the like count
       setMeme((prev) => ({ ...prev, likeCount: data.likeCount }));
     } catch (err) {
       console.error(err);
-      alert('Server error liking meme');
+      alert("Server error liking meme");
     }
   };
 
@@ -73,7 +71,7 @@ function CommunityMemeCard({ initialMeme }) {
       {/* Image Container */}
       <div className="w-full bg-gray-200 flex items-center justify-center h-48 sm:h-64">
         <img
-          src={`http://localhost:5000/${meme.filePath}`}
+          src={`${baseApiUrl}/${meme.filePath}`}
           alt="Community Meme"
           className="max-h-full w-full object-contain"
         />
@@ -83,7 +81,7 @@ function CommunityMemeCard({ initialMeme }) {
         <button
           onClick={handleLike}
           className={`text-red-500 transition-transform duration-300 ${
-            animating ? 'scale-125' : ''
+            animating ? "scale-125" : ""
           }`}
         >
           {meme.likeCount > 0 ? (

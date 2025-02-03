@@ -1,18 +1,19 @@
 // gimme-memes-frontend/src/pages/AdminBlogPage.jsx
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { baseApiUrl } from "../utils/api";
 
 const AdminBlogPage = ({ isAdmin }) => {
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
   
   // NEW FIELDS
   const [mainImageFile, setMainImageFile] = useState(null);
-  const [mainImageAlt, setMainImageAlt] = useState('');
-  const [metaTitle, setMetaTitle] = useState('');
-  const [metaDescription, setMetaDescription] = useState('');
+  const [mainImageAlt, setMainImageAlt] = useState("");
+  const [metaTitle, setMetaTitle] = useState("");
+  const [metaDescription, setMetaDescription] = useState("");
 
   // For listing existing posts
   const [posts, setPosts] = useState([]);
@@ -20,11 +21,12 @@ const AdminBlogPage = ({ isAdmin }) => {
 
   useEffect(() => {
     if (!isAdmin) {
-      navigate('/');
+      navigate("/");
       return;
     }
-    const token = localStorage.getItem('token');
-    fetch('http://localhost:5000/api/blog', {
+    const token = localStorage.getItem("token");
+
+    fetch(`${baseApiUrl}/api/blog`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -37,14 +39,14 @@ const AdminBlogPage = ({ isAdmin }) => {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
 
     try {
       // 1) Create the blog post record WITHOUT mainImage
-      const postRes = await fetch('http://localhost:5000/api/blog', {
-        method: 'POST',
+      const postRes = await fetch(`${baseApiUrl}/api/blog`, {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
@@ -57,7 +59,7 @@ const AdminBlogPage = ({ isAdmin }) => {
       });
       const postData = await postRes.json();
       if (!postRes.ok) {
-        alert(postData.error || 'Error creating post');
+        alert(postData.error || "Error creating post");
         return;
       }
       const newPostId = postData.post.id;
@@ -65,54 +67,57 @@ const AdminBlogPage = ({ isAdmin }) => {
       // 2) If user selected a main image file, upload it
       if (mainImageFile) {
         const formData = new FormData();
-        formData.append('file', mainImageFile);
+        formData.append("file", mainImageFile);
 
-        const uploadRes = await fetch(`http://localhost:5000/api/blog/${newPostId}/upload-image`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          body: formData,
-        });
+        const uploadRes = await fetch(
+          `${baseApiUrl}/api/blog/${newPostId}/upload-image`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            body: formData,
+          }
+        );
         const uploadData = await uploadRes.json();
         if (!uploadRes.ok) {
-          alert(uploadData.error || 'Error uploading main image');
+          alert(uploadData.error || "Error uploading main image");
         }
       }
 
-      alert('Post created. You can see it in the list below or publish it.');
+      alert("Post created. You can see it in the list below or publish it.");
 
       // Clear form
-      setTitle('');
-      setContent('');
+      setTitle("");
+      setContent("");
       setMainImageFile(null);
-      setMainImageAlt('');
-      setMetaTitle('');
-      setMetaDescription('');
+      setMainImageAlt("");
+      setMetaTitle("");
+      setMetaDescription("");
 
-      // Optionally refresh posts
+      // Optionally refresh posts or just leave as is
     } catch (err) {
       console.error(err);
     }
   };
 
   const handlePublish = async (postId) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/blog/${postId}`, {
-        method: 'PUT',
+      const res = await fetch(`${baseApiUrl}/api/blog/${postId}`, {
+        method: "PUT",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ isPublished: true }),
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || 'Error publishing post');
+        alert(data.error || "Error publishing post");
         return;
       }
-      alert('Post published!');
+      alert("Post published!");
     } catch (err) {
       console.error(err);
     }

@@ -25,21 +25,17 @@ import BlogListPage from "./pages/BlogListPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AdminBlogPage from "./pages/AdminBlogPage";
 
-// Determine base URL dynamically
-const isProduction = import.meta.env.PROD;
-const baseApiUrl = isProduction
-  ? import.meta.env.VITE_API_URL
-  : "http://localhost:5000";
+// Import the helper
+import { baseApiUrl } from "./utils/api";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false); // NEW: store if user is admin
+  const [isAdmin, setIsAdmin] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      // No token => user not authenticated
       setIsAuthenticated(false);
       setIsAdmin(false);
       setCheckingAuth(false);
@@ -63,7 +59,7 @@ function App() {
       })
       .catch((err) => {
         console.error(err);
-        // If we fail => remove token, set auth false, admin false
+        // If we fail => remove token
         localStorage.removeItem("token");
         setIsAuthenticated(false);
         setIsAdmin(false);

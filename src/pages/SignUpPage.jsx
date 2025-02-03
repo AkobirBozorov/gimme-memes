@@ -1,22 +1,23 @@
-// src/pages/SignUpPage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// gimme-memes-frontend/src/pages/SignUpPage.jsx
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { baseApiUrl } from "../utils/api";
 
 const SignUpPage = ({ setIsAuthenticated }) => {
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-    setError(''); // Reset error state
+    setError("");
     try {
-      const res = await fetch('http://localhost:5000/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${baseApiUrl}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, username }),
       });
       const data = await res.json();
@@ -24,22 +25,21 @@ const SignUpPage = ({ setIsAuthenticated }) => {
       if (res.ok) {
         // If the backend returned a token, store it
         if (data.token) {
-          localStorage.setItem('token', data.token);
+          localStorage.setItem("token", data.token);
           setIsAuthenticated(true);
           // Redirect user to "Create" page
-          navigate('/create');
+          navigate("/create");
         } else {
           // If for some reason no token is returned, prompt user to log in
-          alert('User registered, please log in.');
-          navigate('/login');
+          alert("User registered, please log in.");
+          navigate("/login");
         }
       } else {
-        // Show error from server
-        setError(data.error || 'Error signing up');
+        setError(data.error || "Error signing up");
       }
     } catch (err) {
       console.error(err);
-      setError('Server error');
+      setError("Server error");
     }
   };
 
@@ -76,7 +76,10 @@ const SignUpPage = ({ setIsAuthenticated }) => {
             required
           />
         </div>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
           Sign Up
         </button>
         {error && <p className="text-red-500 text-center">{error}</p>}

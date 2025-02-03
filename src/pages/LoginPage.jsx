@@ -1,35 +1,36 @@
-// src/pages/LoginPage.jsx
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+// gimme-memes-frontend/src/pages/LoginPage.jsx
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { baseApiUrl } from "../utils/api";
 
 const LoginPage = ({ setIsAuthenticated }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    setError(''); // Reset error state
+    setError("");
+
     try {
-      const res = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch(`${baseApiUrl}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem('token', data.token);
+        localStorage.setItem("token", data.token);
         setIsAuthenticated(true);
-        navigate('/dashboard'); // Redirect to dashboard after login
+        navigate("/dashboard");
       } else {
-        // Show error from server
-        setError(data.error || 'Error logging in');
+        setError(data.error || "Error logging in");
       }
     } catch (err) {
       console.error(err);
-      setError('Server error');
+      setError("Server error");
     }
   };
 
@@ -57,7 +58,10 @@ const LoginPage = ({ setIsAuthenticated }) => {
             required
           />
         </div>
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
+        <button
+          type="submit"
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
           Login
         </button>
         {error && <p className="text-red-500 text-center">{error}</p>}

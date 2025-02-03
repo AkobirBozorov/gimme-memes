@@ -1,7 +1,8 @@
-// src/pages/DashboardPage.jsx
+// gimme-memes-frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MiniMemePreview from "../components/MiniMemePreview";
+import { baseApiUrl } from "../utils/api";
 
 const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [userData, setUserData] = useState(null);
@@ -18,7 +19,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       return;
     }
     const token = localStorage.getItem("token");
-    fetch("http://localhost:5000/api/user/me", {
+    fetch(`${baseApiUrl}/api/user/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(async (res) => {
@@ -59,7 +60,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     if (!window.confirm("Are you sure you want to delete this meme?")) return;
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -84,7 +85,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     if (!window.confirm("Publish this meme to the community?")) return;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}/publish`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}/publish`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -107,7 +108,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     if (!window.confirm("Unpublish this meme from the community?")) return;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}/unpublish`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}/unpublish`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -146,14 +147,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
-      <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">Dashboard</h1>
-      
+      <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
+        Dashboard
+      </h1>
+
       {notice && (
         <div className="mb-4 text-green-700 bg-green-100 p-3 rounded text-center transition duration-300">
           {notice}
         </div>
       )}
-      
+
       {userData && (
         <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
           <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
@@ -199,10 +202,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                 {meme.sharedToCommunity ? (
                   <div className="text-green-600 text-sm mt-1 text-center">
                     Published to Community
-                    <p className="text-gray-700 mt-1">Likes: {meme.likeCount || 0}</p>
+                    <p className="text-gray-700 mt-1">
+                      Likes: {meme.likeCount || 0}
+                    </p>
                   </div>
                 ) : (
-                  <div className="text-gray-500 text-sm mt-1 text-center">Not Published</div>
+                  <div className="text-gray-500 text-sm mt-1 text-center">
+                    Not Published
+                  </div>
                 )}
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
                   <button
@@ -222,14 +229,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                       className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
                       onClick={() => handleUnpublish(meme.id)}
                     >
-                      Unpublish from Community
+                      Unpublish
                     </button>
                   ) : (
                     <button
                       className="bg-purple-500 text-white px-3 py-1 rounded hover:bg-purple-600 transition"
                       onClick={() => handlePublish(meme.id)}
                     >
-                      Publish to Community
+                      Publish
                     </button>
                   )}
                 </div>

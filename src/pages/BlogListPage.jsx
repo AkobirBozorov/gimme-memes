@@ -1,13 +1,14 @@
 // gimme-memes-frontend/src/pages/BlogListPage.jsx
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { baseApiUrl } from "../utils/api";
 
 const BlogListPage = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/blog')
+    fetch(`${baseApiUrl}/api/blog`)
       .then((res) => res.json())
       .then((data) => {
         setPosts(data.posts || []);
