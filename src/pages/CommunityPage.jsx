@@ -71,7 +71,7 @@ function CommunityMemeCard({ initialMeme }) {
       {/* Image Container */}
       <div className="w-full bg-gray-200 flex items-center justify-center h-48 sm:h-64">
         <img
-          src={`${baseApiUrl}/${meme.filePath}`}
+          src={meme.filePath}
           alt="Community Meme"
           className="max-h-full w-full object-contain"
         />

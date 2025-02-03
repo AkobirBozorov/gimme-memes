@@ -17,7 +17,7 @@ const MiniMemePreview = ({ meme }) => {
     <div className="relative bg-gray-200 w-48 h-48 overflow-hidden rounded-lg shadow">
       {/* Base image filling the preview area */}
       <img
-        src={`${baseApiUrl}/${meme.filePath}`}
+        src={meme.filePath}
         alt="Meme"
         className="absolute w-full h-full object-cover"
       />
