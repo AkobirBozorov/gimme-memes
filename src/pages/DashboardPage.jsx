@@ -31,6 +31,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       })
       .then((data) => {
         setUserData(data.user);
+        // Reverse memes so that the newest appear first
         const reversed = [...data.memes].reverse();
         setMemes(reversed);
         setAnalytics(data.analytics);
@@ -193,19 +194,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                     {meme.title}
                   </h3>
                 )}
-                {meme.sharedToCommunity ? (
-                  <div className="text-green-600 text-sm mt-1 text-center">
-                    Published to Community
-                    <p className="text-gray-700 mt-1">
-                      Likes: {meme.likeCount || 0}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="text-gray-500 text-sm mt-1 text-center">
-                    Not Published
-                  </div>
-                )}
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
+                  {/* Edit button added back for user memes */}
+                  <button
+                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+                    onClick={() => navigate(`/create/${meme.id}`)}
+                  >
+                    Edit
+                  </button>
                   <button
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
                     onClick={() => handleDeleteMeme(meme.id)}
