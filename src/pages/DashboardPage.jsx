@@ -32,7 +32,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       }
       const data = await res.json();
 
-      // Sort memes by updatedAt or createdAt => newest first
+      // Sort by updatedAt => newest first
       const sorted = [...data.memes].sort((a, b) => {
         const aTime = a.updatedAt
           ? new Date(a.updatedAt).getTime()
@@ -195,19 +195,20 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </p>
       </div>
 
-      {/* Single column feed */}
-      <div className="max-w-2xl mx-auto space-y-6 px-2">
-        <h2 className="text-2xl font-semibold mb-2 text-gray-800">My Memes</h2>
+      <div className="max-w-2xl mx-auto px-2">
+        <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
-          memes.map((meme) => (
-            <DashboardMemeCard
-              key={meme.id}
-              meme={meme}
-              onDelete={handleDeleteMeme}
-              onPublish={handlePublish}
-              onUnpublish={handleUnpublish}
-            />
-          ))
+          <div className="space-y-6">
+            {memes.map((meme) => (
+              <DashboardMemeCard
+                key={meme.id}
+                meme={meme}
+                onDelete={handleDeleteMeme}
+                onPublish={handlePublish}
+                onUnpublish={handleUnpublish}
+              />
+            ))}
+          </div>
         ) : (
           <p className="text-gray-700 text-center">
             No memes yet.{" "}
@@ -227,20 +228,18 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
   return (
     <div className="bg-white rounded-lg shadow p-4">
+      {/* Meme title if any */}
       {meme.title && (
-        <h3 className="mb-2 text-lg font-semibold text-gray-700">
-          {meme.title}
-        </h3>
+        <h3 className="mb-2 text-lg font-semibold text-gray-700">{meme.title}</h3>
       )}
 
-      {/* Meme image => single column => fill container */}
+      {/* Limit tall images => max-h-96 */}
       <img
         src={meme.filePath}
         alt="Meme"
-        className="w-full h-auto object-contain mb-2"
+        className="w-full h-auto object-contain max-h-96 mb-2"
       />
 
-      {/* Publish status + actions */}
       <p className="text-xs text-gray-500">
         Last updated:{" "}
         {meme.updatedAt
@@ -252,7 +251,7 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
       </p>
 
       <div className="flex gap-2 mt-3 flex-wrap">
-        {/* We removed "Edit" button, so user can't jump from Dashboard to create/:id */}
+        {/* Removed "Edit" button => no direct link to /create/:id */}
         <button
           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
           onClick={() => onDelete(meme.id)}
