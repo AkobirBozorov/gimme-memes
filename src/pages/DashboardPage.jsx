@@ -18,38 +18,43 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       navigate("/login");
       return;
     }
-    const token = localStorage.getItem("token");
-    fetch(`${baseApiUrl}/api/user/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (res) => {
-        if (!res.ok) {
-          const errMsg = await res.json();
-          throw new Error(errMsg.error || "Failed to fetch user data");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setUserData(data.user);
-        // Sort memes by updatedAt (fallback to createdAt)
-        const sorted = [...data.memes].sort((a, b) => {
-          const aTime = a.updatedAt
-            ? new Date(a.updatedAt).getTime()
-            : new Date(a.createdAt).getTime();
-          const bTime = b.updatedAt
-            ? new Date(b.updatedAt).getTime()
-            : new Date(b.createdAt).getTime();
-          return bTime - aTime;
-        });
-        setMemes(sorted);
-        setAnalytics(data.analytics);
-      })
-      .catch((err) => {
-        console.error(err);
-        setError(err.message);
-      })
-      .finally(() => setLoading(false));
+    fetchUserData();
   }, [isAuthenticated, navigate]);
+
+  // A function to fetch user data, so we can re-call it if needed
+  const fetchUserData = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`${baseApiUrl}/api/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const errMsg = await res.json();
+        throw new Error(errMsg.error || "Failed to fetch user data");
+      }
+      const data = await res.json();
+
+      // Sort memes by updatedAt or createdAt
+      const sorted = [...data.memes].sort((a, b) => {
+        const aTime = a.updatedAt
+          ? new Date(a.updatedAt).getTime()
+          : new Date(a.createdAt).getTime();
+        const bTime = b.updatedAt
+          ? new Date(b.updatedAt).getTime()
+          : new Date(b.createdAt).getTime();
+        return bTime - aTime;
+      });
+
+      setUserData(data.user);
+      setMemes(sorted);
+      setAnalytics(data.analytics);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (notice) {
@@ -91,8 +96,8 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
   async function handlePublish(memeId) {
     if (!window.confirm("Publish this meme to the community?")) return;
-    const token = localStorage.getItem("token");
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${baseApiUrl}/api/memes/${memeId}/publish`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
@@ -102,6 +107,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         alert(data.error || "Error publishing meme");
         return;
       }
+      // Update local state
       setMemes((prev) =>
         prev.map((m) => (m.id === memeId ? { ...m, sharedToCommunity: true } : m))
       );
@@ -114,8 +120,8 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
   async function handleUnpublish(memeId) {
     if (!window.confirm("Unpublish this meme from the community?")) return;
-    const token = localStorage.getItem("token");
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${baseApiUrl}/api/memes/${memeId}/unpublish`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
@@ -152,6 +158,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       </div>
     );
   }
+
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
@@ -181,12 +188,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
           </button>
         </div>
       )}
+
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
         <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
         <p className="text-gray-700">
           <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
         </p>
       </div>
+
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
@@ -197,6 +206,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                 className="bg-gray-50 rounded-lg overflow-hidden shadow hover:shadow-xl transition duration-300 flex flex-col items-center"
               >
                 <MiniMemePreview meme={meme} />
+
                 {meme.title && (
                   <h3 className="font-semibold text-gray-700 mt-2 text-center px-2">
                     {meme.title}
@@ -211,6 +221,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                       })
                     : "N/A"}
                 </p>
+
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
                   <button
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"

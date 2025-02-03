@@ -2,10 +2,10 @@
 import React from "react";
 
 /**
- * This component:
- * 1. Creates a square or scaled container for the base image
- * 2. Positions text overlays on top, scaled according to the original width/height
- * 3. Appends a ?t= timestamp to filePath (if updatedAt is available) to avoid caching
+ * Renders a meme with its updated overlays:
+ * 1. Creates a container with correct aspect ratio (from meme.data.width/height).
+ * 2. Renders the base image, appending ?t=timestamp to avoid caching if updatedAt changes.
+ * 3. Positions text overlays absolutely, scaled according to the original width/height.
  */
 const MiniMemePreview = ({ meme }) => {
   if (!meme || !meme.filePath) {
@@ -16,7 +16,7 @@ const MiniMemePreview = ({ meme }) => {
     );
   }
 
-  // If updatedAt is present, append ?t= to force image refresh in case the underlying file changed
+  // Force a cache-bust if updatedAt is present
   let imageUrl = meme.filePath;
   if (meme.updatedAt) {
     const timeValue = new Date(meme.updatedAt).getTime();
@@ -25,23 +25,19 @@ const MiniMemePreview = ({ meme }) => {
     }
   }
 
-  // Pull out the data needed for overlays
+  // Extract the overlay data
   const { width = 400, height = 400, overlays = [] } = meme.data || {};
 
-  // For a square-ish preview, we'll do the "padding bottom" trick
-  // but we still need the correct aspect ratio to position overlays
-  // If you prefer a strictly square preview, do "pb-[100%]" and scale overlays accordingly
-  const aspectRatio = height / width;
-  // We'll assume a container width of 100% and let the height match the aspect ratio
-  // Then overlays are absolute-positioned relative to that.
+  // We'll preserve the aspect ratio from width/height
+  const aspectRatio = height / width; // e.g., 400/400 = 1 => square
 
   return (
-    <div className="relative w-full bg-gray-200 rounded-lg overflow-hidden shadow"
-         style={{
-           // We'll set height via padding bottom to preserve aspect ratio
-           // e.g. if aspect ratio is 1, it's square. If 1.5, it's taller, etc.
-           paddingBottom: `${aspectRatio * 100}%`,
-         }}
+    <div
+      className="relative w-full bg-gray-200 rounded-lg overflow-hidden shadow"
+      style={{
+        // By using paddingBottom = aspectRatio*100%, the container keeps the correct shape
+        paddingBottom: `${aspectRatio * 100}%`,
+      }}
     >
       {/* Base image */}
       <img
@@ -50,16 +46,23 @@ const MiniMemePreview = ({ meme }) => {
         className="absolute top-0 left-0 w-full h-full object-cover"
       />
 
-      {/* Overlays: position them absolutely, scaling coordinates from [0..width], [0..height] -> [0..100%] */}
-      {overlays.map((ov, i) => {
+      {/* Text Overlays */}
+      {overlays.map((ov, idx) => {
+        // Convert overlay coords [0..width], [0..height] to percentages
         const leftPercent = (ov.x / width) * 100;
         const topPercent = (ov.y / height) * 100;
         const wPercent = (ov.width / width) * 100;
         const hPercent = (ov.height / height) * 100;
 
+        // For a simpler approach to fontSize, we do a relative scale:
+        //   (ov.fontSize / width) * 100 => relative to container's width
+        // But we must choose a CSS unit (e.g. '%', 'vw', etc.).
+        // We'll choose '%' here for a more consistent scale inside the container.
+        const scaledFontSize = (ov.fontSize / width) * 100;
+
         return (
           <div
-            key={i}
+            key={idx}
             style={{
               position: "absolute",
               left: `${leftPercent}%`,
@@ -67,7 +70,7 @@ const MiniMemePreview = ({ meme }) => {
               width: `${wPercent}%`,
               height: `${hPercent}%`,
               backgroundColor: ov.bgColor || "transparent",
-              color: ov.textColor || "#FFF",
+              color: ov.textColor || "#FFFFFF",
               fontWeight: "bold",
               display: "flex",
               alignItems: "center",
@@ -75,12 +78,7 @@ const MiniMemePreview = ({ meme }) => {
               textAlign: "center",
               userSelect: "none",
               pointerEvents: "none",
-              // scale the font size similarly
-              // we do a rough scaling based on width:
-              fontSize: `${(ov.fontSize / width) * 100}vw`, 
-              // but 'vw' might be tricky if the container isn't the full viewport width
-              // Alternatively, we can do a simpler approach, or read container's actual width
-              // For a small preview, you may want to reduce this further
+              fontSize: `${scaledFontSize}%`, // a rough approach
             }}
           >
             {ov.text}
