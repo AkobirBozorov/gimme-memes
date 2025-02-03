@@ -13,24 +13,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [notice, setNotice] = useState("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
-    fetchUserData();
-  }, [isAuthenticated, navigate]);
-
-  // A function to fetch user data, so we can re-call it if needed
+  // 1. Fetch user data function
   const fetchUserData = async () => {
-    const token = localStorage.getItem("token");
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${baseApiUrl}/api/user/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
-        const errMsg = await res.json();
-        throw new Error(errMsg.error || "Failed to fetch user data");
+        const err = await res.json();
+        throw new Error(err.error || "Failed to fetch user data");
       }
       const data = await res.json();
 
@@ -42,7 +34,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         const bTime = b.updatedAt
           ? new Date(b.updatedAt).getTime()
           : new Date(b.createdAt).getTime();
-        return bTime - aTime;
+        return bTime - aTime; // newest first
       });
 
       setUserData(data.user);
@@ -56,6 +48,29 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     }
   };
 
+  // 2. useEffect to load data on mount *and* on window focus
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+    // Initial load
+    fetchUserData();
+
+    // On focus => re-fetch (handles "back" or window switching)
+    const handleFocus = () => {
+      if (isAuthenticated) {
+        fetchUserData();
+      }
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [isAuthenticated, navigate]);
+
+  // 3. Notice auto-clear effect
   useEffect(() => {
     if (notice) {
       const timer = setTimeout(() => setNotice(""), 3000);
@@ -107,7 +122,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         alert(data.error || "Error publishing meme");
         return;
       }
-      // Update local state
       setMemes((prev) =>
         prev.map((m) => (m.id === memeId ? { ...m, sharedToCommunity: true } : m))
       );
@@ -164,11 +178,13 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
         Dashboard
       </h1>
+
       {notice && (
         <div className="mb-4 text-green-700 bg-green-100 p-3 rounded text-center transition duration-300">
           {notice}
         </div>
       )}
+
       {userData && (
         <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
           <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>

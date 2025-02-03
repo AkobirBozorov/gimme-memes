@@ -1,12 +1,6 @@
 // gimme-memes-frontend/src/components/MiniMemePreview.jsx
 import React from "react";
 
-/**
- * Renders a meme with its updated overlays:
- * 1. Creates a container with correct aspect ratio (from meme.data.width/height).
- * 2. Renders the base image, appending ?t=timestamp to avoid caching if updatedAt changes.
- * 3. Positions text overlays absolutely, scaled according to the original width/height.
- */
 const MiniMemePreview = ({ meme }) => {
   if (!meme || !meme.filePath) {
     return (
@@ -16,7 +10,7 @@ const MiniMemePreview = ({ meme }) => {
     );
   }
 
-  // Force a cache-bust if updatedAt is present
+  // Force cache-bust if updatedAt is present
   let imageUrl = meme.filePath;
   if (meme.updatedAt) {
     const timeValue = new Date(meme.updatedAt).getTime();
@@ -25,40 +19,27 @@ const MiniMemePreview = ({ meme }) => {
     }
   }
 
-  // Extract the overlay data
   const { width = 400, height = 400, overlays = [] } = meme.data || {};
-
-  // We'll preserve the aspect ratio from width/height
-  const aspectRatio = height / width; // e.g., 400/400 = 1 => square
+  const aspectRatio = height / width;
 
   return (
     <div
       className="relative w-full bg-gray-200 rounded-lg overflow-hidden shadow"
       style={{
-        // By using paddingBottom = aspectRatio*100%, the container keeps the correct shape
         paddingBottom: `${aspectRatio * 100}%`,
       }}
     >
-      {/* Base image */}
       <img
         src={imageUrl}
         alt="Meme"
         className="absolute top-0 left-0 w-full h-full object-cover"
       />
-
-      {/* Text Overlays */}
       {overlays.map((ov, idx) => {
-        // Convert overlay coords [0..width], [0..height] to percentages
         const leftPercent = (ov.x / width) * 100;
         const topPercent = (ov.y / height) * 100;
         const wPercent = (ov.width / width) * 100;
         const hPercent = (ov.height / height) * 100;
-
-        // For a simpler approach to fontSize, we do a relative scale:
-        //   (ov.fontSize / width) * 100 => relative to container's width
-        // But we must choose a CSS unit (e.g. '%', 'vw', etc.).
-        // We'll choose '%' here for a more consistent scale inside the container.
-        const scaledFontSize = (ov.fontSize / width) * 100;
+        const scaledFontSize = (ov.fontSize / width) * 100; // a rough approach
 
         return (
           <div
@@ -70,7 +51,7 @@ const MiniMemePreview = ({ meme }) => {
               width: `${wPercent}%`,
               height: `${hPercent}%`,
               backgroundColor: ov.bgColor || "transparent",
-              color: ov.textColor || "#FFFFFF",
+              color: ov.textColor || "#FFF",
               fontWeight: "bold",
               display: "flex",
               alignItems: "center",
@@ -78,7 +59,7 @@ const MiniMemePreview = ({ meme }) => {
               textAlign: "center",
               userSelect: "none",
               pointerEvents: "none",
-              fontSize: `${scaledFontSize}%`, // a rough approach
+              fontSize: `${scaledFontSize}%`,
             }}
           >
             {ov.text}
