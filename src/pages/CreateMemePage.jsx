@@ -1,4 +1,4 @@
-// src/pages/CreateMemePage.jsx
+// gimme-memes-frontend/src/pages/CreateMemePage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Rnd } from "react-rnd";
@@ -10,12 +10,24 @@ import {
   PREVIEW_MAX_WIDTH,
   PREVIEW_MAX_HEIGHT,
 } from "../utils/scaleUtils";
+// Import the helper for the baseApiUrl
+import { baseApiUrl } from "../utils/api";
 
 const LOCAL_KEY = "ephemeralMemeData";
 
 const TEXT_COLORS = [
-  "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
-  "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080", "#808080", "#B22222"
+  "#000000",
+  "#FFFFFF",
+  "#FF0000",
+  "#00FF00",
+  "#0000FF",
+  "#FFFF00",
+  "#FFA500",
+  "#FF00FF",
+  "#800080",
+  "#008080",
+  "#808080",
+  "#B22222",
 ];
 const BG_COLORS = [
   { label: "None", value: "" },
@@ -62,9 +74,9 @@ function CreateMemePage() {
 
   const hasImage = !!filePath || !!tempImageDataUrl;
 
-  // --------------------
-  // Load existing or ephemeral
-  // --------------------
+  // ----------------------------------------
+  // LOAD EXISTING MEME OR EPHEMERAL MEME
+  // ----------------------------------------
   useEffect(() => {
     if (id) {
       loadExistingMeme(id);
@@ -92,7 +104,7 @@ function CreateMemePage() {
         }
       }
     }
-    // Cleanup if brand new
+    // Cleanup ephemeral data if brand new
     return () => {
       if (!id) {
         localStorage.removeItem(LOCAL_KEY);
@@ -116,9 +128,9 @@ function CreateMemePage() {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
   }
 
-  // --------------------
-  // Loading existing meme
-  // --------------------
+  // ----------------------------------------
+  // LOADING EXISTING MEME
+  // ----------------------------------------
   async function loadExistingMeme(memeId) {
     if (!hasToken) {
       alert("You are not logged in to load an existing meme!");
@@ -126,7 +138,7 @@ function CreateMemePage() {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -162,13 +174,13 @@ function CreateMemePage() {
     }
   }
 
-  // --------------------
-  // Creating new meme
-  // --------------------
+  // ----------------------------------------
+  // CREATE NEW MEME RECORD (BACKEND)
+  // ----------------------------------------
   async function createMemeRecord() {
     if (!hasToken) return null;
     try {
-      const res = await fetch("http://localhost:5000/api/memes", {
+      const res = await fetch(`${baseApiUrl}/api/memes`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -186,9 +198,9 @@ function CreateMemePage() {
     }
   }
 
-  // --------------------
-  // Syncing data
-  // --------------------
+  // ----------------------------------------
+  // SYNCING MEME DATA
+  // ----------------------------------------
   async function syncMemeData(updatedReal, w, h) {
     if (!memeId) return;
     try {
@@ -199,7 +211,7 @@ function CreateMemePage() {
           height: h,
         },
       };
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -216,15 +228,15 @@ function CreateMemePage() {
     }
   }
 
-  // --------------------
-  // File selection
-  // --------------------
+  // ----------------------------------------
+  // FILE SELECTION / IMAGE UPLOAD
+  // ----------------------------------------
   function handleFileSelect(e) {
     const file = e.target.files[0];
     if (!file) return;
     e.target.value = "";
 
-    // Reset everything
+    // Reset everything for a brand-new meme
     setMemeId(null);
     setFilePath("");
     setRealWidth(400);
@@ -274,7 +286,7 @@ function CreateMemePage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch(`http://localhost:5000/api/memes/${memeIdVal}/upload`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeIdVal}/upload`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
@@ -310,15 +322,16 @@ function CreateMemePage() {
     img.onerror = () => {
       alert("Could not load server image. Try again?");
     };
-    img.src = `http://localhost:5000/${path}`;
+    img.src = `${baseApiUrl}/${path}`;
   }
 
-  // --------------------
-  // Commit overlays
-  // --------------------
+  // ----------------------------------------
+  // COMMIT OVERLAYS
+  // ----------------------------------------
   async function commitOverlays(newDisplay) {
     let currentId = memeId;
     if (!currentId && tempImageFile) {
+      // If there's no meme record yet, create one
       if (hasToken) {
         const created = await createMemeRecord();
         if (created) {
@@ -341,9 +354,9 @@ function CreateMemePage() {
     storeEphemeralData(newReal, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // --------------------
-  // Undo / Redo
-  // --------------------
+  // ----------------------------------------
+  // UNDO / REDO
+  // ----------------------------------------
   function undo() {
     if (pastStates.length === 0) return;
     const prev = pastStates[pastStates.length - 1];
@@ -374,9 +387,9 @@ function CreateMemePage() {
     storeEphemeralData(nxt, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // --------------------
-  // Overlay actions
-  // --------------------
+  // ----------------------------------------
+  // OVERLAY ACTIONS
+  // ----------------------------------------
   function handleAddText() {
     const newOverlay = {
       id: Date.now(),
@@ -460,9 +473,9 @@ function CreateMemePage() {
     );
   }
 
-  // --------------------
-  // Download
-  // --------------------
+  // ----------------------------------------
+  // DOWNLOAD MEME (CLIENT-SIDE COMPOSITING)
+  // ----------------------------------------
   async function handleDownload() {
     if (!hasImage) {
       alert("No image to download.");
@@ -474,8 +487,8 @@ function CreateMemePage() {
       canvas.height = realHeight;
       const ctx = canvas.getContext("2d");
 
-      let imageSrc = filePath
-        ? `http://localhost:5000/${filePath}`
+      const imageSrc = filePath
+        ? `${baseApiUrl}/${filePath}`
         : tempImageDataUrl || "";
 
       const mainImg = new Image();
@@ -513,9 +526,9 @@ function CreateMemePage() {
     }
   }
 
-  // --------------------
-  // Remove file
-  // --------------------
+  // ----------------------------------------
+  // REMOVE FILE
+  // ----------------------------------------
   function handleRemoveFile() {
     setTempImageDataUrl(null);
     setTempImageFile(null);
@@ -536,15 +549,15 @@ function CreateMemePage() {
     }
   }
 
-  // --------------------
-  // Publish to community
-  // --------------------
+  // ----------------------------------------
+  // PUBLISH TO COMMUNITY
+  // ----------------------------------------
   async function handlePublishToCommunity() {
     if (!window.confirm("Are you sure you want to publish to the Community?")) {
       return;
     }
     try {
-      const res = await fetch(`http://localhost:5000/api/memes/${memeId}/publish`, {
+      const res = await fetch(`${baseApiUrl}/api/memes/${memeId}/publish`, {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -561,6 +574,9 @@ function CreateMemePage() {
     }
   }
 
+  // ----------------------------------------
+  // RENDER
+  // ----------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-200 p-6 flex flex-col items-center">
       <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
@@ -613,7 +629,7 @@ function CreateMemePage() {
 
           {hasToken && memeId && (
             <button
-              onClick={handlePublishToCommunity} // <-- FIX: matched function name
+              onClick={handlePublishToCommunity}
               className="bg-purple-500 text-white px-4 py-2 rounded-lg shadow hover:bg-purple-600"
             >
               Share to Community
@@ -666,7 +682,7 @@ function CreateMemePage() {
           >
             {filePath ? (
               <img
-                src={`http://localhost:5000/${filePath}`}
+                src={`${baseApiUrl}/${filePath}`}
                 alt="Meme"
                 className="w-full h-full object-contain"
               />
@@ -731,7 +747,8 @@ function CreateMemePage() {
                   justifyContent: "center",
                   textAlign: "center",
                   userSelect: "none",
-                  outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
+                  outline:
+                    ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
                 }}
                 onClick={() => handleSelectOverlay(ov.id)}
                 onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
@@ -794,8 +811,8 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetBgColor(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.bgColor ||
-                    ""
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.bgColor || ""
                   }
                 >
                   {BG_COLORS.map((bg) => (
@@ -815,8 +832,8 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetFontFamily(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontFamily ||
-                    "Arial, sans-serif"
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.fontFamily || "Arial, sans-serif"
                   }
                 >
                   {FONT_FAMILIES.map((f) => (
@@ -840,7 +857,8 @@ function CreateMemePage() {
                   onChange={(e) => handleSetFontSize(e.target.value)}
                   className="w-full"
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontSize || 20
+                    displayOverlays.find((o) => o.id === selectedOverlayId)
+                      ?.fontSize || 20
                   }
                 />
               </div>
