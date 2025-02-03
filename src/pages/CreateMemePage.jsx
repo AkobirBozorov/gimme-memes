@@ -1,4 +1,3 @@
-// gimme-memes-frontend/src/pages/CreateMemePage.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Rnd } from "react-rnd";
@@ -15,20 +14,10 @@ import { baseApiUrl } from "../utils/api";
 const LOCAL_KEY = "ephemeralMemeData";
 
 const TEXT_COLORS = [
-  "#000000",
-  "#FFFFFF",
-  "#FF0000",
-  "#00FF00",
-  "#0000FF",
-  "#FFFF00",
-  "#FFA500",
-  "#FF00FF",
-  "#800080",
-  "#008080",
-  "#808080",
-  "#B22222",
+  "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
+  "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080",
+  "#808080", "#B22222",
 ];
-
 const BG_COLORS = [
   { label: "None", value: "" },
   { label: "White", value: "#FFFFFF" },
@@ -41,7 +30,6 @@ const BG_COLORS = [
   { label: "Pink", value: "#FF69B4" },
   { label: "Gray", value: "#808080" },
 ];
-
 const FONT_FAMILIES = [
   { label: "Arial", value: "Arial, sans-serif" },
   { label: "Impact", value: "Impact, Charcoal, sans-serif" },
@@ -117,7 +105,7 @@ function CreateMemePage() {
   }, [id]);
 
   // ----------------------------------------
-  // Utility to store ephemeral (for non-logged in)
+  // Store ephemeral data (for non-logged in)
   // ----------------------------------------
   function storeEphemeralData(
     newReal = realOverlays,
@@ -125,7 +113,7 @@ function CreateMemePage() {
     h = realHeight,
     dataUrl = tempImageDataUrl
   ) {
-    if (id) return; // we only store ephemeral for "Create" not existing IDs
+    if (id) return; // only store ephemeral for "Create," not for existing memes
     const ephemeral = {
       realWidth: w,
       realHeight: h,
@@ -155,7 +143,7 @@ function CreateMemePage() {
 
       const m = data.meme;
       setMemeId(m.id);
-      setFilePath(m.filePath || "");
+      setFilePath(m.filePath || ""); // full S3 URL (if present)
 
       let w = 400,
         h = 400,
@@ -210,7 +198,7 @@ function CreateMemePage() {
   }
 
   // ----------------------------------------
-  // Upload file to existing Meme
+  // Upload file to existing Meme (S3)
   // ----------------------------------------
   async function uploadFile(memeIdVal, file) {
     if (!hasToken) return;
@@ -228,9 +216,7 @@ function CreateMemePage() {
         throw new Error(errData.error || "Upload failed");
       }
       const data = await res.json();
-      setFilePath(data.meme.filePath);
-
-      // Now measure the newly uploaded image from server
+      setFilePath(data.meme.filePath); // full S3 URL
       measureServerImage(data.meme.filePath);
     } catch (err) {
       console.error("File upload error:", err);
@@ -239,6 +225,7 @@ function CreateMemePage() {
 
   // ----------------------------------------
   // measure server image => sets realWidth, realHeight, etc.
+  // **IMPORTANT**: we do NOT prepend baseApiUrl if filePath is an S3 URL.
   // ----------------------------------------
   function measureServerImage(path) {
     const img = new Image();
@@ -254,24 +241,26 @@ function CreateMemePage() {
 
       // Possibly sync data if needed
       syncMemeData(realOverlays, w, h);
-      // Clear ephemeral base64 since we now have a real file
+
+      // Clear ephemeral base64 since we have a real file now
       storeEphemeralData(realOverlays, w, h, null);
     };
     img.onerror = () => {
       alert("Could not load image from server. Try again?");
     };
-    img.src = `${baseApiUrl}/${path}`;
+    // Just use the path directly (path is a full S3 URL)
+    img.src = path;
   }
 
   // ----------------------------------------
   // Sync overlays in DB
   // ----------------------------------------
-  async function syncMemeData(ov, w, h) {
+  async function syncMemeData(overlays, w, h) {
     if (!memeId || !hasToken) return;
     try {
       const body = {
         data: {
-          overlays: ov,
+          overlays,
           width: w,
           height: h,
         },
@@ -294,7 +283,7 @@ function CreateMemePage() {
   }
 
   // ----------------------------------------
-  // handleFileSelect => old preview style + immediate upload if logged in
+  // handleFileSelect => immediate upload if logged in
   // ----------------------------------------
   function handleFileSelect(e) {
     const file = e.target.files[0];
@@ -332,8 +321,6 @@ function CreateMemePage() {
             console.error(uploadErr);
           }
         }
-      } else {
-        // Not logged in => ephemeral only
       }
     };
     reader.readAsDataURL(file);
@@ -354,6 +341,7 @@ function CreateMemePage() {
       setDisplayWidth(dispW);
       setDisplayHeight(dispH);
 
+      // store ephemeral for non-logged in scenario
       storeEphemeralData(realOverlays, w, h, dataUrl);
     };
     img.onerror = () => {
@@ -369,13 +357,11 @@ function CreateMemePage() {
   async function commitOverlays(newDisplay) {
     let currentId = memeId;
     // If user is logged in but no meme record yet => create + upload
-    // (In theory we've already done it in handleFileSelect, but let's keep this logic in case)
     if (!currentId && hasToken && tempImageDataUrl) {
       const created = await createMemeRecord();
       if (created) {
-        // no guaranteed file object here anymore, so might skip direct upload
-        // but let's keep this for fallback
         currentId = created;
+        // We won't reupload file here, because handleFileSelect did that
       }
     }
 
@@ -388,7 +374,7 @@ function CreateMemePage() {
     setDisplayOverlays(newDisplay);
     setRealOverlays(newReal);
 
-    // If logged in => sync the new overlays
+    // If logged in => sync overlays
     syncMemeData(newReal, realWidth, realHeight);
     storeEphemeralData(newReal, realWidth, realHeight, tempImageDataUrl);
   }
@@ -526,10 +512,8 @@ function CreateMemePage() {
       canvas.height = realHeight;
       const ctx = canvas.getContext("2d");
 
-      // If we have filePath => use server image; else use tempImageDataUrl
-      const imageSrc = filePath
-        ? `${baseApiUrl}/${filePath}`
-        : tempImageDataUrl || "";
+      // If filePath is a full S3 URL, just use it directly; else use tempImageDataUrl
+      const imageSrc = filePath ? filePath : tempImageDataUrl || "";
 
       const mainImg = new Image();
       mainImg.crossOrigin = "anonymous";
@@ -720,7 +704,6 @@ function CreateMemePage() {
               maxWidth: "100%",
             }}
           >
-            {/* The older "object-contain" approach for best preview */}
             {filePath ? (
               <img
                 src={filePath}
@@ -768,9 +751,7 @@ function CreateMemePage() {
                           y: newY,
                           fontSize:
                             item.fontSize *
-                            Math.sqrt(
-                              (newW / item.width) * (newH / item.height)
-                            ),
+                            Math.sqrt((newW / item.width) * (newH / item.height)),
                         }
                       : item
                   );
@@ -788,8 +769,7 @@ function CreateMemePage() {
                   justifyContent: "center",
                   textAlign: "center",
                   userSelect: "none",
-                  outline:
-                    ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
+                  outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
                 }}
                 onClick={() => handleSelectOverlay(ov.id)}
                 onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
@@ -850,8 +830,7 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetBgColor(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.bgColor || ""
+                    displayOverlays.find((o) => o.id === selectedOverlayId)?.bgColor || ""
                   }
                 >
                   {BG_COLORS.map((bg) => (
@@ -870,8 +849,8 @@ function CreateMemePage() {
                   className="w-full p-2 border border-gray-300 rounded-md"
                   onChange={(e) => handleSetFontFamily(e.target.value)}
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.fontFamily || "Arial, sans-serif"
+                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontFamily ||
+                    "Arial, sans-serif"
                   }
                 >
                   {FONT_FAMILIES.map((f) => (
@@ -894,8 +873,7 @@ function CreateMemePage() {
                   onChange={(e) => handleSetFontSize(e.target.value)}
                   className="w-full"
                   value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.fontSize || 20
+                    displayOverlays.find((o) => o.id === selectedOverlayId)?.fontSize || 20
                   }
                 />
               </div>
