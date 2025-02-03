@@ -723,7 +723,7 @@ function CreateMemePage() {
             {/* The older "object-contain" approach for best preview */}
             {filePath ? (
               <img
-                src={`${baseApiUrl}/${filePath}`}
+                src={filePath}
                 alt="Meme"
                 className="w-full h-full object-contain"
               />
