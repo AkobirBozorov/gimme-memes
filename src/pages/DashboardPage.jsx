@@ -144,19 +144,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
         Dashboard
       </h1>
-
       {notice && (
         <div className="mb-4 text-green-700 bg-green-100 p-3 rounded text-center transition duration-300">
           {notice}
         </div>
       )}
-
       {userData && (
         <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
           <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
@@ -176,14 +173,12 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
           </button>
         </div>
       )}
-
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500">
         <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
         <p className="text-gray-700">
           <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
         </p>
       </div>
-
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
