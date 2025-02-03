@@ -1,13 +1,17 @@
 // gimme-memes-frontend/src/components/MiniMemePreview.jsx
-import React from "react";
+import React, { useRef, useState, useEffect } from "react";
 
 /**
- * Renders a meme with updated overlays in a preview.
- * 1. Creates a container with correct aspect ratio (meme.data.width/height).
- * 2. Positions the base image behind overlays.
- * 3. Makes text bigger by scaling overlay font size more aggressively.
+ * Renders a meme with its updated overlays in a preview that
+ * replicates the same text size proportions from CreateMemePage.
+ *
+ * Steps:
+ * 1. We measure the container's actual width (in px).
+ * 2. We compute scale = containerWidth / meme.data.width (the original width).
+ * 3. Overlays are absolutely positioned with scaled font sizes => exact proportion.
  */
 const MiniMemePreview = ({ meme }) => {
+  // 1. If there's no filePath or data, return a placeholder
   if (!meme || !meme.filePath) {
     return (
       <div className="w-full h-0 pb-[100%] bg-gray-200 flex items-center justify-center text-gray-600 rounded-lg">
@@ -16,7 +20,35 @@ const MiniMemePreview = ({ meme }) => {
     );
   }
 
-  // Append a cache-busting query param if updatedAt is present
+  // 2. We'll measure the container
+  const containerRef = useRef(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // 3. Extract info from meme.data
+  const { width = 400, height = 400, overlays = [] } = meme.data || {};
+
+  // 4. On mount (and resize), measure the actual container's width
+  //    Then compute the scale factor
+  useEffect(() => {
+    function measure() {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth);
+      }
+    }
+    measure(); // initial
+
+    // (Optional) If you want dynamic resizing, add a listener:
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  // 5. Calculate scale = (containerWidth) / (original Meme width)
+  //    If containerWidth = 0 or the data.width is 0, default scale=1
+  const scale = width > 0 && containerWidth > 0
+    ? containerWidth / width
+    : 1;
+
+  // 6. Append a timestamp param to bust cache if updatedAt exists
   let imageUrl = meme.filePath;
   if (meme.updatedAt) {
     const timeValue = new Date(meme.updatedAt).getTime();
@@ -25,15 +57,17 @@ const MiniMemePreview = ({ meme }) => {
     }
   }
 
-  // Destructure data (width, height, overlays) with defaults
-  const { width = 400, height = 400, overlays = [] } = meme.data || {};
+  // 7. We'll keep aspect ratio by setting container's height using "padding-bottom".
+  //    This only sets the container height, but we measure the actual .clientWidth for scaling text.
   const aspectRatio = height / width;
-
+  
   return (
     <div
+      ref={containerRef}
       className="relative w-full bg-gray-200 rounded-lg overflow-hidden shadow"
       style={{
-        paddingBottom: `${aspectRatio * 100}%`, // container shape
+        // Maintain aspect ratio
+        paddingBottom: `${aspectRatio * 100}%`,
       }}
     >
       {/* Base image */}
@@ -43,19 +77,16 @@ const MiniMemePreview = ({ meme }) => {
         className="absolute top-0 left-0 w-full h-full object-cover"
       />
 
-      {/* Overlays */}
       {overlays.map((ov, idx) => {
-        // Convert coordinates to percentages
+        // Convert overlay coords => absolute percentages
         const leftPercent = (ov.x / width) * 100;
         const topPercent = (ov.y / height) * 100;
         const wPercent = (ov.width / width) * 100;
         const hPercent = (ov.height / height) * 100;
 
-        /**
-         * Original approach: (ov.fontSize / width) * 100 => small text
-         * We'll multiply by 300 to enlarge text. Tweak as desired: 200, 400, etc.
-         */
-        const scaledFontSize = (ov.fontSize / width) * 300;
+        // Scale the font size by the container scale so text is
+        // proportionally the same as in CreateMemePage.
+        const scaledFontSizePx = ov.fontSize * scale; // e.g. if user typed 20px, scale might be 0.5 => 10px
 
         return (
           <div
@@ -75,7 +106,8 @@ const MiniMemePreview = ({ meme }) => {
               textAlign: "center",
               userSelect: "none",
               pointerEvents: "none",
-              fontSize: `${scaledFontSize}%`, // Larger text in previews
+              // Use scaledFontSizePx in px
+              fontSize: `${scaledFontSizePx}px`,
             }}
           >
             {ov.text}
