@@ -18,12 +18,18 @@ import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import NotFoundPage from "./pages/NotFoundPage";
-import CommunityPage from './pages/CommunityPage';
+import CommunityPage from "./pages/CommunityPage";
 
 // Blog pages
 import BlogListPage from "./pages/BlogListPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AdminBlogPage from "./pages/AdminBlogPage";
+
+// Determine base URL dynamically
+const isProduction = import.meta.env.PROD;
+const baseApiUrl = isProduction
+  ? import.meta.env.VITE_API_URL
+  : "http://localhost:5000";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -41,7 +47,7 @@ function App() {
     }
 
     // We do have a token => verify with backend
-    fetch("http://localhost:5000/api/user/me", {
+    fetch(`${baseApiUrl}/api/user/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
@@ -51,7 +57,7 @@ function App() {
         return res.json();
       })
       .then((data) => {
-        console.log('USER DATA from /api/user/me =>', data);
+        console.log("USER DATA from /api/user/me =>", data);
         setIsAuthenticated(true);
         setIsAdmin(data.user?.isAdmin === true);
       })
