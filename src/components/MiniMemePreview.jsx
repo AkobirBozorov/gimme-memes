@@ -9,10 +9,16 @@ const MiniMemePreview = ({ meme }) => {
       </div>
     );
   }
+
+  // Append updatedAt timestamp to force reload when updated
+  const imageUrl = meme.updatedAt
+    ? `${meme.filePath}?t=${new Date(meme.updatedAt).getTime()}`
+    : meme.filePath;
+
   return (
     <div className="relative w-full h-0 pb-[100%] bg-gray-200 rounded-lg overflow-hidden shadow">
       <img
-        src={meme.filePath}
+        src={imageUrl}
         alt="Meme"
         className="absolute top-0 left-0 w-full h-full object-cover"
       />

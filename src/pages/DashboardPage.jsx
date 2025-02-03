@@ -31,9 +31,13 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       })
       .then((data) => {
         setUserData(data.user);
-        // Reverse memes so that the newest appear first
-        const reversed = [...data.memes].reverse();
-        setMemes(reversed);
+        // Sort memes by updatedAt (or createdAt as fallback) in descending order
+        const sorted = [...data.memes].sort((a, b) => {
+          const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : new Date(a.createdAt).getTime();
+          const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : new Date(b.createdAt).getTime();
+          return bTime - aTime;
+        });
+        setMemes(sorted);
         setAnalytics(data.analytics);
       })
       .catch((err) => {
@@ -194,8 +198,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                     {meme.title}
                   </h3>
                 )}
+                {/* Display last updated time */}
+                <p className="text-xs text-gray-500 mt-1">
+                  Last updated:{" "}
+                  {new Date(meme.updatedAt).toLocaleString(undefined, {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </p>
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
-                  {/* Edit button added back for user memes */}
+                  {/* Edit button is back in Dashboard */}
                   <button
                     className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
                     onClick={() => navigate(`/create/${meme.id}`)}
