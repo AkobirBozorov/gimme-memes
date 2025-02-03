@@ -31,7 +31,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       })
       .then((data) => {
         setUserData(data.user);
-        // Reverse memes so that the newest appear first
         const reversed = [...data.memes].reverse();
         setMemes(reversed);
         setAnalytics(data.analytics);
@@ -207,12 +206,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                   </div>
                 )}
                 <div className="flex justify-center space-x-2 mt-3 flex-wrap px-2 pb-3">
-                  <button
-                    className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-                    onClick={() => navigate(`/create/${meme.id}`)}
-                  >
-                    Edit
-                  </button>
                   <button
                     className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
                     onClick={() => handleDeleteMeme(meme.id)}

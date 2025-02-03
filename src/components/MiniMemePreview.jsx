@@ -9,16 +9,13 @@ const MiniMemePreview = ({ meme }) => {
       </div>
     );
   }
-
   return (
     <div className="relative w-full h-0 pb-[100%] bg-gray-200 rounded-lg overflow-hidden shadow">
-      {/* The image fills the container while preserving aspect ratio */}
       <img
         src={meme.filePath}
         alt="Meme"
         className="absolute top-0 left-0 w-full h-full object-cover"
       />
-      {/* Optionally, render overlays on top if needed */}
     </div>
   );
 };
