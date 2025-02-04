@@ -138,11 +138,11 @@ function CommunityMemeCard({ meme }) {
           {localMeme.title}
         </h3>
       )}
-      <div className="w-80 h-80 relative mb-2 overflow-hidden flex justify-center items-center">
+      <div className="w-80 h-80 relative mb-2 overflow-hidden px-1">
         <img
           src={localMeme.filePath}
           alt="Meme"
-          className="object-cover max-w-[98%] max-h-full"
+          className="absolute inset-0 w-full h-full object-cover max-w-full max-h-full"
         />
       </div>
       <div className="flex items-center gap-2">
