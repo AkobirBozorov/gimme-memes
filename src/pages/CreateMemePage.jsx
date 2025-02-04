@@ -54,12 +54,12 @@ const FONT_FAMILIES = [
 ];
 
 function CreateMemePage() {
-  const { id } = useParams(); // if provided, we're editing an existing meme
+  const { id } = useParams(); // If provided, we're editing an existing meme.
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
 
-  // Meme state variables
+  // Meme states
   const [memeId, setMemeId] = useState(null);
   const [filePath, setFilePath] = useState("");
   const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
@@ -81,16 +81,34 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar active panel and popup position state
+  // Toolbar panel state and popup position
   const [activePanel, setActivePanel] = useState(null); // "text", "colors", "surface", or null
   const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
-  const toolbarRef = useRef(null);
+  const toolbarContainerRef = useRef(null);
 
   // Whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
+  // Close popup when clicking outside toolbar container
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        toolbarContainerRef.current &&
+        !toolbarContainerRef.current.contains(e.target)
+      ) {
+        setActivePanel(null);
+      }
+    }
+    if (activePanel) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [activePanel]);
+
   // ----------------------------------------
-  // On mount: load existing meme if editing, otherwise load ephemeral data.
+  // On mount: load existing meme (if editing) or ephemeral
   // ----------------------------------------
   useEffect(() => {
     if (id) {
@@ -122,8 +140,13 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // Helper: store ephemeral data for new memes
-  function storeEphemeralData(overlays = realOverlays, w = realWidth, h = realHeight, dataUrl = tempImageDataUrl) {
+  // Helper to store ephemeral data for new memes
+  function storeEphemeralData(
+    overlays = realOverlays,
+    w = realWidth,
+    h = realHeight,
+    dataUrl = tempImageDataUrl
+  ) {
     if (id) return;
     const ephemeral = { realWidth: w, realHeight: h, realOverlays: overlays, tempImageDataUrl: dataUrl };
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
@@ -317,23 +340,17 @@ function CreateMemePage() {
   function handleDoubleClickOverlay(overlayId) {
     setSelectedOverlayId(overlayId);
     setDisplayOverlays((prev) =>
-      prev.map((ov) =>
-        ov.id === overlayId ? { ...ov, isEditing: true } : ov
-      )
+      prev.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: true } : ov))
     );
   }
   function handleFinishEditing(overlayId) {
     commitOverlays(
-      displayOverlays.map((ov) =>
-        ov.id === overlayId ? { ...ov, isEditing: false } : ov
-      )
+      displayOverlays.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: false } : ov))
     );
   }
   function handleTextChange(overlayId, newText) {
     setDisplayOverlays((prev) =>
-      prev.map((ov) =>
-        ov.id === overlayId ? { ...ov, text: newText } : ov
-      )
+      prev.map((ov) => (ov.id === overlayId ? { ...ov, text: newText } : ov))
     );
   }
   // Ensure text input always selects all text on focus
@@ -508,7 +525,7 @@ function CreateMemePage() {
   
       {/* Toolbar Area */}
       {hasImage && (
-        <div ref={toolbarRef} className="relative w-full max-w-2xl mb-6">
+        <div ref={toolbarContainerRef} className="relative w-full max-w-2xl mb-6">
           <MemeEditorToolbar
             onAddText={handleAddText}
             onUndo={undo}
@@ -666,7 +683,7 @@ function CreateMemePage() {
 }
 
 // Toolbar component with icon buttons, labels, and an absolutely positioned pop-up panel.
-// The pop-up panel is anchored to the clicked button and does not shift other content.
+// The pop-up panel is anchored to the clicked button and will not push other content.
 function MemeEditorToolbar({
   onAddText,
   onUndo,
@@ -705,7 +722,7 @@ function MemeEditorToolbar({
 
   return (
     <div className="relative">
-      {/* Toolbar row with icons and labels */}
+      {/* Toolbar row */}
       <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
         <div className="flex flex-col items-center">
           <button onClick={onAddText} title="Add Text" className="p-2">
@@ -780,7 +797,7 @@ function MemeEditorToolbar({
           <span className="text-xs text-gray-600">Remove File</span>
         </div>
       </div>
-      {/* Absolute pop-up panel anchored to the clicked button */}
+      {/* Pop-up panel */}
       {activePanel && selectedOverlay && (
         <div
           className="absolute bg-white p-4 rounded-lg shadow border z-10"
