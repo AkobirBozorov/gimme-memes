@@ -132,7 +132,7 @@ function CommunityMemeCard({ meme }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0 box-border">
+    <div className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0 overflow-hidden">
       {localMeme.title && (
         <h3 className="mb-2 text-lg font-semibold text-gray-700 line-clamp-1">
           {localMeme.title}
@@ -142,7 +142,7 @@ function CommunityMemeCard({ meme }) {
         <img
           src={localMeme.filePath}
           alt="Meme"
-          className="absolute inset-0 w-full h-full object-cover box-border"
+          className="absolute inset-0 w-full h-full object-cover max-w-full max-h-full"
         />
       </div>
       <div className="flex items-center gap-2">
