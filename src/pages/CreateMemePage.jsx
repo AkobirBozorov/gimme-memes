@@ -337,14 +337,22 @@ function CreateMemePage() {
       )
     );
   }
-  // Add missing function: handleDoubleClickOverlay
   function handleDoubleClickOverlay(overlayId) {
     setSelectedOverlayId(overlayId);
     setDisplayOverlays((prev) =>
       prev.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: true } : ov))
     );
   }
-  // Ensure text input always selects all text on focus
+  function handleFinishEditing(overlayId) {
+    commitOverlays(
+      displayOverlays.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: false } : ov))
+    );
+  }
+  function handleTextChange(overlayId, newText) {
+    setDisplayOverlays((prev) =>
+      prev.map((ov) => (ov.id === overlayId ? { ...ov, text: newText } : ov))
+    );
+  }
   const handleInputFocus = (e) => {
     e.target.select();
   };
@@ -533,6 +541,7 @@ function CreateMemePage() {
             activePanel={activePanel}
             setActivePanel={setActivePanel}
             setPopupPosition={setPopupPosition}
+            toolbarContainerRef={toolbarContainerRef}
           />
         </div>
       )}
@@ -689,6 +698,7 @@ function MemeEditorToolbar({
   activePanel,
   setActivePanel,
   setPopupPosition,
+  toolbarContainerRef,
 }) {
   const buttonRefs = {
     text: useRef(null),
@@ -696,14 +706,16 @@ function MemeEditorToolbar({
     surface: useRef(null),
   };
 
-  // When a panel is toggled, capture the clicked button's position.
+  // When a panel is toggled, calculate its position relative to the toolbar container.
   const togglePanel = (panel, e) => {
+    if (!toolbarContainerRef.current) return;
+    const containerRect = toolbarContainerRef.current.getBoundingClientRect();
     const btnRect = e.currentTarget.getBoundingClientRect();
     setPopupPosition({
-      top: btnRect.bottom + window.scrollY + 4,
-      left: btnRect.left + window.scrollX,
+      top: btnRect.bottom - containerRect.top + 4,
+      left: btnRect.left - containerRect.left,
     });
-    setActivePanel(activePanel === panel ? null : panel);
+    setActivePanel((prev) => (prev === panel ? null : panel));
   };
 
   const getButtonClass = (panelName) =>
@@ -786,7 +798,7 @@ function MemeEditorToolbar({
           <span className="text-xs text-gray-600">Remove File</span>
         </div>
       </div>
-      {/* Pop-up panel */}
+      {/* Popup panel – rendered inside the toolbar container so it doesn't shift page layout */}
       {activePanel && selectedOverlay && (
         <div
           className="absolute bg-white p-4 rounded-lg shadow border z-10"
