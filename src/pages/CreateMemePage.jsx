@@ -81,31 +81,24 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar panel state and popup position
-  const [activePanel, setActivePanel] = useState(null); // "text", "colors", "surface", or null
-  const [popupPosition, setPopupPosition] = useState({ top: 0, left: 0 });
+  // Dropdown state – which dropdown (if any) is open: "text", "colors", "surface", or null.
+  const [openDropdown, setOpenDropdown] = useState(null);
+  // Ref for the toolbar container (for click-outside detection)
   const toolbarContainerRef = useRef(null);
 
   // Whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
-  // Close popup when clicking outside toolbar container
+  // Close dropdown when clicking outside the toolbar container
   useEffect(() => {
     function handleClickOutside(e) {
-      if (
-        toolbarContainerRef.current &&
-        !toolbarContainerRef.current.contains(e.target)
-      ) {
-        setActivePanel(null);
+      if (toolbarContainerRef.current && !toolbarContainerRef.current.contains(e.target)) {
+        setOpenDropdown(null);
       }
     }
-    if (activePanel) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [activePanel]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // ----------------------------------------
   // On mount: load existing meme (if editing) or ephemeral
@@ -141,12 +134,7 @@ function CreateMemePage() {
   }, [id]);
 
   // Helper to store ephemeral data for new memes
-  function storeEphemeralData(
-    overlays = realOverlays,
-    w = realWidth,
-    h = realHeight,
-    dataUrl = tempImageDataUrl
-  ) {
+  function storeEphemeralData(overlays = realOverlays, w = realWidth, h = realHeight, dataUrl = tempImageDataUrl) {
     if (id) return;
     const ephemeral = { realWidth: w, realHeight: h, realOverlays: overlays, tempImageDataUrl: dataUrl };
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
@@ -517,11 +505,11 @@ function CreateMemePage() {
           gtag('config', 'G-CR21WBQXGL');
         `}</script>
       </Helmet>
-  
+
       <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
-  
+
       {/* Toolbar Area */}
       {hasImage && (
         <div ref={toolbarContainerRef} className="relative w-full max-w-2xl mb-6">
@@ -538,14 +526,10 @@ function CreateMemePage() {
             onSetTextColor={handleSetTextColor}
             onSetBgColor={handleSetBgColor}
             selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId) || null}
-            activePanel={activePanel}
-            setActivePanel={setActivePanel}
-            setPopupPosition={setPopupPosition}
-            toolbarContainerRef={toolbarContainerRef}
           />
         </div>
       )}
-  
+
       {!hasImage && (
         <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition duration-300 ease-in-out shadow-md bg-white">
           <input
@@ -568,7 +552,7 @@ function CreateMemePage() {
           </label>
         </div>
       )}
-  
+
       {hasImage && (
         <>
           <div
@@ -596,7 +580,7 @@ function CreateMemePage() {
                 No image
               </div>
             )}
-  
+
             {displayOverlays.map((ov) => (
               <Rnd
                 key={ov.id}
@@ -680,8 +664,7 @@ function CreateMemePage() {
   );
 }
 
-// Toolbar component with icon buttons, labels, and an absolutely positioned pop-up panel.
-// The pop-up panel is anchored to the clicked button and will not push other content.
+// Dropdown-style Toolbar component
 function MemeEditorToolbar({
   onAddText,
   onUndo,
@@ -695,184 +678,172 @@ function MemeEditorToolbar({
   onSetTextColor,
   onSetBgColor,
   selectedOverlay,
-  activePanel,
-  setActivePanel,
-  setPopupPosition,
-  toolbarContainerRef,
 }) {
-  const buttonRefs = {
-    text: useRef(null),
-    colors: useRef(null),
-    surface: useRef(null),
+  // State to track which dropdown is open ("text", "colors", "surface", or null)
+  const [openDropdown, setOpenDropdown] = useState(null);
+
+  // Toggle dropdown open/close
+  const toggleDropdown = (type) => {
+    setOpenDropdown((prev) => (prev === type ? null : type));
   };
 
-  // When a panel is toggled, calculate its position relative to the toolbar container.
-  const togglePanel = (panel, e) => {
-    if (!toolbarContainerRef.current) return;
-    const containerRect = toolbarContainerRef.current.getBoundingClientRect();
-    const btnRect = e.currentTarget.getBoundingClientRect();
-    setPopupPosition({
-      top: btnRect.bottom - containerRect.top + 4,
-      left: btnRect.left - containerRect.left,
-    });
-    setActivePanel((prev) => (prev === panel ? null : panel));
-  };
-
-  const getButtonClass = (panelName) =>
-    activePanel === panelName ? "p-2 bg-blue-200 rounded" : "p-2";
-
+  // Render the toolbar with inline dropdowns
   return (
-    <div className="relative">
-      {/* Toolbar row */}
-      <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-        <div className="flex flex-col items-center">
-          <button onClick={onAddText} title="Add Text" className="p-2">
-            <FiType size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Add Text</span>
-        </div>
-        <div className="flex flex-col items-center" ref={buttonRefs.text}>
-          <button
-            onClick={(e) => togglePanel("text", e)}
-            title="Text Options"
-            className={getButtonClass("text")}
-          >
-            <span className="font-bold text-lg">T</span>
-          </button>
-          <span className="text-xs text-gray-600">Text</span>
-        </div>
-        <div className="flex flex-col items-center" ref={buttonRefs.colors}>
-          <button
-            onClick={(e) => togglePanel("colors", e)}
-            title="Text Color"
-            className={getButtonClass("colors")}
-          >
-            <MdPalette size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Color</span>
-        </div>
-        <div className="flex flex-col items-center" ref={buttonRefs.surface}>
-          <button
-            onClick={(e) => togglePanel("surface", e)}
-            title="Surface Color"
-            className={getButtonClass("surface")}
-          >
-            <span className="block w-6 h-6 bg-gray-400 rounded-full" />
-          </button>
-          <span className="text-xs text-gray-600">Surface</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onDeleteOverlay} title="Delete Text" className="p-2">
-            <AiOutlineClose size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Delete Text</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onUndo} title="Undo" className="p-2">
-            <AiOutlineUndo size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Undo</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onRedo} title="Redo" className="p-2">
-            <AiOutlineRedo size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Redo</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onDownload} title="Download (Local)" className="p-2">
-            <AiOutlineDownload size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Download</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onSave} title="Save Meme" className="p-2">
-            <AiOutlineSave size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Save</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <button onClick={onRemoveFile} title="Remove File" className="p-2">
-            <AiOutlineClose size={24} />
-          </button>
-          <span className="text-xs text-gray-600">Remove File</span>
-        </div>
+    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
+      {/* Add Text */}
+      <div className="relative flex flex-col items-center">
+        <button onClick={onAddText} title="Add Text" className="p-2">
+          <FiType size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Add Text</span>
       </div>
-      {/* Popup panel – rendered inside the toolbar container so it doesn't shift page layout */}
-      {activePanel && selectedOverlay && (
-        <div
-          className="absolute bg-white p-4 rounded-lg shadow border z-10"
-          style={{
-            top: popupPosition.top,
-            left: popupPosition.left,
-            maxWidth: "250px",
-          }}
+
+      {/* Text Options Dropdown */}
+      <div className="relative flex flex-col items-center">
+        <button
+          onClick={() => toggleDropdown("text")}
+          title="Text Options"
+          className="p-2"
         >
-          {activePanel === "text" && (
-            <>
-              <h3 className="text-lg font-semibold mb-2">Text Options</h3>
-              <div className="mb-2">
-                <label className="block text-gray-700 mb-1">Font Family:</label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  onChange={(e) => onSetFontFamily(e.target.value)}
-                  defaultValue={selectedOverlay.fontFamily || "Arial, sans-serif"}
-                >
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">Font Size:</label>
-                <input
-                  type="range"
-                  min="8"
-                  max="80"
-                  step="1"
-                  onChange={(e) => onSetFontSize(e.target.value)}
-                  defaultValue={selectedOverlay.fontSize || 20}
-                  className="w-full"
+          <span className="font-bold text-lg">T</span>
+        </button>
+        <span className="text-xs text-gray-600">Text</span>
+        {openDropdown === "text" && selectedOverlay && (
+          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
+            <h3 className="text-lg font-semibold mb-2">Text Options</h3>
+            <div className="mb-2">
+              <label className="block text-gray-700 mb-1">Font Family:</label>
+              <select
+                className="w-full p-1 border border-gray-300 rounded"
+                onChange={(e) => onSetFontFamily(e.target.value)}
+                defaultValue={selectedOverlay.fontFamily || "Arial, sans-serif"}
+              >
+                {FONT_FAMILIES.map((f) => (
+                  <option key={f.value} value={f.value}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-700 mb-1">Font Size:</label>
+              <input
+                type="range"
+                min="8"
+                max="80"
+                step="1"
+                onChange={(e) => onSetFontSize(e.target.value)}
+                defaultValue={selectedOverlay.fontSize || 20}
+                className="w-full"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Text Color Dropdown */}
+      <div className="relative flex flex-col items-center">
+        <button
+          onClick={() => toggleDropdown("colors")}
+          title="Text Color"
+          className="p-2"
+        >
+          <MdPalette size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Color</span>
+        {openDropdown === "colors" && (
+          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
+            <h3 className="text-lg font-semibold mb-2">Text Color</h3>
+            <div className="flex flex-wrap gap-1">
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => onSetTextColor(c)}
+                  style={{ backgroundColor: c }}
+                  className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
                 />
-              </div>
-            </>
-          )}
-          {activePanel === "colors" && (
-            <>
-              <h3 className="text-lg font-semibold mb-2">Text Color</h3>
-              <div className="flex flex-wrap gap-2">
-                {TEXT_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => onSetTextColor(c)}
-                    style={{ backgroundColor: c }}
-                    className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
-                  />
-                ))}
-              </div>
-            </>
-          )}
-          {activePanel === "surface" && (
-            <>
-              <h3 className="text-lg font-semibold mb-2">Surface Color</h3>
-              <div className="flex flex-wrap gap-2">
-                {BG_COLORS.map((bg) => (
-                  <button
-                    key={bg.value}
-                    onClick={() => onSetBgColor(bg.value)}
-                    style={{ backgroundColor: bg.value || "transparent" }}
-                    className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
-                  >
-                    {!bg.value && <span className="text-xs">None</span>}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Surface Color Dropdown */}
+      <div className="relative flex flex-col items-center">
+        <button
+          onClick={() => toggleDropdown("surface")}
+          title="Surface Color"
+          className="p-2"
+        >
+          <span className="block w-6 h-6 bg-gray-400 rounded-full" />
+        </button>
+        <span className="text-xs text-gray-600">Surface</span>
+        {openDropdown === "surface" && (
+          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
+            <h3 className="text-lg font-semibold mb-2">Surface Color</h3>
+            <div className="flex flex-wrap gap-1">
+              {BG_COLORS.map((bg) => (
+                <button
+                  key={bg.value}
+                  onClick={() => onSetBgColor(bg.value)}
+                  style={{ backgroundColor: bg.value || "transparent" }}
+                  className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
+                >
+                  {!bg.value && <span className="text-xs">None</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Delete Text */}
+      <div className="flex flex-col items-center">
+        <button onClick={onDeleteOverlay} title="Delete Text" className="p-2">
+          <AiOutlineClose size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Delete Text</span>
+      </div>
+
+      {/* Undo */}
+      <div className="flex flex-col items-center">
+        <button onClick={onUndo} title="Undo" className="p-2">
+          <AiOutlineUndo size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Undo</span>
+      </div>
+
+      {/* Redo */}
+      <div className="flex flex-col items-center">
+        <button onClick={onRedo} title="Redo" className="p-2">
+          <AiOutlineRedo size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Redo</span>
+      </div>
+
+      {/* Download */}
+      <div className="flex flex-col items-center">
+        <button onClick={onDownload} title="Download (Local)" className="p-2">
+          <AiOutlineDownload size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Download</span>
+      </div>
+
+      {/* Save */}
+      <div className="flex flex-col items-center">
+        <button onClick={onSave} title="Save Meme" className="p-2">
+          <AiOutlineSave size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Save</span>
+      </div>
+
+      {/* Remove File */}
+      <div className="flex flex-col items-center">
+        <button onClick={onRemoveFile} title="Remove File" className="p-2">
+          <AiOutlineClose size={24} />
+        </button>
+        <span className="text-xs text-gray-600">Remove File</span>
+      </div>
     </div>
   );
 }
