@@ -138,7 +138,7 @@ function CommunityMemeCard({ meme }) {
           {localMeme.title}
         </h3>
       )}
-      <div className="w-80 h-80 relative mb-2 overflow-hidden">
+      <div className="w-80 h-80 relative mb-2 overflow-hidden px-1">
         <img
           src={localMeme.filePath}
           alt="Meme"
