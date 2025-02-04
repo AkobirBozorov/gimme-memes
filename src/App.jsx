@@ -1,5 +1,5 @@
 // gimme-memes-frontend/src/App.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -25,57 +25,22 @@ import BlogListPage from "./pages/BlogListPage";
 import BlogPostPage from "./pages/BlogPostPage";
 import AdminBlogPage from "./pages/AdminBlogPage";
 
-// Import the helper
 import { baseApiUrl } from "./utils/api";
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [checkingAuth, setCheckingAuth] = useState(true);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      setCheckingAuth(false);
-      return;
-    }
-
-    // We do have a token => verify with backend
-    fetch(`${baseApiUrl}/api/user/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error("Token invalid or expired");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        console.log("USER DATA from /api/user/me =>", data);
-        setIsAuthenticated(true);
-        setIsAdmin(data.user?.isAdmin === true);
-      })
-      .catch((err) => {
-        console.error(err);
-        // If we fail => remove token
-        localStorage.removeItem("token");
-        setIsAuthenticated(false);
-        setIsAdmin(false);
-      })
-      .finally(() => {
-        setCheckingAuth(false);
-      });
-  }, []);
-
-  if (checkingAuth) {
-    return (
-      <div className="flex items-center justify-center h-screen text-xl">
-        Checking credentials...
-      </div>
-    );
+// A simple ProtectedRoute component that checks for a token.
+// (You can later expand this to do an actual backend verification if needed.)
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    return <Navigate to="/login" />;
   }
+  return children;
+}
+
+function App() {
+  // We can initialize isAuthenticated based on whether a token exists.
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+  const [isAdmin, setIsAdmin] = useState(false);
 
   return (
     <Router>
@@ -88,34 +53,33 @@ function App() {
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/community" element={<CommunityPage />} />
-
-            {/* Public Create (no ID) */}
+            {/* Public Create Meme page */}
             <Route path="/create" element={<CreateMemePage />} />
-
-            {/* Protected editing existing Meme by :id */}
+            {/* Protected editing route */}
             <Route
               path="/create/:id"
               element={
-                isAuthenticated ? <CreateMemePage /> : <Navigate to="/login" />
+                <ProtectedRoute>
+                  <CreateMemePage />
+                </ProtectedRoute>
               }
             />
-
-            {/* Blog public pages */}
+            {/* Blog pages */}
             <Route path="/blog" element={<BlogListPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
-
             {/* Admin-only blog page */}
             <Route
               path="/admin/blog"
               element={
-                isAuthenticated && isAdmin ? (
-                  <AdminBlogPage isAdmin={isAdmin} />
-                ) : (
-                  <Navigate to="/" />
-                )
+                <ProtectedRoute>
+                  {isAuthenticated && isAdmin ? (
+                    <AdminBlogPage isAdmin={isAdmin} />
+                  ) : (
+                    <Navigate to="/" />
+                  )}
+                </ProtectedRoute>
               }
             />
-
             {/* Auth routes */}
             <Route
               path="/signup"
@@ -125,22 +89,18 @@ function App() {
               path="/login"
               element={<LoginPage setIsAuthenticated={setIsAuthenticated} />}
             />
-
-            {/* Dashboard => protected */}
+            {/* Protected Dashboard */}
             <Route
               path="/dashboard"
               element={
-                isAuthenticated ? (
+                <ProtectedRoute>
                   <DashboardPage
                     isAuthenticated={isAuthenticated}
                     setIsAuthenticated={setIsAuthenticated}
                   />
-                ) : (
-                  <Navigate to="/login" />
-                )
+                </ProtectedRoute>
               }
             />
-
             {/* 404 Not Found */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>

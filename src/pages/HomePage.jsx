@@ -149,6 +149,48 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Our Other Website Section */}
+      <section className="py-20 bg-gray-50" aria-label="Our Other Website">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-6">Explore Our Other Website</h2>
+          <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+            <div className="flex-shrink-0">
+              <img 
+                src="/src/assets/logo.png" 
+                alt="Imagerize Logo" 
+                className="w-32 h-32 object-contain rounded-full" 
+              />
+            </div>
+            <div className="text-left md:text-left">
+              <p className="text-lg text-gray-700 mb-4">
+                Discover <strong>Imagerize</strong>—our advanced image enhancement tool that transforms your visuals into stunning masterpieces using cutting-edge AI technology. Whether you’re a professional photographer or simply looking to elevate your images, Imagerize provides powerful tools and an intuitive interface to help your creativity shine.
+              </p>
+              <a 
+                href="https://www.imagerize.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="mx-auto inline-block bg-blue-500 text-white px-8 py-3 rounded-full shadow hover:bg-blue-600 transition duration-300"
+              >
+                Visit
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Mission Section */}
+      <section className="py-20 bg-white" aria-label="Our Mission">
+        <div className="max-w-6xl mx-auto px-6 text-center">
+          <h2 className="text-4xl font-bold mb-6">Our Mission</h2>
+          <p className="text-lg text-gray-700 mb-4">
+            At GimmeMemes, we believe that humor and creativity should be accessible to everyone. Our mission is to empower individuals from all walks of life to express themselves through memes—turning everyday moments into sources of laughter and connection.
+          </p>
+          <p className="text-lg text-gray-700">
+            We continuously innovate and integrate the latest technologies to ensure that our users enjoy a seamless and inspiring creative experience. Whether you're here to create or just to be entertained, we're dedicated to helping you share joy with the world.
+          </p>
+        </div>
+      </section>
+
       {/* Final Call to Action */}
       <section className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-20" aria-label="Call to Action">
         <div className="max-w-6xl mx-auto px-6 text-center">
