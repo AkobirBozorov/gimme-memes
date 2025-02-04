@@ -81,7 +81,7 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Dropdown state – which dropdown (if any) is open: "text", "colors", "surface", or null.
+  // Dropdown state for toolbar (options: "text", "colors", "surface", or null)
   const [openDropdown, setOpenDropdown] = useState(null);
   // Ref for the toolbar container (for click-outside detection)
   const toolbarContainerRef = useRef(null);
@@ -92,7 +92,10 @@ function CreateMemePage() {
   // Close dropdown when clicking outside the toolbar container
   useEffect(() => {
     function handleClickOutside(e) {
-      if (toolbarContainerRef.current && !toolbarContainerRef.current.contains(e.target)) {
+      if (
+        toolbarContainerRef.current &&
+        !toolbarContainerRef.current.contains(e.target)
+      ) {
         setOpenDropdown(null);
       }
     }
@@ -526,6 +529,8 @@ function CreateMemePage() {
             onSetTextColor={handleSetTextColor}
             onSetBgColor={handleSetBgColor}
             selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId) || null}
+            openDropdown={openDropdown}
+            setOpenDropdown={setOpenDropdown}
           />
         </div>
       )}
@@ -664,7 +669,7 @@ function CreateMemePage() {
   );
 }
 
-// Dropdown-style Toolbar component
+// Dropdown-style Toolbar component as a row of buttons with inline dropdowns.
 function MemeEditorToolbar({
   onAddText,
   onUndo,
@@ -678,16 +683,17 @@ function MemeEditorToolbar({
   onSetTextColor,
   onSetBgColor,
   selectedOverlay,
+  openDropdown,
+  setOpenDropdown,
 }) {
-  // State to track which dropdown is open ("text", "colors", "surface", or null)
-  const [openDropdown, setOpenDropdown] = useState(null);
-
-  // Toggle dropdown open/close
+  // Toggle dropdown open/close for a given type
   const toggleDropdown = (type) => {
     setOpenDropdown((prev) => (prev === type ? null : type));
   };
 
-  // Render the toolbar with inline dropdowns
+  const getButtonClass = (type) =>
+    openDropdown === type ? "p-2 bg-blue-200 rounded" : "p-2";
+
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
       {/* Add Text */}
@@ -703,7 +709,7 @@ function MemeEditorToolbar({
         <button
           onClick={() => toggleDropdown("text")}
           title="Text Options"
-          className="p-2"
+          className={getButtonClass("text")}
         >
           <span className="font-bold text-lg">T</span>
         </button>
@@ -746,7 +752,7 @@ function MemeEditorToolbar({
         <button
           onClick={() => toggleDropdown("colors")}
           title="Text Color"
-          className="p-2"
+          className={getButtonClass("colors")}
         >
           <MdPalette size={24} />
         </button>
@@ -773,7 +779,7 @@ function MemeEditorToolbar({
         <button
           onClick={() => toggleDropdown("surface")}
           title="Surface Color"
-          className="p-2"
+          className={getButtonClass("surface")}
         >
           <span className="block w-6 h-6 bg-gray-400 rounded-full" />
         </button>
