@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
+import { Helmet } from "react-helmet-async";
 
 const LoginPage = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
@@ -36,6 +37,17 @@ const LoginPage = ({ setIsAuthenticated }) => {
 
   return (
     <div className="max-w-md mx-auto p-4 mt-10">
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
+
       <h1 className="text-2xl font-bold mb-4">Log In</h1>
       <form onSubmit={handleLogin} className="space-y-4">
         <div>

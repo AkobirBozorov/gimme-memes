@@ -1,4 +1,6 @@
+// gimme-memes-frontend/src/pages/FaqPage.jsx
 import React, { useState } from "react";
+import { Helmet } from "react-helmet-async";
 
 const FaqPage = () => {
   const faqs = [
@@ -20,8 +22,18 @@ const FaqPage = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-16">
-      <h1 className="text-4xl font-bold text-center mb-8">Frequently Asked Questions</h1>
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
 
+      <h1 className="text-4xl font-bold text-center mb-8">Frequently Asked Questions</h1>
       <div className="space-y-4">
         {faqs.map((faq, index) => (
           <div

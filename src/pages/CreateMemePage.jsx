@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Rnd } from "react-rnd";
 import { AiOutlineUndo, AiOutlineRedo } from "react-icons/ai";
+import { Helmet } from "react-helmet-async";
 import {
   computeScale,
   realToDisplay,
@@ -517,6 +518,17 @@ function CreateMemePage() {
   // Render
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-200 p-6 flex flex-col items-center">
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
+
       <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
+import { Helmet } from "react-helmet-async";
 
 const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [userData, setUserData] = useState(null);
@@ -31,8 +32,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         throw new Error(errMsg.error || "Failed to fetch user data");
       }
       const data = await res.json();
-
-      // Sort by updatedAt => newest first
       const sorted = [...data.memes].sort((a, b) => {
         const aTime = a.updatedAt
           ? new Date(a.updatedAt).getTime()
@@ -42,7 +41,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
           : new Date(b.createdAt).getTime();
         return bTime - aTime;
       });
-
       setUserData(data.user);
       setMemes(sorted);
       setAnalytics(data.analytics);
@@ -158,6 +156,17 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
+
       <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
         Dashboard
       </h1>
@@ -228,18 +237,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
   return (
     <div className="bg-white rounded-lg shadow p-4">
-      {/* Meme title if any */}
       {meme.title && (
         <h3 className="mb-2 text-lg font-semibold text-gray-700">{meme.title}</h3>
       )}
-
-      {/* Limit tall images => max-h-96 */}
       <img
         src={meme.filePath}
         alt="Meme"
         className="w-full h-auto object-contain max-h-96 mb-2"
       />
-
       <p className="text-xs text-gray-500">
         Last updated:{" "}
         {meme.updatedAt
@@ -249,9 +254,7 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
             })
           : "N/A"}
       </p>
-
       <div className="flex gap-2 mt-3 flex-wrap">
-        {/* Removed "Edit" button => no direct link to /create/:id */}
         <button
           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
           onClick={() => onDelete(meme.id)}

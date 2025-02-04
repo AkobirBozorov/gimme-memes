@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
+import { Helmet } from "react-helmet-async";
 
 const AdminBlogPage = ({ isAdmin }) => {
   const navigate = useNavigate();
@@ -94,8 +95,6 @@ const AdminBlogPage = ({ isAdmin }) => {
       setMainImageAlt("");
       setMetaTitle("");
       setMetaDescription("");
-
-      // Optionally refresh posts or just leave as is
     } catch (err) {
       console.error(err);
     }
@@ -129,6 +128,17 @@ const AdminBlogPage = ({ isAdmin }) => {
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
+
       <h1 className="text-2xl font-bold mb-4">Admin Blog Panel</h1>
 
       {/* CREATE FORM */}

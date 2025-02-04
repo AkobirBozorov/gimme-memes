@@ -35,19 +35,24 @@ const BlogPostPage = () => {
     );
   }
 
-  // We can use metaTitle or fallback to title
   const seoTitle = post.metaTitle || post.title;
-  // metaDescription or fallback
   const seoDescription =
     post.metaDescription || `Check out this post: ${post.title}`;
 
   return (
     <div className="max-w-3xl mx-auto p-4">
       <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+
         <title>{seoTitle} - GimmeMemes Blog</title>
         <meta name="description" content={seoDescription} />
-
-        {/* Open Graph or Twitter meta tags if you'd like */}
         {post.mainImage && (
           <meta
             property="og:image"
@@ -56,7 +61,6 @@ const BlogPostPage = () => {
         )}
       </Helmet>
 
-      {/* If mainImage is present, show it */}
       {post.mainImage && (
         <img
           src={`${baseApiUrl}/${post.mainImage}`}

@@ -1,20 +1,16 @@
+// gimme-memes-frontend/src/pages/CommunityPage.jsx
 import React, { useEffect, useState } from "react";
 import { AiFillHeart, AiOutlineHeart } from "react-icons/ai";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
+import { Helmet } from "react-helmet-async";
 
-/**
- * Displays two horizontal rows:
- * 1) New Memes (latest)
- * 2) Popular Memes (highest likeCount)
- */
 const CommunityPage = () => {
   const [allMemes, setAllMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  // Fetch published memes
   useEffect(() => {
     fetch(`${baseApiUrl}/api/community`)
       .then((res) => res.json())
@@ -35,7 +31,6 @@ const CommunityPage = () => {
     return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
-  // Separate sorting
   const newMemes = [...allMemes].sort((a, b) => {
     const aTime = a.updatedAt
       ? new Date(a.updatedAt).getTime()
@@ -43,7 +38,7 @@ const CommunityPage = () => {
     const bTime = b.updatedAt
       ? new Date(b.updatedAt).getTime()
       : new Date(b.createdAt).getTime();
-    return bTime - aTime; // newest first
+    return bTime - aTime;
   });
   const popularMemes = [...allMemes].sort(
     (a, b) => (b.likeCount || 0) - (a.likeCount || 0)
@@ -51,7 +46,17 @@ const CommunityPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      {/* Header */}
+      <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+      </Helmet>
+
       <div className="max-w-5xl mx-auto flex justify-between items-center px-4 mb-8">
         <h1 className="text-3xl font-bold">Community Memes</h1>
         <button
@@ -62,7 +67,6 @@ const CommunityPage = () => {
         </button>
       </div>
 
-      {/* If no memes => prompt */}
       {allMemes.length === 0 ? (
         <div className="max-w-2xl mx-auto text-center p-8 bg-white shadow rounded">
           <p className="text-xl mb-4">No memes yet. Be the first to share one!</p>
@@ -75,13 +79,10 @@ const CommunityPage = () => {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto space-y-8 px-4">
-          {/* Row 1: New Memes */}
           <div>
             <h2 className="text-2xl font-semibold mb-2">New Memes</h2>
             <HorizontalMemeRow memes={newMemes} />
           </div>
-
-          {/* Row 2: Popular Memes */}
           <div>
             <h2 className="text-2xl font-semibold mb-2">Popular Memes</h2>
             <HorizontalMemeRow memes={popularMemes} />
@@ -92,10 +93,6 @@ const CommunityPage = () => {
   );
 };
 
-/**
- * Shows memes in a horizontal scroll row:
- * Each meme has a fixed width and limited height to avoid huge vertical images.
- */
 function HorizontalMemeRow({ memes }) {
   return (
     <div className="overflow-x-auto flex space-x-4 pb-4">
@@ -138,21 +135,16 @@ function CommunityMemeCard({ meme }) {
 
   return (
     <div className="bg-white rounded-lg shadow p-3 w-64 flex-shrink-0">
-      {/* Title */}
       {localMeme.title && (
         <h3 className="mb-2 text-md font-semibold text-gray-700 line-clamp-1">
           {localMeme.title}
         </h3>
       )}
-
-      {/* Meme image: limit vertical size to avoid huge vertical memes */}
       <img
         src={localMeme.filePath}
         alt="Meme"
         className="w-full h-auto object-contain max-h-60 mb-2"
       />
-
-      {/* Like button */}
       <div className="flex items-center gap-2">
         <button
           onClick={handleLikeClick}

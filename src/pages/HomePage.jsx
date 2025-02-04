@@ -1,11 +1,21 @@
+// gimme-memes-frontend/src/pages/HomePage.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import { Helmet } from "react-helmet-async"; // make sure to install it
+import { Helmet } from "react-helmet-async";
 
 const HomePage = () => {
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-CR21WBQXGL');
+        `}</script>
+
         <title>
           GimmeMemes - Create & Share Memes Instantly | Your Ultimate Meme Creation Platform for Viral Humor
         </title>
@@ -14,10 +24,8 @@ const HomePage = () => {
           content="GimmeMemes is your ultimate platform to create and share hilarious memes instantly. With a user-friendly interface, powerful editing tools, and a vibrant community, you can craft memes in minutes and share them across social media. Join us and unleash your creativity today!" 
         />
         <link rel="canonical" href="https://www.gimmememes.com/" />
-        {/* Additional meta tags, like Open Graph tags, can be added here */}
       </Helmet>
       
-      {/* Hero Section */}
       <section
         className="relative bg-gradient-to-br from-blue-700 via-indigo-600 to-purple-600 text-white overflow-hidden"
         aria-label="Hero Section"
@@ -38,7 +46,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Additional Intro Content for SEO */}
       <section className="py-10 bg-white">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl font-bold mb-4">About GimmeMemes</h2>
@@ -56,7 +63,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Why Choose GimmeMemes */}
       <section className="py-20 bg-gray-50" aria-label="Why Choose GimmeMemes">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
@@ -68,7 +74,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Features Section */}
       <section className="py-20" aria-label="Key Features">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12">Key Features</h2>
@@ -108,7 +113,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
       <section className="py-20 bg-gray-50" aria-label="How It Works">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12">How It Works</h2>
@@ -143,7 +147,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Benefits Section */}
       <section className="py-20" aria-label="User Benefits">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-10">Why Users Love GimmeMemes</h2>
@@ -168,7 +171,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Our Other Website Section */}
       <section className="py-20 bg-gray-50" aria-label="Our Other Website">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Explore Our Other Website</h2>
@@ -197,7 +199,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Our Mission Section */}
       <section className="py-20 bg-white" aria-label="Our Mission">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Our Mission</h2>
@@ -210,7 +211,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Social Sharing Section */}
       <section className="py-20 bg-gray-50" aria-label="Share This Page">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Share GimmeMemes</h2>
@@ -252,7 +252,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Final Call to Action */}
       <section className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-20" aria-label="Call to Action">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-4">Start Creating Memes Now</h2>
