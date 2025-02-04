@@ -31,6 +31,7 @@ const CommunityPage = () => {
     return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
+  // Sort memes into two arrays
   const newMemes = [...allMemes].sort((a, b) => {
     const aTime = a.updatedAt
       ? new Date(a.updatedAt).getTime()
@@ -79,10 +80,12 @@ const CommunityPage = () => {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto space-y-8 px-4">
+          {/* Row 1: New Memes */}
           <div>
             <h2 className="text-2xl font-semibold mb-2">New Memes</h2>
             <HorizontalMemeRow memes={newMemes} />
           </div>
+          {/* Row 2: Popular Memes */}
           <div>
             <h2 className="text-2xl font-semibold mb-2">Popular Memes</h2>
             <HorizontalMemeRow memes={popularMemes} />
@@ -116,7 +119,6 @@ function CommunityMemeCard({ meme }) {
     try {
       setAnimating(true);
       setTimeout(() => setAnimating(false), 300);
-
       const res = await fetch(`${baseApiUrl}/api/community/${localMeme.id}/like`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
@@ -134,17 +136,20 @@ function CommunityMemeCard({ meme }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-3 w-64 flex-shrink-0">
+    <div className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0">
       {localMeme.title && (
-        <h3 className="mb-2 text-md font-semibold text-gray-700 line-clamp-1">
+        <h3 className="mb-2 text-lg font-semibold text-gray-700 line-clamp-1">
           {localMeme.title}
         </h3>
       )}
-      <img
-        src={localMeme.filePath}
-        alt="Meme"
-        className="w-full h-auto object-contain max-h-60 mb-2"
-      />
+      {/* Fixed square preview container */}
+      <div className="w-80 h-80 relative mb-2">
+        <img
+          src={localMeme.filePath}
+          alt="Meme"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </div>
       <div className="flex items-center gap-2">
         <button
           onClick={handleLikeClick}
@@ -152,7 +157,11 @@ function CommunityMemeCard({ meme }) {
             animating ? "scale-125" : ""
           }`}
         >
-          {localMeme.likeCount > 0 ? <AiFillHeart size={20} /> : <AiOutlineHeart size={20} />}
+          {localMeme.likeCount > 0 ? (
+            <AiFillHeart size={24} />
+          ) : (
+            <AiOutlineHeart size={24} />
+          )}
         </button>
         <span className="text-gray-700 font-semibold">
           {localMeme.likeCount || 0}
