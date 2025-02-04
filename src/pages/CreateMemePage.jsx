@@ -21,7 +21,7 @@ import {
 } from "../utils/scaleUtils";
 import { baseApiUrl } from "../utils/api";
 
-// For ephemeral local usage (new meme only)
+// For ephemeral local usage if there's no "id"
 const LOCAL_KEY = "ephemeralMemeData";
 
 // Constants for styling options
@@ -54,7 +54,7 @@ const FONT_FAMILIES = [
 ];
 
 function CreateMemePage() {
-  const { id } = useParams(); // if provided, we're editing an existing meme
+  const { id } = useParams(); // if provided => edit existing meme
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
@@ -64,16 +64,16 @@ function CreateMemePage() {
   const [filePath, setFilePath] = useState("");
   const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
 
-  // Image dimensions
+  // Dimensions
   const [realWidth, setRealWidth] = useState(400);
   const [realHeight, setRealHeight] = useState(400);
 
-  // Overlays (for text/surface)
+  // Overlays
   const [realOverlays, setRealOverlays] = useState([]);
   const [displayOverlays, setDisplayOverlays] = useState([]);
   const [selectedOverlayId, setSelectedOverlayId] = useState(null);
 
-  // Undo/Redo stacks
+  // Undo/Redo
   const [pastStates, setPastStates] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
 
@@ -81,14 +81,14 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar active panel ("text", "colors", "surface", or null)
+  // Toolbar: active panel for detailed settings ("text", "colors", or "surface")
   const [activePanel, setActivePanel] = useState(null);
 
-  // Whether an image is available (either from saved filePath or ephemeral base64)
+  // Whether an image is available (either saved or ephemeral)
   const hasImage = !!filePath || !!tempImageDataUrl;
 
   // ----------------------------------------
-  // On mount: load existing meme if editing, else load ephemeral data.
+  // On mount: load existing meme if editing, otherwise load ephemeral data.
   // ----------------------------------------
   useEffect(() => {
     if (id) {
@@ -120,7 +120,7 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // Helper: store ephemeral data for new memes
+  // Helper: store ephemeral data (only for new memes)
   function storeEphemeralData(overlays = realOverlays, w = realWidth, h = realHeight, dataUrl = tempImageDataUrl) {
     if (id) return;
     const ephemeral = { realWidth: w, realHeight: h, realOverlays: overlays, tempImageDataUrl: dataUrl };
@@ -128,7 +128,7 @@ function CreateMemePage() {
   }
 
   // ----------------------------------------
-  // Load an existing meme from server for editing.
+  // LOAD existing meme from server
   // ----------------------------------------
   async function loadExistingMeme(memeIdParam) {
     if (!isLoggedIn) {
@@ -174,7 +174,7 @@ function CreateMemePage() {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
-    // Reset states for a new meme
+    // Reset for new meme
     setMemeId(null);
     setFilePath("");
     setTempImageDataUrl(null);
@@ -226,7 +226,7 @@ function CreateMemePage() {
     storeEphemeralData(newReal, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // Undo / Redo
+  // Undo / Redo actions
   function undo() {
     if (!pastStates.length) return;
     const prev = pastStates[pastStates.length - 1];
@@ -377,7 +377,7 @@ function CreateMemePage() {
   }
   
   // ----------------------------------------
-  // Save Meme: merge overlays on canvas, upload final image, update record
+  // Save Meme: merge overlays, upload final image, update record
   // ----------------------------------------
   async function handleSaveMeme() {
     if (!isLoggedIn) {
@@ -499,24 +499,26 @@ function CreateMemePage() {
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
   
-      {/* Toolbar with icon buttons */}
+      {/* Toolbar area */}
       {hasImage && (
-        <MemeEditorToolbar
-          onAddText={handleAddText}
-          onUndo={undo}
-          onRedo={redo}
-          onDownload={handleDownloadLocal}
-          onSave={handleSaveMeme}
-          onRemoveFile={handleRemoveFile}
-          onDeleteOverlay={handleDeleteOverlay}
-          onSetFontFamily={handleSetFontFamily}
-          onSetFontSize={handleSetFontSize}
-          onSetTextColor={handleSetTextColor}
-          onSetBgColor={handleSetBgColor}
-          selectedOverlay={
-            displayOverlays.find((ov) => ov.id === selectedOverlayId) || null
-          }
-        />
+        <div className="relative w-full max-w-2xl mb-6">
+          <MemeEditorToolbar
+            onAddText={handleAddText}
+            onUndo={undo}
+            onRedo={redo}
+            onDownload={handleDownloadLocal}
+            onSave={handleSaveMeme}
+            onRemoveFile={handleRemoveFile}
+            onDeleteOverlay={handleDeleteOverlay}
+            onSetFontFamily={handleSetFontFamily}
+            onSetFontSize={handleSetFontSize}
+            onSetTextColor={handleSetTextColor}
+            onSetBgColor={handleSetBgColor}
+            selectedOverlay={
+              displayOverlays.find((ov) => ov.id === selectedOverlayId) || null
+            }
+          />
+        </div>
       )}
   
       {!hasImage && (
@@ -652,7 +654,7 @@ function CreateMemePage() {
   );
 }
 
-// New toolbar component with icon buttons and pop-up panels for detailed options
+// New toolbar component with icon buttons and absolutely positioned pop-up panels with labels
 function MemeEditorToolbar({
   onAddText,
   onUndo,
@@ -669,48 +671,79 @@ function MemeEditorToolbar({
 }) {
   const [activePanel, setActivePanel] = useState(null); // "text", "colors", "surface", or null
 
+  // Toggle panel without affecting layout using absolute positioning.
   const togglePanel = (panel) => {
-    setActivePanel(activePanel === panel ? null : panel);
+    setActivePanel((prev) => (prev === panel ? null : panel));
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      {/* Toolbar row */}
+    <div className="relative">
+      {/* Toolbar row with icons and labels */}
       <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-        <button onClick={onAddText} title="Add Text" className="p-2">
-          <FiType size={24} />
-        </button>
-        <button onClick={() => togglePanel("text")} title="Text Options" className="p-2">
-          <span className="font-bold text-lg">T</span>
-        </button>
-        <button onClick={() => togglePanel("colors")} title="Text Color" className="p-2">
-          <MdPalette size={24} />
-        </button>
-        <button onClick={() => togglePanel("surface")} title="Surface Color" className="p-2">
-          <span className="block w-6 h-6 bg-gray-400" />
-        </button>
-        <button onClick={onDeleteOverlay} title="Remove Selected Text" className="p-2">
-          <AiOutlineDelete size={24} />
-        </button>
-        <button onClick={onUndo} title="Undo" className="p-2">
-          <AiOutlineUndo size={24} />
-        </button>
-        <button onClick={onRedo} title="Redo" className="p-2">
-          <AiOutlineRedo size={24} />
-        </button>
-        <button onClick={onDownload} title="Download (Local)" className="p-2">
-          <AiOutlineDownload size={24} />
-        </button>
-        <button onClick={onSave} title="Save Meme" className="p-2">
-          <AiOutlineSave size={24} />
-        </button>
-        <button onClick={onRemoveFile} title="Remove File" className="p-2">
-          <AiOutlineDelete size={24} />
-        </button>
+        <div className="flex flex-col items-center">
+          <button onClick={onAddText} title="Add Text" className="p-2">
+            <FiType size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Add Text</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={() => togglePanel("text")} title="Text Options" className="p-2">
+            <span className="font-bold text-lg">T</span>
+          </button>
+          <span className="text-xs text-gray-600">Text</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={() => togglePanel("colors")} title="Text Color" className="p-2">
+            <MdPalette size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Color</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={() => togglePanel("surface")} title="Surface Color" className="p-2">
+            <span className="block w-6 h-6 bg-gray-400 rounded-full" />
+          </button>
+          <span className="text-xs text-gray-600">Surface</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onDeleteOverlay} title="Remove Selected Text" className="p-2">
+            <AiOutlineDelete size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Remove</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onUndo} title="Undo" className="p-2">
+            <AiOutlineUndo size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Undo</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onRedo} title="Redo" className="p-2">
+            <AiOutlineRedo size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Redo</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onDownload} title="Download (Local)" className="p-2">
+            <AiOutlineDownload size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Download</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onSave} title="Save Meme" className="p-2">
+            <AiOutlineSave size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Save</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <button onClick={onRemoveFile} title="Remove File" className="p-2">
+            <AiOutlineDelete size={24} />
+          </button>
+          <span className="text-xs text-gray-600">Remove</span>
+        </div>
       </div>
-      {/* Pop-up panel */}
+      {/* Absolute pop-up panel */}
       {activePanel && selectedOverlay && (
-        <div className="mt-2 bg-white p-4 rounded-lg shadow border">
+        <div className="absolute top-full left-0 mt-2 w-full max-w-md bg-white p-4 rounded-lg shadow border z-10">
           {activePanel === "text" && (
             <>
               <h3 className="text-lg font-semibold mb-2">Text Options</h3>
