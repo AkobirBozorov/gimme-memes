@@ -156,7 +156,7 @@ const HomePage = () => {
           <div className="flex flex-col md:flex-row items-center justify-center gap-8">
             <div className="flex-shrink-0">
               <img 
-                src="/src/assets/logo.png" 
+                src="/logo.png" 
                 alt="Imagerize Logo" 
                 className="w-32 h-32 object-contain rounded-full" 
               />
