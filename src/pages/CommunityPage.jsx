@@ -31,7 +31,6 @@ const CommunityPage = () => {
     return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
-  // Separate into two arrays
   const newMemes = [...allMemes].sort((a, b) => {
     const aTime = a.updatedAt
       ? new Date(a.updatedAt).getTime()
@@ -48,7 +47,6 @@ const CommunityPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Helmet>
-        {/* Google Tag Manager Script */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
@@ -134,18 +132,17 @@ function CommunityMemeCard({ meme }) {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0">
+    <div className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0 box-border">
       {localMeme.title && (
         <h3 className="mb-2 text-lg font-semibold text-gray-700 line-clamp-1">
           {localMeme.title}
         </h3>
       )}
-      {/* Fixed square preview container with overflow-hidden */}
       <div className="w-80 h-80 relative mb-2 overflow-hidden">
         <img
           src={localMeme.filePath}
           alt="Meme"
-          className="absolute inset-0 w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover box-border"
         />
       </div>
       <div className="flex items-center gap-2">
