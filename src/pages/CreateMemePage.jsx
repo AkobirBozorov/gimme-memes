@@ -337,20 +337,11 @@ function CreateMemePage() {
       )
     );
   }
+  // Add missing function: handleDoubleClickOverlay
   function handleDoubleClickOverlay(overlayId) {
     setSelectedOverlayId(overlayId);
     setDisplayOverlays((prev) =>
       prev.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: true } : ov))
-    );
-  }
-  function handleFinishEditing(overlayId) {
-    commitOverlays(
-      displayOverlays.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: false } : ov))
-    );
-  }
-  function handleTextChange(overlayId, newText) {
-    setDisplayOverlays((prev) =>
-      prev.map((ov) => (ov.id === overlayId ? { ...ov, text: newText } : ov))
     );
   }
   // Ensure text input always selects all text on focus
@@ -538,9 +529,7 @@ function CreateMemePage() {
             onSetFontSize={handleSetFontSize}
             onSetTextColor={handleSetTextColor}
             onSetBgColor={handleSetBgColor}
-            selectedOverlay={
-              displayOverlays.find((ov) => ov.id === selectedOverlayId) || null
-            }
+            selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId) || null}
             activePanel={activePanel}
             setActivePanel={setActivePanel}
             setPopupPosition={setPopupPosition}
