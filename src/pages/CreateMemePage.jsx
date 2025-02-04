@@ -2,7 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Rnd } from "react-rnd";
-import { AiOutlineUndo, AiOutlineRedo, AiOutlineDownload, AiOutlineSave, AiOutlineDelete } from "react-icons/ai";
+import {
+  AiOutlineUndo,
+  AiOutlineRedo,
+  AiOutlineDownload,
+  AiOutlineSave,
+  AiOutlineDelete,
+} from "react-icons/ai";
 import { FiType } from "react-icons/fi";
 import { MdPalette } from "react-icons/md";
 import { Helmet } from "react-helmet-async";
@@ -15,10 +21,10 @@ import {
 } from "../utils/scaleUtils";
 import { baseApiUrl } from "../utils/api";
 
-// For ephemeral local usage if there's no "id"
+// For ephemeral local usage (new meme only)
 const LOCAL_KEY = "ephemeralMemeData";
 
-// Constants for overlay styling
+// Constants for styling options
 const TEXT_COLORS = [
   "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
   "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080",
@@ -48,7 +54,7 @@ const FONT_FAMILIES = [
 ];
 
 function CreateMemePage() {
-  const { id } = useParams(); // if provided => edit existing meme
+  const { id } = useParams(); // if provided, we're editing an existing meme
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
@@ -58,16 +64,16 @@ function CreateMemePage() {
   const [filePath, setFilePath] = useState("");
   const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
 
-  // Dimensions
+  // Image dimensions
   const [realWidth, setRealWidth] = useState(400);
   const [realHeight, setRealHeight] = useState(400);
 
-  // Overlays
+  // Overlays (for text/surface)
   const [realOverlays, setRealOverlays] = useState([]);
   const [displayOverlays, setDisplayOverlays] = useState([]);
   const [selectedOverlayId, setSelectedOverlayId] = useState(null);
 
-  // Undo/Redo
+  // Undo/Redo stacks
   const [pastStates, setPastStates] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
 
@@ -75,14 +81,14 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar active tool for detailed options (e.g. "style")
-  const [activeTool, setActiveTool] = useState(null);
+  // Toolbar active panel ("text", "colors", "surface", or null)
+  const [activePanel, setActivePanel] = useState(null);
 
-  // Whether an image is available (either saved or ephemeral)
+  // Whether an image is available (either from saved filePath or ephemeral base64)
   const hasImage = !!filePath || !!tempImageDataUrl;
 
   // ----------------------------------------
-  // On mount: if editing an existing meme, load from server; otherwise, load ephemeral data.
+  // On mount: load existing meme if editing, else load ephemeral data.
   // ----------------------------------------
   useEffect(() => {
     if (id) {
@@ -114,7 +120,7 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // Helper: store ephemeral data (only for new memes)
+  // Helper: store ephemeral data for new memes
   function storeEphemeralData(overlays = realOverlays, w = realWidth, h = realHeight, dataUrl = tempImageDataUrl) {
     if (id) return;
     const ephemeral = { realWidth: w, realHeight: h, realOverlays: overlays, tempImageDataUrl: dataUrl };
@@ -122,7 +128,7 @@ function CreateMemePage() {
   }
 
   // ----------------------------------------
-  // Load existing meme from server
+  // Load an existing meme from server for editing.
   // ----------------------------------------
   async function loadExistingMeme(memeIdParam) {
     if (!isLoggedIn) {
@@ -162,13 +168,13 @@ function CreateMemePage() {
   }
 
   // ----------------------------------------
-  // Handle file selection (read file locally; no auto-upload)
+  // Handle file selection (read file as base64; no auto-upload)
   // ----------------------------------------
   function handleFileSelect(e) {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
-    // Reset states for new meme
+    // Reset states for a new meme
     setMemeId(null);
     setFilePath("");
     setTempImageDataUrl(null);
@@ -200,7 +206,7 @@ function CreateMemePage() {
         setDisplayHeight(dispH);
         storeEphemeralData([], w, h, dataUrl);
       };
-      img.onerror = () => alert("Could not load image. Try another file.");
+      img.onerror = () => alert("Could not load image. Please try another file.");
       img.src = dataUrl;
     };
     reader.onerror = () => alert("Error reading image file.");
@@ -324,7 +330,7 @@ function CreateMemePage() {
       prev.map((ov) => (ov.id === overlayId ? { ...ov, text: newText } : ov))
     );
   }
-  
+
   // ----------------------------------------
   // Download local (merge overlays on canvas)
   // ----------------------------------------
@@ -371,7 +377,7 @@ function CreateMemePage() {
   }
   
   // ----------------------------------------
-  // Save Meme => Merge overlays, upload merged image, update record
+  // Save Meme: merge overlays on canvas, upload final image, update record
   // ----------------------------------------
   async function handleSaveMeme() {
     if (!isLoggedIn) {
@@ -379,7 +385,7 @@ function CreateMemePage() {
       return;
     }
     if (!hasImage) {
-      alert("No image to save. Please upload or choose an image first.");
+      alert("No image to save. Please upload an image first.");
       return;
     }
     try {
@@ -456,7 +462,7 @@ function CreateMemePage() {
   }
   
   // ----------------------------------------
-  // Remove File: Reset states
+  // Remove File: reset all states
   // ----------------------------------------
   function handleRemoveFile() {
     setMemeId(null);
@@ -471,9 +477,7 @@ function CreateMemePage() {
     setSelectedOverlayId(null);
     setDisplayWidth(PREVIEW_MAX_WIDTH);
     setDisplayHeight(PREVIEW_MAX_HEIGHT);
-    if (!id) {
-      localStorage.removeItem(LOCAL_KEY);
-    }
+    if (!id) localStorage.removeItem(LOCAL_KEY);
   }
   
   // ----------------------------------------
@@ -495,26 +499,24 @@ function CreateMemePage() {
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
   
+      {/* Toolbar with icon buttons */}
       {hasImage && (
-        <div className="flex flex-wrap gap-4 mb-6">
-          <MemeEditorToolbar
-            onAddText={handleAddText}
-            onUndo={undo}
-            onRedo={redo}
-            onDownload={handleDownloadLocal}
-            onSave={handleSaveMeme}
-            onRemove={handleRemoveFile}
-            activeTool={activeTool}
-            setActiveTool={setActiveTool}
-            onSetTextColor={handleSetTextColor}
-            onSetBgColor={handleSetBgColor}
-            onSetFontFamily={handleSetFontFamily}
-            onSetFontSize={handleSetFontSize}
-            selectedOverlay={
-              displayOverlays.find((ov) => ov.id === selectedOverlayId) || null
-            }
-          />
-        </div>
+        <MemeEditorToolbar
+          onAddText={handleAddText}
+          onUndo={undo}
+          onRedo={redo}
+          onDownload={handleDownloadLocal}
+          onSave={handleSaveMeme}
+          onRemoveFile={handleRemoveFile}
+          onDeleteOverlay={handleDeleteOverlay}
+          onSetFontFamily={handleSetFontFamily}
+          onSetFontSize={handleSetFontSize}
+          onSetTextColor={handleSetTextColor}
+          onSetBgColor={handleSetBgColor}
+          selectedOverlay={
+            displayOverlays.find((ov) => ov.id === selectedOverlayId) || null
+          }
+        />
       )}
   
       {!hasImage && (
@@ -644,127 +646,31 @@ function CreateMemePage() {
               </Rnd>
             ))}
           </div>
-  
-          {selectedOverlayId && (
-            <div className="w-full max-w-2xl bg-white border border-gray-300 rounded-xl shadow-lg p-4 mt-6">
-              <h2 className="text-xl font-semibold mb-4">Overlay Controls</h2>
-  
-              <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-1">
-                  Text Color:
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {TEXT_COLORS.map((c) => (
-                    <button
-                      key={c}
-                      style={{ backgroundColor: c }}
-                      onClick={() => handleSetTextColor(c)}
-                      className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
-                    />
-                  ))}
-                </div>
-              </div>
-  
-              <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-1">
-                  Surface Color:
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  onChange={(e) => handleSetBgColor(e.target.value)}
-                  value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.bgColor || ""
-                  }
-                >
-                  {BG_COLORS.map((bg) => (
-                    <option key={bg.value} value={bg.value}>
-                      {bg.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-  
-              <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-1">
-                  Font Family:
-                </label>
-                <select
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  onChange={(e) => handleSetFontFamily(e.target.value)}
-                  value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.fontFamily || "Arial, sans-serif"
-                  }
-                >
-                  {FONT_FAMILIES.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-  
-              <div className="mb-4">
-                <label className="block font-medium text-gray-700 mb-1">
-                  Font Size:
-                </label>
-                <input
-                  type="range"
-                  min="8"
-                  max="80"
-                  step="1"
-                  onChange={(e) => handleSetFontSize(e.target.value)}
-                  className="w-full"
-                  value={
-                    displayOverlays.find((o) => o.id === selectedOverlayId)
-                      ?.fontSize || 20
-                  }
-                />
-              </div>
-  
-              <button
-                onClick={handleDeleteOverlay}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg shadow hover:bg-red-600"
-              >
-                Delete This Overlay
-              </button>
-            </div>
-          )}
         </>
       )}
     </div>
   );
 }
 
-// New toolbar component for editing actions
+// New toolbar component with icon buttons and pop-up panels for detailed options
 function MemeEditorToolbar({
   onAddText,
   onUndo,
   onRedo,
   onDownload,
   onSave,
-  onRemove,
-  activeTool,
-  setActiveTool,
-  onSetTextColor,
-  onSetBgColor,
+  onRemoveFile,
+  onDeleteOverlay,
   onSetFontFamily,
   onSetFontSize,
+  onSetTextColor,
+  onSetBgColor,
   selectedOverlay,
 }) {
-  // We'll show a horizontal toolbar with icon buttons.
-  // When the "Style" button is clicked, we toggle a popover with detailed controls.
-  // For simplicity, this example uses a very basic popover.
-  const [showStylePanel, setShowStylePanel] = useState(false);
+  const [activePanel, setActivePanel] = useState(null); // "text", "colors", "surface", or null
 
-  // Toggle the style panel; if no overlay is selected, alert the user.
-  const toggleStylePanel = () => {
-    if (!selectedOverlay) {
-      alert("Please select a text overlay first.");
-      return;
-    }
-    setShowStylePanel((prev) => !prev);
+  const togglePanel = (panel) => {
+    setActivePanel(activePanel === panel ? null : panel);
   };
 
   return (
@@ -773,6 +679,18 @@ function MemeEditorToolbar({
       <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
         <button onClick={onAddText} title="Add Text" className="p-2">
           <FiType size={24} />
+        </button>
+        <button onClick={() => togglePanel("text")} title="Text Options" className="p-2">
+          <span className="font-bold text-lg">T</span>
+        </button>
+        <button onClick={() => togglePanel("colors")} title="Text Color" className="p-2">
+          <MdPalette size={24} />
+        </button>
+        <button onClick={() => togglePanel("surface")} title="Surface Color" className="p-2">
+          <span className="block w-6 h-6 bg-gray-400" />
+        </button>
+        <button onClick={onDeleteOverlay} title="Remove Selected Text" className="p-2">
+          <AiOutlineDelete size={24} />
         </button>
         <button onClick={onUndo} title="Undo" className="p-2">
           <AiOutlineUndo size={24} />
@@ -786,70 +704,76 @@ function MemeEditorToolbar({
         <button onClick={onSave} title="Save Meme" className="p-2">
           <AiOutlineSave size={24} />
         </button>
-        <button onClick={onRemove} title="Remove File" className="p-2">
+        <button onClick={onRemoveFile} title="Remove File" className="p-2">
           <AiOutlineDelete size={24} />
         </button>
-        <button onClick={toggleStylePanel} title="Style Options" className="p-2">
-          <MdPalette size={24} />
-        </button>
       </div>
-      {/* Style Popover */}
-      {showStylePanel && selectedOverlay && (
+      {/* Pop-up panel */}
+      {activePanel && selectedOverlay && (
         <div className="mt-2 bg-white p-4 rounded-lg shadow border">
-          <h3 className="text-lg font-semibold mb-2">Style Options</h3>
-          <div className="mb-2">
-            <label className="block text-gray-700 mb-1">Text Color:</label>
-            <div className="flex flex-wrap gap-2">
-              {TEXT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onSetTextColor(c)}
-                  style={{ backgroundColor: c }}
-                  className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
+          {activePanel === "text" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Text Options</h3>
+              <div className="mb-2">
+                <label className="block text-gray-700 mb-1">Font Family:</label>
+                <select
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                  onChange={(e) => onSetFontFamily(e.target.value)}
+                  defaultValue={selectedOverlay.fontFamily || "Arial, sans-serif"}
+                >
+                  {FONT_FAMILIES.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-1">Font Size:</label>
+                <input
+                  type="range"
+                  min="8"
+                  max="80"
+                  step="1"
+                  onChange={(e) => onSetFontSize(e.target.value)}
+                  defaultValue={selectedOverlay.fontSize || 20}
+                  className="w-full"
                 />
-              ))}
-            </div>
-          </div>
-          <div className="mb-2">
-            <label className="block text-gray-700 mb-1">Surface Color:</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded-md"
-              onChange={(e) => onSetBgColor(e.target.value)}
-              defaultValue={selectedOverlay.bgColor || ""}
-            >
-              {BG_COLORS.map((bg) => (
-                <option key={bg.value} value={bg.value}>
-                  {bg.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="mb-2">
-            <label className="block text-gray-700 mb-1">Font Family:</label>
-            <select
-              className="w-full p-2 border border-gray-300 rounded-md"
-              onChange={(e) => onSetFontFamily(e.target.value)}
-              defaultValue={selectedOverlay.fontFamily || "Arial, sans-serif"}
-            >
-              {FONT_FAMILIES.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-gray-700 mb-1">Font Size:</label>
-            <input
-              type="range"
-              min="8"
-              max="80"
-              step="1"
-              onChange={(e) => onSetFontSize(e.target.value)}
-              defaultValue={selectedOverlay.fontSize || 20}
-              className="w-full"
-            />
-          </div>
+              </div>
+            </>
+          )}
+          {activePanel === "colors" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Text Color</h3>
+              <div className="flex flex-wrap gap-2">
+                {TEXT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => onSetTextColor(c)}
+                    style={{ backgroundColor: c }}
+                    className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
+                  />
+                ))}
+              </div>
+            </>
+          )}
+          {activePanel === "surface" && (
+            <>
+              <h3 className="text-lg font-semibold mb-2">Surface Color</h3>
+              <div className="flex flex-wrap gap-2">
+                {BG_COLORS.map((bg) => (
+                  <button
+                    key={bg.value}
+                    onClick={() => onSetBgColor(bg.value)}
+                    style={{ backgroundColor: bg.value || "transparent" }}
+                    className="w-8 h-8 rounded-full border border-gray-300 hover:opacity-80"
+                  >
+                    {!bg.value && <span className="text-xs">None</span>}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
     </div>
