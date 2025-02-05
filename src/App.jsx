@@ -19,6 +19,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import CommunityPage from "./pages/CommunityPage";
+import MemeViewPage from "./pages/MemeViewPage";
 
 // Blog pages
 import BlogListPage from "./pages/BlogListPage";
