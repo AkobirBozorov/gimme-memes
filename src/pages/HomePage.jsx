@@ -46,23 +46,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      <section className="py-10 bg-white">
-        <div className="max-w-4xl mx-auto px-6">
-          <h2 className="text-3xl font-bold mb-4">About GimmeMemes</h2>
-          <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl shadow-sm">
-            <p className="text-lg mb-4">
-              GimmeMemes is more than just a meme generator – it’s a creative hub for humor and social expression. Our platform is designed for users of all ages and backgrounds, providing an easy-to-use interface that lets you craft memes that resonate with your audience. We pride ourselves on making meme creation accessible and enjoyable, no matter your level of technical expertise.
-            </p>
-            <p className="text-lg mb-4">
-              With GimmeMemes, you can explore a variety of features that help you produce high-quality memes quickly and efficiently. From easy uploads and visual editing to custom styles and instant sharing, our platform is built to empower your creativity. We continuously update our tools based on user feedback, ensuring that you have access to the latest features and a seamless experience.
-            </p>
-            <p className="text-lg">
-              Join our vibrant community today and discover how GimmeMemes can elevate your online presence. Whether you're a professional content creator, a social media influencer, or simply someone who loves to laugh, our platform provides the tools and support you need to create viral content. Let your creativity shine and connect with meme enthusiasts from around the world.
-            </p>
-          </div>
-        </div>
-      </section>
-
       <section className="py-20 bg-gray-50" aria-label="Why Choose GimmeMemes">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-6">
