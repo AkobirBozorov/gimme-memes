@@ -139,6 +139,11 @@ function CommunityMemeCard({ meme }) {
     }
   };
 
+  const openMemeView = () => {
+    // Navigate to the public meme view page route; for example, /meme/25
+    navigate(`/meme/${localMeme.id}`);
+  };
+
   return (
     <div
       className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0 cursor-pointer"
@@ -156,9 +161,12 @@ function CommunityMemeCard({ meme }) {
           className="absolute inset-0 w-full h-full object-cover"
         />
       </div>
-      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2">
         <button
-          onClick={handleLikeClick}
+          onClick={(e) => {
+            e.stopPropagation(); // prevent triggering openMemeView
+            handleLikeClick();
+          }}
           className={`text-red-500 transition-transform duration-300 ${
             animating ? "scale-125" : ""
           }`}
@@ -169,7 +177,9 @@ function CommunityMemeCard({ meme }) {
             <AiOutlineHeart size={24} />
           )}
         </button>
-        <span className="text-gray-700 font-semibold">{localMeme.likeCount || 0}</span>
+        <span className="text-gray-700 font-semibold">
+          {localMeme.likeCount || 0}
+          </span>
       </div>
     </div>
   );
