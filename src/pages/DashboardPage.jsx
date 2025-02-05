@@ -216,43 +216,143 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
         {/* User Info Card */}
         {userData && (
-          <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+          <div className="bg-gray-50 p-6 rounded-lg shadow-md mb-6">
             <h2 className="text-2xl font-semibold text-gray-800">User Info</h2>
-            <p className="text-gray-700 mt-2">
-              <strong>Email:</strong> {userData.email}
-            </p>
-            <p className="text-gray-700">
-              <strong>Username:</strong> {userData.username || "Not set"}
-            </p>
+            {!editingProfile ? (
+              <>
+                <p className="text-gray-700 mt-2">
+                  <strong>Email:</strong> {userData.email}
+                </p>
+                <p className="text-gray-700">
+                  <strong>Username:</strong> {userData.username || "Not set"}
+                </p>
 
-            {/* Social Media Icons */}
-            <div className="flex justify-start space-x-4 mt-3">
-              {userData.instagram && (
-                <a href={userData.instagram} target="_blank" rel="noopener noreferrer">
-                  <FaInstagram size={30} className="text-pink-500 hover:text-pink-600" />
-                </a>
-              )}
-              {userData.reddit && (
-                <a href={userData.reddit} target="_blank" rel="noopener noreferrer">
-                  <FaRedditAlien size={30} className="text-orange-500 hover:text-orange-600" />
-                </a>
-              )}
-              {userData.youtube && (
-                <a href={userData.youtube} target="_blank" rel="noopener noreferrer">
-                  <FaYoutube size={30} className="text-red-500 hover:text-red-600" />
-                </a>
-              )}
-              {userData.tiktok && (
-                <a href={userData.tiktok} target="_blank" rel="noopener noreferrer">
-                  <SiTiktok size={30} className="text-black hover:text-gray-700" />
-                </a>
-              )}
-            </div>
+                {/* Social Media Icons */}
+                <div className="flex justify-start space-x-4 mt-3">
+                  {userData.instagram && (
+                    <a
+                      href={userData.instagram}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FaInstagram size={30} className="text-pink-500 hover:text-pink-600" />
+                    </a>
+                  )}
+                  {userData.reddit && (
+                    <a
+                      href={userData.reddit}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FaRedditAlien size={30} className="text-orange-500 hover:text-orange-600" />
+                    </a>
+                  )}
+                  {userData.youtube && (
+                    <a
+                      href={userData.youtube}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <FaYoutube size={30} className="text-red-500 hover:text-red-600" />
+                    </a>
+                  )}
+                  {userData.tiktok && (
+                    <a
+                      href={userData.tiktok}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <SiTiktok size={30} className="text-black hover:text-gray-700" />
+                    </a>
+                  )}
+                </div>
+                <button
+                  onClick={() => setEditingProfile(true)}
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                >
+                  Edit Profile
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
+                <div>
+                  <label className="block text-gray-700 mb-1">Username</label>
+                  <input
+                    type="text"
+                    className="w-full border p-2 rounded"
+                    value={formData.username}
+                    onChange={(e) =>
+                      setFormData({ ...formData, username: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">Instagram</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={formData.instagram}
+                    onChange={(e) =>
+                      setFormData({ ...formData, instagram: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">Reddit</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={formData.reddit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, reddit: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">YouTube</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={formData.youtube}
+                    onChange={(e) =>
+                      setFormData({ ...formData, youtube: e.target.value })
+                    }
+                  />
+                </div>
+                <div>
+                  <label className="block text-gray-700 mb-1">TikTok</label>
+                  <input
+                    type="url"
+                    className="w-full border p-2 rounded"
+                    value={formData.tiktok}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tiktok: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex gap-4">
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditingProfile(false)}
+                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
 
         {/* Analytics */}
-        <div className="mt-6 bg-gray-50 p-6 rounded-lg shadow-md">
+        <div className="mt-6 bg-gray-50 p-6 rounded-lg shadow-md mb-6">
           <h2 className="text-2xl font-semibold text-gray-800">Analytics</h2>
           <p className="text-gray-700">
             <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
@@ -313,12 +413,6 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
           : "N/A"}
       </div>
       <div className="flex gap-2 mt-3 flex-wrap">
-        <button
-          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
-          onClick={() => navigate(`/create/${meme.id}`)}
-        >
-          Edit Meme
-        </button>
         <button
           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
           onClick={() => onDelete(meme.id)}
