@@ -6,7 +6,7 @@ import { Helmet } from "react-helmet-async";
 
 const SignUpPage = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
+  const [username, setUsername] = useState(""); // now mandatory
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -44,7 +44,6 @@ const SignUpPage = ({ setIsAuthenticated }) => {
   return (
     <div className="max-w-md mx-auto p-4 mt-10">
       <Helmet>
-        {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
@@ -67,12 +66,13 @@ const SignUpPage = ({ setIsAuthenticated }) => {
           />
         </div>
         <div>
-          <label className="block text-gray-700 mb-1">Username (optional)</label>
+          <label className="block text-gray-700 mb-1">Username</label>
           <input
             type="text"
             className="w-full border p-2"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            required
           />
         </div>
         <div>

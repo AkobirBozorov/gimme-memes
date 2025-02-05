@@ -11,6 +11,15 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [formData, setFormData] = useState({
+    username: "",
+    instagram: "",
+    reddit: "",
+    youtube: "",
+    tiktok: "",
+  });
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,6 +53,14 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       setUserData(data.user);
       setMemes(sorted);
       setAnalytics(data.analytics);
+      // Pre-populate the editing form with current user data
+      setFormData({
+        username: data.user.username || "",
+        instagram: data.user.instagram || "",
+        reddit: data.user.reddit || "",
+        youtube: data.user.youtube || "",
+        tiktok: data.user.tiktok || "",
+      });
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -136,6 +153,38 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     }
   }
 
+  // Handler for saving updated profile information
+  async function handleSaveProfile(e) {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${baseApiUrl}/api/user/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+      setUserData(data.user);
+      setNotice("Profile updated successfully");
+      setEditingProfile(false);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
+  }
+
+  // Handler for input changes in profile edit form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen text-xl">
@@ -157,7 +206,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
       <Helmet>
-        {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
@@ -177,26 +225,130 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </div>
       )}
 
+      {/* User Info and Profile Editing */}
       {userData && (
         <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
-          <p className="text-gray-700">
-            <strong>Email:</strong> {userData.email}
-          </p>
-          {userData.username && (
-            <p className="text-gray-700">
-              <strong>Username:</strong> {userData.username}
-            </p>
+          {!editingProfile ? (
+            <>
+              <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
+              <p className="text-gray-700">
+                <strong>Email:</strong> {userData.email}
+              </p>
+              <p className="text-gray-700">
+                <strong>Username:</strong> {userData.username}
+              </p>
+              {userData.instagram && (
+                <p className="text-gray-700">
+                  <strong>Instagram:</strong> {userData.instagram}
+                </p>
+              )}
+              {userData.reddit && (
+                <p className="text-gray-700">
+                  <strong>Reddit:</strong> {userData.reddit}
+                </p>
+              )}
+              {userData.youtube && (
+                <p className="text-gray-700">
+                  <strong>YouTube:</strong> {userData.youtube}
+                </p>
+              )}
+              {userData.tiktok && (
+                <p className="text-gray-700">
+                  <strong>TikTok:</strong> {userData.tiktok}
+                </p>
+              )}
+              <button
+                onClick={() => setEditingProfile(true)}
+                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+              >
+                Edit Profile
+              </button>
+              <button
+                onClick={handleLogout}
+                className="mt-4 ml-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+              >
+                Log Out
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleSaveProfile} className="space-y-4">
+              <h2 className="text-2xl font-semibold mb-2 text-gray-800">Edit Profile</h2>
+              <div>
+                <label className="block text-gray-700 mb-1">Username</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleInputChange}
+                  className="w-full border p-2"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-1">Instagram</label>
+                <input
+                  type="url"
+                  name="instagram"
+                  value={formData.instagram}
+                  onChange={handleInputChange}
+                  className="w-full border p-2"
+                  placeholder="https://instagram.com/yourprofile"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-1">Reddit</label>
+                <input
+                  type="url"
+                  name="reddit"
+                  value={formData.reddit}
+                  onChange={handleInputChange}
+                  className="w-full border p-2"
+                  placeholder="https://reddit.com/user/yourprofile"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-1">YouTube</label>
+                <input
+                  type="url"
+                  name="youtube"
+                  value={formData.youtube}
+                  onChange={handleInputChange}
+                  className="w-full border p-2"
+                  placeholder="https://youtube.com/channel/yourchannel"
+                />
+              </div>
+              <div>
+                <label className="block text-gray-700 mb-1">TikTok</label>
+                <input
+                  type="url"
+                  name="tiktok"
+                  value={formData.tiktok}
+                  onChange={handleInputChange}
+                  className="w-full border p-2"
+                  placeholder="https://tiktok.com/@yourprofile"
+                />
+              </div>
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingProfile(false)}
+                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
           )}
-          <button
-            onClick={handleLogout}
-            className="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
-          >
-            Log Out
-          </button>
         </div>
       )}
 
+      {/* Analytics */}
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
         <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
         <p className="text-gray-700">
@@ -204,6 +356,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </p>
       </div>
 
+      {/* User's Memes */}
       <div className="max-w-2xl mx-auto px-2">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
