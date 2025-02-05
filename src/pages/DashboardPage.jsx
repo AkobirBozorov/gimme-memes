@@ -19,7 +19,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     youtube: "",
     tiktok: "",
   });
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,19 +40,20 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         throw new Error(errMsg.error || "Failed to fetch user data");
       }
       const data = await res.json();
-      const sorted = [...data.memes].sort((a, b) => {
+      // Sort memes by updatedAt (fallback to createdAt)
+      const sortedMemes = [...data.memes].sort((a, b) => {
         const aTime = a.updatedAt
           ? new Date(a.updatedAt).getTime()
           : new Date(a.createdAt).getTime();
         const bTime = b.updatedAt
           ? new Date(b.updatedAt).getTime()
           : new Date(b.createdAt).getTime();
-        return bTime - aTime;
+        return bTime - aTime; // newest first
       });
       setUserData(data.user);
-      setMemes(sorted);
+      setMemes(sortedMemes);
       setAnalytics(data.analytics);
-      // Pre-populate the editing form with current user data
+      // Initialize the form fields with user info (if any)
       setFormData({
         username: data.user.username || "",
         instagram: data.user.instagram || "",
@@ -80,6 +80,31 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     localStorage.removeItem("token");
     setIsAuthenticated(false);
     navigate("/login");
+  }
+
+  async function handleUpdateProfile(e) {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${baseApiUrl}/api/user/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Error updating profile");
+      }
+      setUserData(data.user);
+      setNotice("Profile updated successfully");
+      setEditingProfile(false);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    }
   }
 
   async function handleDeleteMeme(memeId) {
@@ -153,38 +178,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     }
   }
 
-  // Handler for saving updated profile information
-  async function handleSaveProfile(e) {
-    e.preventDefault();
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${baseApiUrl}/api/user/me`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to update profile");
-      }
-      setUserData(data.user);
-      setNotice("Profile updated successfully");
-      setEditingProfile(false);
-    } catch (err) {
-      console.error(err);
-      setError(err.message);
-    }
-  }
-
-  // Handler for input changes in profile edit form
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen text-xl">
@@ -206,7 +199,10 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   return (
     <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
       <Helmet>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"
+        ></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
@@ -225,62 +221,82 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </div>
       )}
 
-      {/* User Info and Profile Editing */}
+      {/* User Info and Edit Profile */}
       {userData && (
         <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
-          {!editingProfile ? (
-            <>
-              <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
-              <p className="text-gray-700">
-                <strong>Email:</strong> {userData.email}
-              </p>
-              <p className="text-gray-700">
-                <strong>Username:</strong> {userData.username}
-              </p>
-              {userData.instagram && (
-                <p className="text-gray-700">
-                  <strong>Instagram:</strong> {userData.instagram}
-                </p>
-              )}
-              {userData.reddit && (
-                <p className="text-gray-700">
-                  <strong>Reddit:</strong> {userData.reddit}
-                </p>
-              )}
-              {userData.youtube && (
-                <p className="text-gray-700">
-                  <strong>YouTube:</strong> {userData.youtube}
-                </p>
-              )}
-              {userData.tiktok && (
-                <p className="text-gray-700">
-                  <strong>TikTok:</strong> {userData.tiktok}
-                </p>
-              )}
-              <button
-                onClick={() => setEditingProfile(true)}
-                className="mt-4 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+          <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
+          <p className="text-gray-700">
+            <strong>Email:</strong> {userData.email}
+          </p>
+          <p className="text-gray-700">
+            <strong>Username:</strong>{" "}
+            {userData.username ? userData.username : "Not set"}
+          </p>
+          <div className="flex space-x-4 mt-2">
+            {userData.instagram && (
+              <a
+                href={userData.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Edit Profile
-              </button>
-              <button
-                onClick={handleLogout}
-                className="mt-4 ml-2 bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition"
+                <img
+                  src="/icons/instagram.png"
+                  alt="Instagram"
+                  className="w-6 h-6"
+                />
+              </a>
+            )}
+            {userData.reddit && (
+              <a
+                href={userData.reddit}
+                target="_blank"
+                rel="noopener noreferrer"
               >
-                Log Out
-              </button>
-            </>
-          ) : (
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              <h2 className="text-2xl font-semibold mb-2 text-gray-800">Edit Profile</h2>
+                <img
+                  src="/icons/reddit.png"
+                  alt="Reddit"
+                  className="w-6 h-6"
+                />
+              </a>
+            )}
+            {userData.youtube && (
+              <a
+                href={userData.youtube}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="/icons/youtube.png"
+                  alt="YouTube"
+                  className="w-6 h-6"
+                />
+              </a>
+            )}
+            {userData.tiktok && (
+              <a
+                href={userData.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src="/icons/tiktok.png"
+                  alt="TikTok"
+                  className="w-6 h-6"
+                />
+              </a>
+            )}
+          </div>
+          {editingProfile ? (
+            <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
               <div>
                 <label className="block text-gray-700 mb-1">Username</label>
                 <input
                   type="text"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
                   className="w-full border p-2"
+                  value={formData.username}
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -288,67 +304,71 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
                 <label className="block text-gray-700 mb-1">Instagram</label>
                 <input
                   type="url"
-                  name="instagram"
-                  value={formData.instagram}
-                  onChange={handleInputChange}
                   className="w-full border p-2"
-                  placeholder="https://instagram.com/yourprofile"
+                  value={formData.instagram}
+                  onChange={(e) =>
+                    setFormData({ ...formData, instagram: e.target.value })
+                  }
                 />
               </div>
               <div>
                 <label className="block text-gray-700 mb-1">Reddit</label>
                 <input
                   type="url"
-                  name="reddit"
-                  value={formData.reddit}
-                  onChange={handleInputChange}
                   className="w-full border p-2"
-                  placeholder="https://reddit.com/user/yourprofile"
+                  value={formData.reddit}
+                  onChange={(e) =>
+                    setFormData({ ...formData, reddit: e.target.value })
+                  }
                 />
               </div>
               <div>
                 <label className="block text-gray-700 mb-1">YouTube</label>
                 <input
                   type="url"
-                  name="youtube"
-                  value={formData.youtube}
-                  onChange={handleInputChange}
                   className="w-full border p-2"
-                  placeholder="https://youtube.com/channel/yourchannel"
+                  value={formData.youtube}
+                  onChange={(e) =>
+                    setFormData({ ...formData, youtube: e.target.value })
+                  }
                 />
               </div>
               <div>
                 <label className="block text-gray-700 mb-1">TikTok</label>
                 <input
                   type="url"
-                  name="tiktok"
-                  value={formData.tiktok}
-                  onChange={handleInputChange}
                   className="w-full border p-2"
-                  placeholder="https://tiktok.com/@yourprofile"
+                  value={formData.tiktok}
+                  onChange={(e) =>
+                    setFormData({ ...formData, tiktok: e.target.value })
+                  }
                 />
               </div>
               <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition"
-                >
+                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
                   Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingProfile(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600 transition"
+                  className="bg-gray-500 text-white px-4 py-2 rounded"
                 >
                   Cancel
                 </button>
               </div>
             </form>
+          ) : (
+            <button
+              onClick={() => setEditingProfile(true)}
+              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+            >
+              Edit Profile
+            </button>
           )}
         </div>
       )}
 
-      {/* Analytics */}
+      {/* Analytics Section */}
       <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
         <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
         <p className="text-gray-700">
@@ -356,7 +376,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
         </p>
       </div>
 
-      {/* User's Memes */}
+      {/* My Memes Section */}
       <div className="max-w-2xl mx-auto px-2">
         <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
         {memes.length > 0 ? (
@@ -388,6 +408,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 };
 
 const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
+  const navigate = useNavigate();
   return (
     <div className="bg-white rounded-lg shadow p-4">
       {meme.title && (
@@ -408,6 +429,12 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
           : "N/A"}
       </p>
       <div className="flex gap-2 mt-3 flex-wrap">
+        <button
+          className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
+          onClick={() => navigate(`/create/${meme.id}`)}
+        >
+          Edit Meme
+        </button>
         <button
           className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
           onClick={() => onDelete(meme.id)}

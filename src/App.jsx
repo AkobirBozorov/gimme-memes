@@ -53,6 +53,7 @@ function App() {
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/community" element={<CommunityPage />} />
+            <Route path="/meme/:id" element={<MemeViewPage />} />
             {/* Public Create Meme page */}
             <Route path="/create" element={<CreateMemePage />} />
             {/* Protected editing route */}
