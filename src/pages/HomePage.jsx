@@ -182,18 +182,6 @@ const HomePage = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-white" aria-label="Our Mission">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">Our Mission</h2>
-          <p className="text-lg text-gray-700 mb-4">
-            At GimmeMemes, we believe that humor and creativity should be accessible to everyone. Our mission is to empower individuals from all walks of life to express themselves through memes—turning everyday moments into sources of laughter and connection.
-          </p>
-          <p className="text-lg text-gray-700">
-            We continuously innovate and integrate the latest technologies to ensure that our users enjoy a seamless and inspiring creative experience. Whether you're here to create or just to be entertained, we're dedicated to helping you share joy with the world.
-          </p>
-        </div>
-      </section>
-
       <section className="py-20 bg-gray-50" aria-label="Share This Page">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Share GimmeMemes</h2>
