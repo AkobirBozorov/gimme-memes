@@ -1,8 +1,9 @@
-// gimme-memes-frontend/src/pages/DashboardPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
 import { Helmet } from "react-helmet-async";
+import { FaInstagram, FaRedditAlien, FaYoutube } from "react-icons/fa";
+import { SiTiktok } from "react-icons/si";
 
 const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   const [userData, setUserData] = useState(null);
@@ -19,6 +20,7 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
     youtube: "",
     tiktok: "",
   });
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -53,7 +55,6 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
       setUserData(data.user);
       setMemes(sortedMemes);
       setAnalytics(data.analytics);
-      // Initialize the form fields with user info (if any)
       setFormData({
         username: data.user.username || "",
         instagram: data.user.instagram || "",
@@ -180,16 +181,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen text-xl">
+      <div className="flex justify-center items-center h-screen text-lg">
         Loading...
       </div>
     );
   }
   if (error) {
     return (
-      <div className="p-4 text-red-500 text-center">
+      <div className="text-center text-red-500 p-4">
         {error}{" "}
-        <button onClick={handleLogout} className="ml-2 text-blue-600 underline">
+        <button onClick={handleLogout} className="text-blue-600 underline">
           Log Out
         </button>
       </div>
@@ -197,211 +198,94 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-indigo-50 to-blue-50 p-6">
+    <div className="min-h-screen bg-gray-100 py-8 px-4">
       <Helmet>
-        <script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"
-        ></script>
-        <script>{`
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-CR21WBQXGL');
-        `}</script>
+        <title>Dashboard</title>
       </Helmet>
 
-      <h1 className="text-4xl font-bold mb-6 text-center text-gray-800">
-        Dashboard
-      </h1>
+      <div className="max-w-4xl mx-auto bg-white p-6 shadow-lg rounded-lg">
+        <h1 className="text-3xl font-bold text-center mb-6 text-gray-800">
+          Dashboard
+        </h1>
 
-      {notice && (
-        <div className="mb-4 text-green-700 bg-green-100 p-3 rounded text-center transition duration-300">
-          {notice}
-        </div>
-      )}
-
-      {/* User Info and Edit Profile */}
-      {userData && (
-        <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-2 text-gray-800">User Info</h2>
-          <p className="text-gray-700">
-            <strong>Email:</strong> {userData.email}
-          </p>
-          <p className="text-gray-700">
-            <strong>Username:</strong>{" "}
-            {userData.username ? userData.username : "Not set"}
-          </p>
-          <div className="flex space-x-4 mt-2">
-            {userData.instagram && (
-              <a
-                href={userData.instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/icons/instagram.png"
-                  alt="Instagram"
-                  className="w-6 h-6"
-                />
-              </a>
-            )}
-            {userData.reddit && (
-              <a
-                href={userData.reddit}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/icons/reddit.png"
-                  alt="Reddit"
-                  className="w-6 h-6"
-                />
-              </a>
-            )}
-            {userData.youtube && (
-              <a
-                href={userData.youtube}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/icons/youtube.png"
-                  alt="YouTube"
-                  className="w-6 h-6"
-                />
-              </a>
-            )}
-            {userData.tiktok && (
-              <a
-                href={userData.tiktok}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <img
-                  src="/icons/tiktok.png"
-                  alt="TikTok"
-                  className="w-6 h-6"
-                />
-              </a>
-            )}
+        {notice && (
+          <div className="mb-4 text-green-700 bg-green-100 p-3 rounded text-center">
+            {notice}
           </div>
-          {editingProfile ? (
-            <form onSubmit={handleUpdateProfile} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-gray-700 mb-1">Username</label>
-                <input
-                  type="text"
-                  className="w-full border p-2"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  required
+        )}
+
+        {/* User Info Card */}
+        {userData && (
+          <div className="bg-gray-50 p-6 rounded-lg shadow-md">
+            <h2 className="text-2xl font-semibold text-gray-800">User Info</h2>
+            <p className="text-gray-700 mt-2">
+              <strong>Email:</strong> {userData.email}
+            </p>
+            <p className="text-gray-700">
+              <strong>Username:</strong> {userData.username || "Not set"}
+            </p>
+
+            {/* Social Media Icons */}
+            <div className="flex justify-start space-x-4 mt-3">
+              {userData.instagram && (
+                <a href={userData.instagram} target="_blank" rel="noopener noreferrer">
+                  <FaInstagram size={30} className="text-pink-500 hover:text-pink-600" />
+                </a>
+              )}
+              {userData.reddit && (
+                <a href={userData.reddit} target="_blank" rel="noopener noreferrer">
+                  <FaRedditAlien size={30} className="text-orange-500 hover:text-orange-600" />
+                </a>
+              )}
+              {userData.youtube && (
+                <a href={userData.youtube} target="_blank" rel="noopener noreferrer">
+                  <FaYoutube size={30} className="text-red-500 hover:text-red-600" />
+                </a>
+              )}
+              {userData.tiktok && (
+                <a href={userData.tiktok} target="_blank" rel="noopener noreferrer">
+                  <SiTiktok size={30} className="text-black hover:text-gray-700" />
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Analytics */}
+        <div className="mt-6 bg-gray-50 p-6 rounded-lg shadow-md">
+          <h2 className="text-2xl font-semibold text-gray-800">Analytics</h2>
+          <p className="text-gray-700">
+            <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
+          </p>
+        </div>
+
+        {/* My Memes Section */}
+        <div className="mt-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">My Memes</h2>
+          {memes.length > 0 ? (
+            <div className="grid gap-6">
+              {memes.map((meme) => (
+                <DashboardMemeCard
+                  key={meme.id}
+                  meme={meme}
+                  onDelete={handleDeleteMeme}
+                  onPublish={handlePublish}
+                  onUnpublish={handleUnpublish}
                 />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">Instagram</label>
-                <input
-                  type="url"
-                  className="w-full border p-2"
-                  value={formData.instagram}
-                  onChange={(e) =>
-                    setFormData({ ...formData, instagram: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">Reddit</label>
-                <input
-                  type="url"
-                  className="w-full border p-2"
-                  value={formData.reddit}
-                  onChange={(e) =>
-                    setFormData({ ...formData, reddit: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">YouTube</label>
-                <input
-                  type="url"
-                  className="w-full border p-2"
-                  value={formData.youtube}
-                  onChange={(e) =>
-                    setFormData({ ...formData, youtube: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 mb-1">TikTok</label>
-                <input
-                  type="url"
-                  className="w-full border p-2"
-                  value={formData.tiktok}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tiktok: e.target.value })
-                  }
-                />
-              </div>
-              <div className="flex gap-4">
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditingProfile(false)}
-                  className="bg-gray-500 text-white px-4 py-2 rounded"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+              ))}
+            </div>
           ) : (
-            <button
-              onClick={() => setEditingProfile(true)}
-              className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-            >
-              Edit Profile
-            </button>
+            <p className="text-gray-700 text-center">
+              No memes yet.{" "}
+              <button
+                onClick={() => navigate("/create")}
+                className="text-blue-600 font-semibold hover:underline"
+              >
+                Create one!
+              </button>
+            </p>
           )}
         </div>
-      )}
-
-      {/* Analytics Section */}
-      <div className="mb-6 bg-white shadow-lg p-6 rounded-lg border-l-4 border-blue-500 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-semibold mb-2 text-gray-800">Analytics</h2>
-        <p className="text-gray-700">
-          <strong>Total Memes Created:</strong> {analytics.totalMemes || 0}
-        </p>
-      </div>
-
-      {/* My Memes Section */}
-      <div className="max-w-2xl mx-auto px-2">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-800">My Memes</h2>
-        {memes.length > 0 ? (
-          <div className="space-y-6">
-            {memes.map((meme) => (
-              <DashboardMemeCard
-                key={meme.id}
-                meme={meme}
-                onDelete={handleDeleteMeme}
-                onPublish={handlePublish}
-                onUnpublish={handleUnpublish}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-gray-700 text-center">
-            No memes yet.{" "}
-            <button
-              onClick={() => navigate("/create")}
-              className="text-blue-600 font-semibold hover:underline"
-            >
-              Create one!
-            </button>
-          </p>
-        )}
       </div>
     </div>
   );
@@ -410,16 +294,16 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
   const navigate = useNavigate();
   return (
-    <div className="bg-white rounded-lg shadow p-4">
+    <div className="bg-white p-4 shadow rounded-lg">
       {meme.title && (
         <h3 className="mb-2 text-lg font-semibold text-gray-700">{meme.title}</h3>
       )}
       <img
         src={meme.filePath}
         alt="Meme"
-        className="w-full h-auto object-contain max-h-96 mb-2"
+        className="w-full h-auto object-contain max-h-96 my-2 rounded"
       />
-      <p className="text-xs text-gray-500">
+      <div className="text-xs text-gray-500">
         Last updated:{" "}
         {meme.updatedAt
           ? new Date(meme.updatedAt).toLocaleString(undefined, {
@@ -427,7 +311,7 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
               timeStyle: "short",
             })
           : "N/A"}
-      </p>
+      </div>
       <div className="flex gap-2 mt-3 flex-wrap">
         <button
           className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 transition"
