@@ -9,6 +9,7 @@ const CommunityPage = () => {
   const [allMemes, setAllMemes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("new"); // "new" or "popular"
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,7 +32,7 @@ const CommunityPage = () => {
     return <div className="p-4 text-center text-red-500">{error}</div>;
   }
 
-  // Sort memes for each row
+  // Sort memes for each category
   const newMemes = [...allMemes].sort((a, b) => {
     const aTime = a.updatedAt
       ? new Date(a.updatedAt).getTime()
@@ -45,6 +46,9 @@ const CommunityPage = () => {
     (a, b) => (b.likeCount || 0) - (a.likeCount || 0)
   );
 
+  // Choose which memes to display based on active tab
+  const displayedMemes = activeTab === "new" ? newMemes : popularMemes;
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Helmet>
@@ -57,8 +61,30 @@ const CommunityPage = () => {
         `}</script>
       </Helmet>
 
-      <div className="max-w-5xl mx-auto flex justify-between items-center px-4 mb-8">
-        <h1 className="text-3xl font-bold">Community Memes</h1>
+      <div className="max-w-5xl mx-auto px-4 mb-8 flex flex-col items-center">
+        <h1 className="text-3xl font-bold mb-4">Community Memes</h1>
+        <div className="flex space-x-4 mb-4">
+          <button
+            onClick={() => setActiveTab("new")}
+            className={`px-4 py-2 rounded ${
+              activeTab === "new"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+          >
+            New Memes
+          </button>
+          <button
+            onClick={() => setActiveTab("popular")}
+            className={`px-4 py-2 rounded ${
+              activeTab === "popular"
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-800 hover:bg-gray-300"
+            }`}
+          >
+            Popular Memes
+          </button>
+        </div>
         <button
           onClick={() => navigate("/create")}
           className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
@@ -79,29 +105,15 @@ const CommunityPage = () => {
         </div>
       ) : (
         <div className="max-w-5xl mx-auto space-y-8 px-4">
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">New Memes</h2>
-            <HorizontalMemeRow memes={newMemes} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-semibold mb-2">Popular Memes</h2>
-            <HorizontalMemeRow memes={popularMemes} />
-          </div>
+          {/* Display memes one at a time in a vertical list */}
+          {displayedMemes.map((meme) => (
+            <CommunityMemeCard key={meme.id} meme={meme} />
+          ))}
         </div>
       )}
     </div>
   );
 };
-
-function HorizontalMemeRow({ memes }) {
-  return (
-    <div className="overflow-x-auto flex space-x-4 pb-4">
-      {memes.map((meme) => (
-        <CommunityMemeCard key={meme.id} meme={meme} />
-      ))}
-    </div>
-  );
-}
 
 function CommunityMemeCard({ meme }) {
   const [localMeme, setLocalMeme] = useState(meme);
@@ -139,22 +151,17 @@ function CommunityMemeCard({ meme }) {
     }
   };
 
-  const openMemeView = () => {
-    // Navigate to the public meme view page route; for example, /meme/25
-    navigate(`/meme/${localMeme.id}`);
-  };
-
   return (
     <div
-      className="bg-white rounded-lg shadow p-4 w-80 flex-shrink-0 cursor-pointer"
+      className="bg-white rounded-lg shadow p-4 mb-6 cursor-pointer"
       onClick={handleCardClick}
     >
       {localMeme.title && (
-        <h3 className="mb-2 text-lg font-semibold text-gray-700 line-clamp-1">
+        <h3 className="mb-2 text-lg font-semibold text-gray-700">
           {localMeme.title}
         </h3>
       )}
-      <div className="w-80 h-80 relative mb-2 overflow-hidden">
+      <div className="w-full h-96 relative mb-2 overflow-hidden">
         <img
           src={localMeme.filePath}
           alt="Meme"
@@ -164,8 +171,8 @@ function CommunityMemeCard({ meme }) {
       <div className="flex items-center gap-2">
         <button
           onClick={(e) => {
-            e.stopPropagation(); // prevent triggering openMemeView
-            handleLikeClick();
+            e.stopPropagation();
+            handleLikeClick(e);
           }}
           className={`text-red-500 transition-transform duration-300 ${
             animating ? "scale-125" : ""
@@ -179,7 +186,7 @@ function CommunityMemeCard({ meme }) {
         </button>
         <span className="text-gray-700 font-semibold">
           {localMeme.likeCount || 0}
-          </span>
+        </span>
       </div>
     </div>
   );
