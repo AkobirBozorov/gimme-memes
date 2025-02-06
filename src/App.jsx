@@ -1,5 +1,5 @@
 // gimme-memes-frontend/src/App.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -29,7 +29,6 @@ import AdminBlogPage from "./pages/AdminBlogPage";
 import { baseApiUrl } from "./utils/api";
 
 // A simple ProtectedRoute component that checks for a token.
-// (You can later expand this to do an actual backend verification if needed.)
 function ProtectedRoute({ children }) {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -41,7 +40,27 @@ function ProtectedRoute({ children }) {
 function App() {
   // We can initialize isAuthenticated based on whether a token exists.
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
+  // Initialize isAdmin to false; we'll update it after fetching the user's profile.
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // Fetch user info on mount (or when isAuthenticated changes) to update the isAdmin state.
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch(`${baseApiUrl}/api/user/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.user && data.user.isAdmin) {
+            setIsAdmin(true);
+          } else {
+            setIsAdmin(false);
+          }
+        })
+        .catch((err) => console.error("Error fetching user info:", err));
+    }
+  }, [isAuthenticated]);
 
   return (
     <Router>
