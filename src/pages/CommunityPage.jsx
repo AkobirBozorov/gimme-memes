@@ -172,8 +172,8 @@ function CommunityMemeCard({ meme }) {
         </h3>
       )}
       {isVertical === true ? (
-        // For vertical images, take full width but limit the height with max-h-80
-        <div className="w-full relative mb-2 overflow-hidden max-h-80">
+        // For vertical images, take full width and auto height, but cap with a max-height of 40rem
+        <div className="w-full relative mb-2 overflow-hidden max-h-[40rem]">
           <img
             src={localMeme.filePath}
             alt="Meme"
