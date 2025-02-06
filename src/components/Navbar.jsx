@@ -29,12 +29,6 @@ const Navbar = ({ isAuthenticated }) => {
           <NavLink to="/blog" className={navLinkClasses}>
             Blog
           </NavLink>
-          <NavLink to="/about" className={navLinkClasses}>
-            About
-          </NavLink>
-          <NavLink to="/faq" className={navLinkClasses}>
-            FAQ
-          </NavLink>
           <NavLink to="/contact" className={navLinkClasses}>
             Contact
           </NavLink>
@@ -105,12 +99,6 @@ const Navbar = ({ isAuthenticated }) => {
           </NavLink>
           <NavLink to="/blog" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             Blog
-          </NavLink>
-          <NavLink to="/about" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
-            About
-          </NavLink>
-          <NavLink to="/faq" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
-            FAQ
           </NavLink>
           <NavLink to="/contact" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             Contact
