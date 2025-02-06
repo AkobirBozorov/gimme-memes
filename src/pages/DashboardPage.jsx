@@ -392,17 +392,43 @@ const DashboardPage = ({ isAuthenticated, setIsAuthenticated }) => {
 };
 
 const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
-  const navigate = useNavigate();
+  const [isVertical, setIsVertical] = useState(null);
+
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalHeight > naturalWidth) {
+      setIsVertical(true);
+    } else {
+      setIsVertical(false);
+    }
+  };
+
   return (
     <div className="bg-white p-4 shadow rounded-lg">
       {meme.title && (
         <h3 className="mb-2 text-lg font-semibold text-gray-700">{meme.title}</h3>
       )}
-      <img
-        src={meme.filePath}
-        alt="Meme"
-        className="w-full h-auto object-contain max-h-96 my-2 rounded"
-      />
+      {isVertical === true ? (
+        // For vertical images, show full width, adjust height automatically, and cap very tall images
+        <div className="w-full relative mb-2">
+          <img
+            src={meme.filePath}
+            alt="Meme"
+            onLoad={handleImageLoad}
+            className="mx-auto max-h-[40rem] object-contain"
+          />
+        </div>
+      ) : (
+        // For horizontal images (or if not determined yet), use a fixed height container
+        <div className="w-full h-96 relative mb-2 overflow-hidden">
+          <img
+            src={meme.filePath}
+            alt="Meme"
+            onLoad={handleImageLoad}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+      )}
       <div className="text-xs text-gray-500">
         Last updated:{" "}
         {meme.updatedAt
