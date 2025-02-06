@@ -61,12 +61,12 @@ const CommunityPage = () => {
         `}</script>
       </Helmet>
 
-      <div className="max-w-5xl mx-auto px-4 mb-8 flex flex-col items-center">
-        <h1 className="text-3xl font-bold mb-4">Community Memes</h1>
-        <div className="flex space-x-4 mb-4">
+      {/* Header: Left: Toggle Buttons; Right: Create Your Meme button */}
+      <div className="max-w-5xl mx-auto px-4 mb-8 flex items-center justify-between">
+        <div className="flex space-x-4">
           <button
             onClick={() => setActiveTab("new")}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded font-semibold ${
               activeTab === "new"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -76,7 +76,7 @@ const CommunityPage = () => {
           </button>
           <button
             onClick={() => setActiveTab("popular")}
-            className={`px-4 py-2 rounded ${
+            className={`px-4 py-2 rounded font-semibold ${
               activeTab === "popular"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-200 text-gray-800 hover:bg-gray-300"
@@ -87,9 +87,9 @@ const CommunityPage = () => {
         </div>
         <button
           onClick={() => navigate("/create")}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
+          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold"
         >
-          Create New Meme
+          Create Your Meme
         </button>
       </div>
 
@@ -98,7 +98,7 @@ const CommunityPage = () => {
           <p className="text-xl mb-4">No memes yet. Be the first to share one!</p>
           <button
             onClick={() => navigate("/create")}
-            className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition"
+            className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition font-semibold"
           >
             Create a Meme
           </button>
@@ -118,6 +118,7 @@ const CommunityPage = () => {
 function CommunityMemeCard({ meme }) {
   const [localMeme, setLocalMeme] = useState(meme);
   const [animating, setAnimating] = useState(false);
+  const [isVertical, setIsVertical] = useState(null);
   const navigate = useNavigate();
 
   const handleCardClick = () => {
@@ -151,6 +152,15 @@ function CommunityMemeCard({ meme }) {
     }
   };
 
+  const handleImageLoad = (e) => {
+    const { naturalWidth, naturalHeight } = e.target;
+    if (naturalHeight > naturalWidth) {
+      setIsVertical(true);
+    } else {
+      setIsVertical(false);
+    }
+  };
+
   return (
     <div
       className="bg-white rounded-lg shadow p-4 mb-6 cursor-pointer"
@@ -161,13 +171,27 @@ function CommunityMemeCard({ meme }) {
           {localMeme.title}
         </h3>
       )}
-      <div className="w-full h-96 relative mb-2 overflow-hidden">
-        <img
-          src={localMeme.filePath}
-          alt="Meme"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      </div>
+      {isVertical === true ? (
+        // For vertical images, let the image height adjust naturally and allow longer height
+        <div className="w-full relative mb-2 overflow-hidden">
+          <img
+            src={localMeme.filePath}
+            alt="Meme"
+            onLoad={handleImageLoad}
+            className="w-full h-auto object-contain"
+          />
+        </div>
+      ) : (
+        // For horizontal images (or if not determined yet), use fixed height container
+        <div className="w-full h-96 relative mb-2 overflow-hidden">
+          <img
+            src={localMeme.filePath}
+            alt="Meme"
+            onLoad={handleImageLoad}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+      )}
       <div className="flex items-center gap-2">
         <button
           onClick={(e) => {
