@@ -419,8 +419,8 @@ const DashboardMemeCard = ({ meme, onDelete, onPublish, onUnpublish }) => {
           />
         </div>
       ) : (
-        // For horizontal images (or if not determined yet), use a fixed height container
-        <div className="w-full h-96 relative mb-2 overflow-hidden">
+        // For horizontal images (or if not determined yet), use fixed height container (increased to h-[32rem])
+        <div className="w-full h-[32rem] relative mb-2 overflow-hidden">
           <img
             src={meme.filePath}
             alt="Meme"
