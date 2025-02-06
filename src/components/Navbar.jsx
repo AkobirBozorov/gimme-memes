@@ -7,14 +7,14 @@ const Navbar = ({ isAuthenticated }) => {
   // Function to return the appropriate classes based on active state
   const navLinkClasses = ({ isActive }) =>
     isActive
-      ? "text-blue-600 font-medium"
-      : "text-gray-700 hover:text-blue-600 font-medium";
+      ? "text-[#6EE2F5] font-medium"
+      : "text-[#001F3F] hover:text-[#6EE2F5] font-medium";
 
   return (
     <nav className="bg-white shadow-md">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-blue-600">
+        <Link to="/" className="text-2xl font-bold text-[#001F3F]">
           GimmeMemes
         </Link>
 
@@ -34,10 +34,10 @@ const Navbar = ({ isAuthenticated }) => {
           </NavLink>
           {!isAuthenticated && (
             <>
-              <Link to="/signup" className="text-gray-700 hover:text-blue-600 font-medium">
+              <Link to="/signup" className="text-[#001F3F] hover:text-[#6EE2F5] font-medium">
                 Sign Up
               </Link>
-              <Link to="/login" className="text-gray-700 hover:text-blue-600 font-medium">
+              <Link to="/login" className="text-[#001F3F] hover:text-[#6EE2F5] font-medium">
                 Login
               </Link>
             </>
@@ -53,7 +53,7 @@ const Navbar = ({ isAuthenticated }) => {
         <div className="hidden md:block">
           <Link
             to="/create"
-            className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition"
+            className="bg-[#6EE2F5] text-[#001F3F] px-5 py-2 rounded-lg hover:bg-[#5adfe0] transition"
           >
             Create Meme
           </Link>
@@ -61,14 +61,14 @@ const Navbar = ({ isAuthenticated }) => {
 
         {/* Hamburger Menu (Mobile) */}
         <button
-          className="md:hidden text-gray-700 focus:outline-none"
+          className="md:hidden text-[#001F3F] focus:outline-none"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           ☰
         </button>
       </div>
 
-      {/* Mobile Overlay (clicking outside closes the menu) */}
+      {/* Mobile Overlay */}
       <div
         className={`fixed inset-0 z-40 bg-black bg-opacity-50 transition-opacity ${
           menuOpen ? "opacity-100 visible" : "opacity-0 invisible"
@@ -76,15 +76,14 @@ const Navbar = ({ isAuthenticated }) => {
         onClick={() => setMenuOpen(false)}
       ></div>
 
-      {/* Mobile Sidebar (Sliding in from the Right) */}
+      {/* Mobile Sidebar */}
       <div
         className={`fixed top-0 right-0 w-3/4 h-full z-50 bg-white shadow-lg p-6 transform ${
           menuOpen ? "translate-x-0" : "translate-x-full"
         } transition-transform md:hidden`}
       >
-        {/* Close Button on the Right Side */}
         <button
-          className="absolute top-4 right-4 text-gray-700"
+          className="absolute top-4 right-4 text-[#001F3F]"
           onClick={() => setMenuOpen(false)}
         >
           ✖
@@ -108,14 +107,14 @@ const Navbar = ({ isAuthenticated }) => {
             <>
               <Link
                 to="/signup"
-                className="text-gray-700 hover:text-blue-600 font-medium"
+                className="text-[#001F3F] hover:text-[#6EE2F5] font-medium"
                 onClick={() => setMenuOpen(false)}
               >
                 Sign Up
               </Link>
               <Link
                 to="/login"
-                className="text-gray-700 hover:text-blue-600 font-medium"
+                className="text-[#001F3F] hover:text-[#6EE2F5] font-medium"
                 onClick={() => setMenuOpen(false)}
               >
                 Login
@@ -134,7 +133,7 @@ const Navbar = ({ isAuthenticated }) => {
           <Link
             to="/create"
             onClick={() => setMenuOpen(false)}
-            className="bg-blue-500 text-white px-5 py-2 rounded-lg hover:bg-blue-600 transition text-center"
+            className="bg-[#6EE2F5] text-[#001F3F] px-5 py-2 rounded-lg hover:bg-[#5adfe0] transition text-center"
           >
             Create Meme
           </Link>
