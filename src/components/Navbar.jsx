@@ -4,21 +4,21 @@ import { Link, NavLink } from "react-router-dom";
 const Navbar = ({ isAuthenticated }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Function to return the appropriate classes based on active state
+  // Return classes based on active state using new brand colors
   const navLinkClasses = ({ isActive }) =>
     isActive
-      ? "text-[#6EE2F5] font-medium"
-      : "text-[#001F3F] hover:text-[#6EE2F5] font-medium";
+      ? "text-[#528265] font-medium"
+      : "text-gray-700 hover:text-[#528265] font-medium";
 
   return (
     <nav className="bg-white shadow-md">
       <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-bold text-[#001F3F]">
+        <Link to="/" className="text-2xl font-bold text-[#528265]">
           GimmeMemes
         </Link>
 
-        {/* Navigation Links for Larger Screens (Centered) */}
+        {/* Navigation Links for Larger Screens */}
         <div className="hidden md:flex flex-1 justify-center space-x-6">
           <NavLink to="/" className={navLinkClasses}>
             Home
@@ -34,10 +34,10 @@ const Navbar = ({ isAuthenticated }) => {
           </NavLink>
           {!isAuthenticated && (
             <>
-              <Link to="/signup" className="text-[#001F3F] hover:text-[#6EE2F5] font-medium">
+              <Link to="/signup" className="text-gray-700 hover:text-[#528265] font-medium">
                 Sign Up
               </Link>
-              <Link to="/login" className="text-[#001F3F] hover:text-[#6EE2F5] font-medium">
+              <Link to="/login" className="text-gray-700 hover:text-[#528265] font-medium">
                 Login
               </Link>
             </>
@@ -49,19 +49,19 @@ const Navbar = ({ isAuthenticated }) => {
           )}
         </div>
 
-        {/* Create Meme Button (Aligned to Right) */}
+        {/* Create Meme Button (Right-Aligned) */}
         <div className="hidden md:block">
           <Link
             to="/create"
-            className="bg-[#6EE2F5] text-[#001F3F] px-5 py-2 rounded-lg hover:bg-[#5adfe0] transition"
+            className="bg-[#528265] text-white px-5 py-2 rounded-lg hover:bg-[#47795f] transition"
           >
             Create Meme
           </Link>
         </div>
 
-        {/* Hamburger Menu (Mobile) */}
+        {/* Hamburger Menu for Mobile */}
         <button
-          className="md:hidden text-[#001F3F] focus:outline-none"
+          className="md:hidden text-[#528265] focus:outline-none"
           onClick={() => setMenuOpen(!menuOpen)}
         >
           ☰
@@ -83,7 +83,7 @@ const Navbar = ({ isAuthenticated }) => {
         } transition-transform md:hidden`}
       >
         <button
-          className="absolute top-4 right-4 text-[#001F3F]"
+          className="absolute top-4 right-4 text-[#528265]"
           onClick={() => setMenuOpen(false)}
         >
           ✖
@@ -107,14 +107,14 @@ const Navbar = ({ isAuthenticated }) => {
             <>
               <Link
                 to="/signup"
-                className="text-[#001F3F] hover:text-[#6EE2F5] font-medium"
+                className="text-gray-700 hover:text-[#528265] font-medium"
                 onClick={() => setMenuOpen(false)}
               >
                 Sign Up
               </Link>
               <Link
                 to="/login"
-                className="text-[#001F3F] hover:text-[#6EE2F5] font-medium"
+                className="text-gray-700 hover:text-[#528265] font-medium"
                 onClick={() => setMenuOpen(false)}
               >
                 Login
@@ -133,7 +133,7 @@ const Navbar = ({ isAuthenticated }) => {
           <Link
             to="/create"
             onClick={() => setMenuOpen(false)}
-            className="bg-[#6EE2F5] text-[#001F3F] px-5 py-2 rounded-lg hover:bg-[#5adfe0] transition text-center"
+            className="bg-[#528265] text-white px-5 py-2 rounded-lg hover:bg-[#47795f] transition text-center"
           >
             Create Meme
           </Link>

@@ -26,9 +26,9 @@ const HomePage = () => {
         <link rel="canonical" href="https://www.gimmememes.com/" />
       </Helmet>
       
-      {/* Hero Section with brand gradient */}
+      {/* Hero Section using new brand gradient */}
       <section
-        className="relative bg-gradient-to-r from-[#6EE2F5] to-[#001F3F] text-white overflow-hidden"
+        className="relative bg-gradient-to-r from-[#528265] to-[#C9EFC7] text-white overflow-hidden"
         aria-label="Hero Section"
       >
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 text-center">
@@ -40,7 +40,7 @@ const HomePage = () => {
           </p>
           <Link
             to="/create"
-            className="inline-block bg-white text-[#001F3F] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
+            className="inline-block bg-white text-[#528265] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
           >
             Create a Meme
           </Link>
@@ -49,7 +49,7 @@ const HomePage = () => {
 
       <section className="py-20 bg-gray-50" aria-label="Why Choose GimmeMemes">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-[#001F3F] mb-6">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#528265] mb-6">
             Why Choose GimmeMemes?
           </h2>
           <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
@@ -174,7 +174,7 @@ const HomePage = () => {
                 href="https://www.imagerize.com/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="mx-auto inline-block bg-[#6EE2F5] text-[#001F3F] px-8 py-3 rounded-full shadow hover:bg-[#6adff9] transition duration-300"
+                className="mx-auto inline-block bg-[#528265] text-white px-8 py-3 rounded-full shadow hover:bg-[#47795f] transition duration-300"
               >
                 Visit
               </a>
@@ -207,7 +207,7 @@ const HomePage = () => {
               aria-label="Share on Twitter"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="#1DA1F2" viewBox="0 0 24 24" width="36" height="36">
-                <path d="M23.954 4.569c-.885.389-1.83.654-2.825.775 1.014-.611 1.794-1.574 2.163-2.723-.951.564-2.005.974-3.127 1.195-.897-.959-2.178-1.558-3.594-1.558-2.723 0-4.928 2.206-4.928 4.93 0 .39.045.765.127 1.124-4.094-.205-7.725-2.166-10.159-5.144-.424.722-.666 1.561-.666 2.457 0 1.69.861 3.179 2.173 4.053-.8-.026-1.555-.245-2.214-.61v.061c0 2.362 1.679 4.332 3.907 4.777-.409.111-.839.171-1.282.171-.314 0-.615-.03-.916-.086.631 1.953 2.445 3.377 4.604 3.415-1.68 1.32-3.809 2.105-6.102 2.105-.396 0-.787-.023-1.17-.067 2.179 1.394 4.768 2.209 7.557 2.209 9.054 0 14-7.496 14-13.986 0-.21 0-.42-.015-.63A9.935 9.935 0 0 0 24 4.557z"/>
+                <path d="M23.954 4.569c-.885.389-1.83.654-2.825.775 1.014-.611 1.794-1.574 2.163-2.723-.951.564-2.005.974-3.127 1.195-.897-.959-2.178-1.558-3.594-1.558-2.723 0-4.928 2.206-4.928 4.93 0 .39.045.765.127 1.124-4.094-.205-7.725-2.166-10.159-5.144a4.822 4.822 0 0 0-.664 2.475 4.92 4.92 0 0 0 2.188 4.1 4.903 4.903 0 0 1-2.229-.616c-.054 2.281 1.581 4.415 3.949 4.89a4.935 4.935 0 0 1-2.224.085c.63 1.966 2.445 3.377 4.604 3.415-1.68 1.32-3.809 2.105-6.102 2.105-.396 0-.787-.023-1.17-.067 2.179 1.394 4.768 2.209 7.557 2.209 9.054 0 14-7.496 14-13.986 0-.21 0-.42-.015-.63A9.935 9.935 0 0 0 24 4.557z"/>
               </svg>
             </a>
             <a 
@@ -224,7 +224,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      <section className="bg-gradient-to-r from-[#001F3F] to-[#6EE2F5] text-white py-20" aria-label="Call to Action">
+      <section className="py-20 bg-gradient-to-r from-[#C9EFC7] to-[#528265] text-white py-20" aria-label="Call to Action">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-4">Start Creating Memes Now</h2>
           <p className="text-lg text-gray-200 max-w-2xl mx-auto mb-8">
@@ -232,7 +232,7 @@ const HomePage = () => {
           </p>
           <Link
             to="/create"
-            className="inline-block bg-white text-[#001F3F] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
+            className="inline-block bg-white text-[#528265] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
           >
             Get Started
           </Link>
