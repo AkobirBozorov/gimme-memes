@@ -38,30 +38,12 @@ function ProtectedRoute({ children }) {
 }
 
 function App() {
-  // We can initialize isAuthenticated based on whether a token exists.
+  // We initialize isAuthenticated based on whether a token exists.
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem("token"));
-  // Initialize isAdmin to false; we'll update it after fetching the user's profile.
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Fetch user info on mount (or when isAuthenticated changes) to update the isAdmin state.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch(`${baseApiUrl}/api/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.user && data.user.isAdmin) {
-            setIsAdmin(true);
-          } else {
-            setIsAdmin(false);
-          }
-        })
-        .catch((err) => console.error("Error fetching user info:", err));
-    }
-  }, [isAuthenticated]);
-
+  
+  // We remove the client-side isAdmin check here.
+  // The backend (via adminCheck middleware) will enforce admin privileges.
+  
   return (
     <Router>
       <div className="flex flex-col min-h-screen">
@@ -93,11 +75,7 @@ function App() {
               path="/admin/blog"
               element={
                 <ProtectedRoute>
-                  {isAuthenticated && isAdmin ? (
-                    <AdminBlogPage isAdmin={isAdmin} />
-                  ) : (
-                    <Navigate to="/" />
-                  )}
+                  <AdminBlogPage />
                 </ProtectedRoute>
               }
             />
