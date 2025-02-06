@@ -846,7 +846,7 @@ function MemeEditorToolbar({
       {/* Remove File */}
       <div className="flex flex-col items-center">
         <button onClick={onRemoveFile} title="Remove File" className="p-2">
-          <AiOutlineClose size={24} />
+          <AiOutlineDelete size={24} />
         </button>
         <span className="text-xs text-gray-600">Remove File</span>
       </div>
