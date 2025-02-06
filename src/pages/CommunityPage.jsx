@@ -172,13 +172,13 @@ function CommunityMemeCard({ meme }) {
         </h3>
       )}
       {isVertical === true ? (
-        // For vertical images, use a fixed container height of h-[15.5rem] (approx. h-62)
-        <div className="w-full h-[15.5rem] relative mb-2 overflow-hidden">
+        // For vertical images, let them take the full width with auto height
+        <div className="w-full relative mb-2 overflow-hidden">
           <img
             src={localMeme.filePath}
             alt="Meme"
             onLoad={handleImageLoad}
-            className="w-full h-full object-contain"
+            className="w-full h-auto object-contain"
           />
         </div>
       ) : (
