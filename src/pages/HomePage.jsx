@@ -26,9 +26,9 @@ const HomePage = () => {
         <link rel="canonical" href="https://www.gimmememes.com/" />
       </Helmet>
       
-      {/* Hero Section using new brand gradient */}
+      {/* Hero Section using only brand color */}
       <section
-        className="relative bg-gradient-to-r from-[#528265] to-[#C9EFC7] text-white overflow-hidden"
+        className="relative bg-[#528265] text-white overflow-hidden"
         aria-label="Hero Section"
       >
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 text-center">
@@ -224,7 +224,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-r from-[#C9EFC7] to-[#528265] text-white py-20" aria-label="Call to Action">
+      <section className="py-20 bg-[#528265] text-white" aria-label="Call to Action">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-4">Start Creating Memes Now</h2>
           <p className="text-lg text-gray-200 max-w-2xl mx-auto mb-8">

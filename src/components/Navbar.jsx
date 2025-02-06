@@ -4,7 +4,7 @@ import { Link, NavLink } from "react-router-dom";
 const Navbar = ({ isAuthenticated }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Return classes based on active state using new brand colors
+  // Return classes based on active state using our brand color
   const navLinkClasses = ({ isActive }) =>
     isActive
       ? "text-[#528265] font-medium"
