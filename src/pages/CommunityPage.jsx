@@ -87,7 +87,7 @@ const CommunityPage = () => {
         </div>
         <button
           onClick={() => navigate("/create")}
-          className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold"
+          className="relative bg-[#528265] text-white px-4 py-2 rounded hover:bg-green-700 transition font-semibold"
         >
           Create Your Meme
         </button>
@@ -98,7 +98,7 @@ const CommunityPage = () => {
           <p className="text-xl mb-4">No memes yet. Be the first to share one!</p>
           <button
             onClick={() => navigate("/create")}
-            className="bg-green-600 text-white px-6 py-3 rounded hover:bg-green-700 transition font-semibold"
+            className="relative bg-[#528265] text-white px-6 py-3 rounded hover:bg-green-700 transition font-semibold"
           >
             Create a Meme
           </button>
