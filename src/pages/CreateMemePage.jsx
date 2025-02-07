@@ -22,9 +22,6 @@ import {
 } from "../utils/scaleUtils";
 import { baseApiUrl } from "../utils/api";
 
-// For ephemeral local usage if there's no "id"
-const LOCAL_KEY = "ephemeralMemeData";
-
 // Constants for styling options
 const TEXT_COLORS = [
   "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
@@ -54,6 +51,8 @@ const FONT_FAMILIES = [
   { label: "Trebuchet MS", value: "'Trebuchet MS', Helvetica, sans-serif" },
 ];
 
+const LOCAL_KEY = "ephemeralMemeData";
+
 function CreateMemePage() {
   const { id } = useParams(); // If provided, we're editing an existing meme.
   const navigate = useNavigate();
@@ -82,12 +81,14 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Dropdown state for toolbar (options: "text", "colors", "surface", or null)
+  // Toolbar Dropdown state (no longer used in primary toolbar)
   const [openDropdown, setOpenDropdown] = useState(null);
-  // Ref for the toolbar container (for click-outside detection)
   const toolbarContainerRef = useRef(null);
 
-  // Whether an image is available
+  // New state to control the secondary toolbar
+  const [showSecondaryToolbar, setShowSecondaryToolbar] = useState(false);
+
+  // Derived: Whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
   // Close dropdown when clicking outside the toolbar container
@@ -104,9 +105,7 @@ function CreateMemePage() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ----------------------------------------
-  // On mount: load existing meme (if editing) or ephemeral
-  // ----------------------------------------
+  // On mount: load existing meme or ephemeral data
   useEffect(() => {
     if (id) {
       loadExistingMeme(id);
@@ -137,16 +136,14 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // Helper to store ephemeral data for new memes
+  // Helper to store ephemeral data
   function storeEphemeralData(overlays = realOverlays, w = realWidth, h = realHeight, dataUrl = tempImageDataUrl) {
     if (id) return;
     const ephemeral = { realWidth: w, realHeight: h, realOverlays: overlays, tempImageDataUrl: dataUrl };
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
   }
 
-  // ----------------------------------------
   // Load existing meme from server
-  // ----------------------------------------
   async function loadExistingMeme(memeIdParam) {
     if (!isLoggedIn) {
       alert("Please log in to edit an existing meme!");
@@ -184,9 +181,7 @@ function CreateMemePage() {
     }
   }
 
-  // ----------------------------------------
-  // Handle file selection (read as base64; no auto-upload)
-  // ----------------------------------------
+  // Handle file selection
   function handleFileSelect(e) {
     const file = e.target.files[0];
     e.target.value = "";
@@ -230,9 +225,7 @@ function CreateMemePage() {
     reader.readAsDataURL(file);
   }
 
-  // ----------------------------------------
   // Commit overlay changes locally
-  // ----------------------------------------
   function commitOverlays(newDisplay) {
     const { scale } = computeScale(realWidth, realHeight);
     const newReal = newDisplay.map((ov) => displayToReal(ov, scale));
@@ -267,9 +260,7 @@ function CreateMemePage() {
     storeEphemeralData(nxt, realWidth, realHeight, tempImageDataUrl);
   }
 
-  // ----------------------------------------
   // Overlay actions (text editing)
-  // ----------------------------------------
   function handleAddText() {
     const newOverlay = {
       id: Date.now(),
@@ -286,6 +277,7 @@ function CreateMemePage() {
     };
     commitOverlays([...displayOverlays, newOverlay]);
     setSelectedOverlayId(newOverlay.id);
+    setShowSecondaryToolbar(true); // Show secondary toolbar when adding text
   }
   function handleSelectOverlay(overlayId) {
     setSelectedOverlayId(overlayId);
@@ -349,9 +341,7 @@ function CreateMemePage() {
     e.target.select();
   };
 
-  // ----------------------------------------
   // Download local: merge overlays on canvas
-  // ----------------------------------------
   async function handleDownloadLocal() {
     if (!hasImage) {
       alert("No image to download.");
@@ -394,9 +384,7 @@ function CreateMemePage() {
     }
   }
 
-  // ----------------------------------------
   // Save Meme: merge overlays, upload final image, update record
-  // ----------------------------------------
   async function handleSaveMeme() {
     if (!isLoggedIn) {
       alert("Please log in or create an account to save your meme!");
@@ -476,9 +464,7 @@ function CreateMemePage() {
     }
   }
 
-  // ----------------------------------------
   // Remove File: reset all states
-  // ----------------------------------------
   function handleRemoveFile() {
     setMemeId(null);
     setFilePath("");
@@ -517,7 +503,8 @@ function CreateMemePage() {
       {/* Toolbar Area */}
       {hasImage && (
         <div ref={toolbarContainerRef} className="relative w-full max-w-2xl mb-6">
-          <MemeEditorToolbar
+          {/* Primary Toolbar */}
+          <PrimaryToolbar
             onAddText={handleAddText}
             onUndo={undo}
             onRedo={redo}
@@ -525,14 +512,21 @@ function CreateMemePage() {
             onSave={handleSaveMeme}
             onRemoveFile={handleRemoveFile}
             onDeleteOverlay={handleDeleteOverlay}
-            onSetFontFamily={handleSetFontFamily}
-            onSetFontSize={handleSetFontSize}
-            onSetTextColor={handleSetTextColor}
-            onSetBgColor={handleSetBgColor}
-            selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId) || null}
-            openDropdown={openDropdown}
-            setOpenDropdown={setOpenDropdown}
           />
+          {/* Secondary Toolbar or reserved space */}
+          <div className="mt-2">
+            {showSecondaryToolbar && selectedOverlayId ? (
+              <SecondaryTextToolbar
+                selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId)}
+                onSetFontFamily={handleSetFontFamily}
+                onSetFontSize={handleSetFontSize}
+                onSetTextColor={handleSetTextColor}
+                onSetBgColor={handleSetBgColor}
+              />
+            ) : (
+              <div className="h-16"></div>
+            )}
+          </div>
         </div>
       )}
 
@@ -560,118 +554,116 @@ function CreateMemePage() {
       )}
 
       {hasImage && (
-        <>
-          <div
-            className="relative border border-gray-300 bg-white rounded-xl overflow-hidden shadow-lg mx-auto"
-            style={{
-              width: `${displayWidth}px`,
-              height: `${displayHeight}px`,
-              maxWidth: "100%",
-            }}
-          >
-            {filePath ? (
-              <img
-                src={filePath}
-                alt="Meme"
-                className="w-full h-full object-contain"
-              />
-            ) : tempImageDataUrl ? (
-              <img
-                src={tempImageDataUrl}
-                alt="Temp Meme"
-                className="w-full h-full object-contain"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-gray-500">
-                No image
-              </div>
-            )}
+        <div
+          className="relative border border-gray-300 bg-white rounded-xl overflow-hidden shadow-lg mx-auto"
+          style={{
+            width: `${displayWidth}px`,
+            height: `${displayHeight}px`,
+            maxWidth: "100%",
+          }}
+        >
+          {filePath ? (
+            <img
+              src={filePath}
+              alt="Meme"
+              className="w-full h-full object-contain"
+            />
+          ) : tempImageDataUrl ? (
+            <img
+              src={tempImageDataUrl}
+              alt="Temp Meme"
+              className="w-full h-full object-contain"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-500">
+              No image
+            </div>
+          )}
 
-            {displayOverlays.map((ov) => (
-              <Rnd
-                key={ov.id}
-                size={{ width: ov.width, height: ov.height }}
-                position={{ x: ov.x, y: ov.y }}
-                bounds="parent"
-                onDragStop={(e, d) => {
-                  const updated = displayOverlays.map((item) =>
-                    item.id === ov.id ? { ...item, x: d.x, y: d.y } : item
-                  );
-                  commitOverlays(updated);
-                }}
-                onResizeStop={(e, direction, ref, delta, pos) => {
-                  const newW = parseFloat(ref.style.width);
-                  const newH = parseFloat(ref.style.height);
-                  const newX = pos.x;
-                  const newY = pos.y;
-                  const updated = displayOverlays.map((item) =>
-                    item.id === ov.id
-                      ? {
-                          ...item,
-                          width: newW,
-                          height: newH,
-                          x: newX,
-                          y: newY,
-                          fontSize:
-                            item.fontSize *
-                            Math.sqrt((newW / item.width) * (newH / item.height)),
-                        }
-                      : item
-                  );
-                  commitOverlays(updated);
-                }}
-                style={{
-                  cursor: "move",
-                  backgroundColor: ov.bgColor || "transparent",
-                  color: ov.textColor,
-                  fontWeight: "bold",
-                  fontSize: `${ov.fontSize}px`,
-                  fontFamily: ov.fontFamily,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  textAlign: "center",
-                  userSelect: "none",
-                  outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
-                }}
-                onClick={() => setSelectedOverlayId(ov.id)}
-                onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
-              >
-                {ov.isEditing ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    value={ov.text}
-                    onChange={(e) => handleTextChange(ov.id, e.target.value)}
-                    onFocus={handleInputFocus}
-                    onMouseDown={handleInputFocus}
-                    onBlur={() => handleFinishEditing(ov.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleFinishEditing(ov.id);
-                    }}
-                    className="w-full h-full text-center bg-transparent outline-none"
-                    style={{
-                      color: ov.textColor,
-                      fontSize: `${ov.fontSize}px`,
-                      fontFamily: ov.fontFamily,
-                    }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center px-1">
-                    {ov.text}
-                  </div>
-                )}
-              </Rnd>
-            ))}
-          </div>
-        </>
+          {displayOverlays.map((ov) => (
+            <Rnd
+              key={ov.id}
+              size={{ width: ov.width, height: ov.height }}
+              position={{ x: ov.x, y: ov.y }}
+              bounds="parent"
+              onDragStop={(e, d) => {
+                const updated = displayOverlays.map((item) =>
+                  item.id === ov.id ? { ...item, x: d.x, y: d.y } : item
+                );
+                commitOverlays(updated);
+              }}
+              onResizeStop={(e, direction, ref, delta, pos) => {
+                const newW = parseFloat(ref.style.width);
+                const newH = parseFloat(ref.style.height);
+                const newX = pos.x;
+                const newY = pos.y;
+                const updated = displayOverlays.map((item) =>
+                  item.id === ov.id
+                    ? {
+                        ...item,
+                        width: newW,
+                        height: newH,
+                        x: newX,
+                        y: newY,
+                        fontSize:
+                          item.fontSize *
+                          Math.sqrt((newW / item.width) * (newH / item.height)),
+                      }
+                    : item
+                );
+                commitOverlays(updated);
+              }}
+              style={{
+                cursor: "move",
+                backgroundColor: ov.bgColor || "transparent",
+                color: ov.textColor,
+                fontWeight: "bold",
+                fontSize: `${ov.fontSize}px`,
+                fontFamily: ov.fontFamily,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center",
+                userSelect: "none",
+                outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
+              }}
+              onClick={() => setSelectedOverlayId(ov.id)}
+              onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
+            >
+              {ov.isEditing ? (
+                <input
+                  autoFocus
+                  type="text"
+                  value={ov.text}
+                  onChange={(e) => handleTextChange(ov.id, e.target.value)}
+                  onFocus={handleInputFocus}
+                  onMouseDown={handleInputFocus}
+                  onBlur={() => handleFinishEditing(ov.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleFinishEditing(ov.id);
+                  }}
+                  className="w-full h-full text-center bg-transparent outline-none"
+                  style={{
+                    color: ov.textColor,
+                    fontSize: `${ov.fontSize}px`,
+                    fontFamily: ov.fontFamily,
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center px-1">
+                  {ov.text}
+                </div>
+              )}
+            </Rnd>
+          ))}
+        </div>
       )}
     </div>
   );
 }
 
-// Dropdown-style Toolbar component as a row of buttons with inline dropdowns.
-function MemeEditorToolbar({
+// Primary Toolbar: only essential actions
+function PrimaryToolbar({
   onAddText,
   onUndo,
   onRedo,
@@ -679,139 +671,16 @@ function MemeEditorToolbar({
   onSave,
   onRemoveFile,
   onDeleteOverlay,
-  onSetFontFamily,
-  onSetFontSize,
-  onSetTextColor,
-  onSetBgColor,
-  selectedOverlay,
-  openDropdown,
-  setOpenDropdown,
 }) {
-  // Toggle dropdown open/close for a given type
-  const toggleDropdown = (type) => {
-    setOpenDropdown((prev) => (prev === type ? null : type));
-  };
-
-  const getButtonClass = (type) =>
-    openDropdown === type ? "p-2 bg-blue-200 rounded" : "p-2";
-
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
       {/* Add Text */}
-      <div className="relative flex flex-col items-center">
+      <div className="flex flex-col items-center">
         <button onClick={onAddText} title="Add Text" className="p-2">
           <FiType size={24} />
         </button>
         <span className="text-xs text-gray-600">Add Text</span>
       </div>
-
-      {/* Text Options Dropdown */}
-      <div className="relative flex flex-col items-center">
-        <button
-          onClick={() => toggleDropdown("text")}
-          title="Text Options"
-          className={getButtonClass("text")}
-        >
-          <span className="font-bold text-lg">T</span>
-        </button>
-        <span className="text-xs text-gray-600">Text</span>
-        {openDropdown === "text" && selectedOverlay && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
-            <h3 className="text-lg font-semibold mb-2">Text Options</h3>
-            <div className="mb-2">
-              <label className="block text-gray-700 mb-1">Font Family:</label>
-              <select
-                className="w-full p-1 border border-gray-300 rounded"
-                onChange={(e) => onSetFontFamily(e.target.value)}
-                defaultValue={selectedOverlay.fontFamily || "Arial, sans-serif"}
-              >
-                {FONT_FAMILIES.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-gray-700 mb-1">Font Size:</label>
-              <input
-                type="range"
-                min="8"
-                max="80"
-                step="1"
-                onChange={(e) => onSetFontSize(e.target.value)}
-                defaultValue={selectedOverlay.fontSize || 20}
-                className="w-full"
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Text Color Dropdown */}
-      <div className="relative flex flex-col items-center">
-        <button
-          onClick={() => toggleDropdown("colors")}
-          title="Text Color"
-          className={getButtonClass("colors")}
-        >
-          <MdPalette size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Color</span>
-        {openDropdown === "colors" && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
-            <h3 className="text-lg font-semibold mb-2">Text Color</h3>
-            <div className="flex flex-wrap gap-1">
-              {TEXT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => onSetTextColor(c)}
-                  style={{ backgroundColor: c }}
-                  className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Surface Color Dropdown */}
-      <div className="relative flex flex-col items-center">
-        <button
-          onClick={() => toggleDropdown("surface")}
-          title="Surface Color"
-          className={getButtonClass("surface")}
-        >
-          <span className="block w-6 h-6 bg-gray-400 rounded-full" />
-        </button>
-        <span className="text-xs text-gray-600">Surface</span>
-        {openDropdown === "surface" && (
-          <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-gray-300 rounded shadow p-2 z-20">
-            <h3 className="text-lg font-semibold mb-2">Surface Color</h3>
-            <div className="flex flex-wrap gap-1">
-              {BG_COLORS.map((bg) => (
-                <button
-                  key={bg.value}
-                  onClick={() => onSetBgColor(bg.value)}
-                  style={{ backgroundColor: bg.value || "transparent" }}
-                  className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
-                >
-                  {!bg.value && <span className="text-xs">None</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Delete Text */}
-      <div className="flex flex-col items-center">
-        <button onClick={onDeleteOverlay} title="Delete Text" className="p-2">
-          <AiOutlineDelete size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Delete Text</span>
-      </div>
-
       {/* Undo */}
       <div className="flex flex-col items-center">
         <button onClick={onUndo} title="Undo" className="p-2">
@@ -819,7 +688,6 @@ function MemeEditorToolbar({
         </button>
         <span className="text-xs text-gray-600">Undo</span>
       </div>
-
       {/* Redo */}
       <div className="flex flex-col items-center">
         <button onClick={onRedo} title="Redo" className="p-2">
@@ -827,29 +695,85 @@ function MemeEditorToolbar({
         </button>
         <span className="text-xs text-gray-600">Redo</span>
       </div>
-
       {/* Download */}
       <div className="flex flex-col items-center">
-        <button onClick={onDownload} title="Download (Local)" className="p-2">
+        <button onClick={onDownload} title="Download" className="p-2">
           <AiOutlineDownload size={24} />
         </button>
         <span className="text-xs text-gray-600">Download</span>
       </div>
-
       {/* Save */}
       <div className="flex flex-col items-center">
-        <button onClick={onSave} title="Save Meme" className="p-2">
+        <button onClick={onSave} title="Save" className="p-2">
           <AiOutlineSave size={24} />
         </button>
         <span className="text-xs text-gray-600">Save</span>
       </div>
-
       {/* Remove File */}
       <div className="flex flex-col items-center">
         <button onClick={onRemoveFile} title="Remove File" className="p-2">
           <AiOutlineClose size={24} />
         </button>
         <span className="text-xs text-gray-600">Remove File</span>
+      </div>
+    </div>
+  );
+}
+
+// Secondary Toolbar: text-editing options (shown only when adding text)
+// This toolbar displays the controls without extra labels.
+function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize, onSetTextColor, onSetBgColor }) {
+  return (
+    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
+      {/* Font Family */}
+      <div>
+        <select
+          className="p-2 border border-gray-300 rounded"
+          onChange={(e) => onSetFontFamily(e.target.value)}
+          defaultValue={selectedOverlay ? selectedOverlay.fontFamily : "Arial, sans-serif"}
+        >
+          {FONT_FAMILIES.map((f) => (
+            <option key={f.value} value={f.value}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      {/* Font Size */}
+      <div>
+        <input
+          type="range"
+          min="8"
+          max="80"
+          step="1"
+          onChange={(e) => onSetFontSize(e.target.value)}
+          defaultValue={selectedOverlay ? selectedOverlay.fontSize : 20}
+          className="w-32"
+        />
+      </div>
+      {/* Text Color */}
+      <div className="flex flex-wrap gap-1">
+        {TEXT_COLORS.map((c) => (
+          <button
+            key={c}
+            onClick={() => onSetTextColor(c)}
+            style={{ backgroundColor: c }}
+            className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
+          />
+        ))}
+      </div>
+      {/* Surface Color */}
+      <div className="flex flex-wrap gap-1">
+        {BG_COLORS.map((bg) => (
+          <button
+            key={bg.value}
+            onClick={() => onSetBgColor(bg.value)}
+            style={{ backgroundColor: bg.value || "transparent" }}
+            className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
+          >
+            {!bg.value && <span className="text-xs">N</span>}
+          </button>
+        ))}
       </div>
     </div>
   );
