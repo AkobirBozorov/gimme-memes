@@ -7,9 +7,9 @@ import {
   AiOutlineRedo,
   AiOutlineDownload,
   AiOutlineSave,
-  AiOutlineClose,
-  AiOutlineDelete
+  AiOutlineClose
 } from "react-icons/ai";
+import { AiOutlineDelete } from "react-icons/ai";
 import { FiType } from "react-icons/fi";
 import { MdPalette } from "react-icons/md";
 import { Helmet } from "react-helmet-async";
@@ -22,7 +22,10 @@ import {
 } from "../utils/scaleUtils";
 import { baseApiUrl } from "../utils/api";
 
-// Constants for styling options
+// For ephemeral local usage if there's no "id"
+const LOCAL_KEY = "ephemeralMemeData";
+
+// Constants for options
 const TEXT_COLORS = [
   "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
   "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080",
@@ -50,8 +53,8 @@ const FONT_FAMILIES = [
   { label: "Verdana", value: "Verdana, Geneva, sans-serif" },
   { label: "Trebuchet MS", value: "'Trebuchet MS', Helvetica, sans-serif" },
 ];
-
-const LOCAL_KEY = "ephemeralMemeData";
+// Common font sizes for dropdown
+const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
 
 function CreateMemePage() {
   const { id } = useParams(); // If provided, we're editing an existing meme.
@@ -81,11 +84,11 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar Dropdown state (no longer used in primary toolbar)
+  // Toolbar Dropdown state (for primary toolbar if needed)
   const [openDropdown, setOpenDropdown] = useState(null);
   const toolbarContainerRef = useRef(null);
 
-  // New state to control the secondary toolbar
+  // New state to control whether the secondary toolbar is visible
   const [showSecondaryToolbar, setShowSecondaryToolbar] = useState(false);
 
   // Derived: Whether an image is available
@@ -311,9 +314,9 @@ function CreateMemePage() {
       )
     );
   }
-  function handleSetFontSize(num) {
+  function handleSetFontSize(newSize) {
     if (!selectedOverlayId) return;
-    const size = parseInt(num, 10);
+    const size = parseInt(newSize, 10);
     if (isNaN(size)) return;
     commitOverlays(
       displayOverlays.map((ov) =>
@@ -481,9 +484,6 @@ function CreateMemePage() {
     if (!id) localStorage.removeItem(LOCAL_KEY);
   }
 
-  // ----------------------------------------
-  // Render
-  // ----------------------------------------
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-200 p-6 flex flex-col items-center">
       <Helmet>
@@ -500,10 +500,9 @@ function CreateMemePage() {
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
 
-      {/* Toolbar Area */}
+      {/* Primary Toolbar (Above Preview) */}
       {hasImage && (
         <div ref={toolbarContainerRef} className="relative w-full max-w-2xl mb-6">
-          {/* Primary Toolbar */}
           <PrimaryToolbar
             onAddText={handleAddText}
             onUndo={undo}
@@ -511,22 +510,7 @@ function CreateMemePage() {
             onDownload={handleDownloadLocal}
             onSave={handleSaveMeme}
             onRemoveFile={handleRemoveFile}
-            onDeleteOverlay={handleDeleteOverlay}
           />
-          {/* Secondary Toolbar or reserved space */}
-          <div className="mt-2">
-            {showSecondaryToolbar && selectedOverlayId ? (
-              <SecondaryTextToolbar
-                selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId)}
-                onSetFontFamily={handleSetFontFamily}
-                onSetFontSize={handleSetFontSize}
-                onSetTextColor={handleSetTextColor}
-                onSetBgColor={handleSetBgColor}
-              />
-            ) : (
-              <div className="h-16"></div>
-            )}
-          </div>
         </div>
       )}
 
@@ -658,20 +642,26 @@ function CreateMemePage() {
           ))}
         </div>
       )}
+
+      {/* Secondary Toolbar: now rendered AFTER the preview image */}
+      {hasImage && showSecondaryToolbar && selectedOverlayId && (
+        <div className="mt-4 w-full max-w-2xl">
+          <SecondaryTextToolbar
+            selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId)}
+            onSetFontFamily={handleSetFontFamily}
+            onSetFontSize={handleSetFontSize}
+            onSetTextColor={handleSetTextColor}
+            onSetBgColor={handleSetBgColor}
+            onDeleteOverlay={handleDeleteOverlay}
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 // Primary Toolbar: only essential actions
-function PrimaryToolbar({
-  onAddText,
-  onUndo,
-  onRedo,
-  onDownload,
-  onSave,
-  onRemoveFile,
-  onDeleteOverlay,
-}) {
+function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile }) {
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
       {/* Add Text */}
@@ -697,14 +687,14 @@ function PrimaryToolbar({
       </div>
       {/* Download */}
       <div className="flex flex-col items-center">
-        <button onClick={onDownload} title="Download" className="p-2">
+        <button onClick={onDownload} title="Download (Local)" className="p-2">
           <AiOutlineDownload size={24} />
         </button>
         <span className="text-xs text-gray-600">Download</span>
       </div>
       {/* Save */}
       <div className="flex flex-col items-center">
-        <button onClick={onSave} title="Save" className="p-2">
+        <button onClick={onSave} title="Save Meme" className="p-2">
           <AiOutlineSave size={24} />
         </button>
         <span className="text-xs text-gray-600">Save</span>
@@ -720,60 +710,86 @@ function PrimaryToolbar({
   );
 }
 
-// Secondary Toolbar: text-editing options (shown only when adding text)
-// This toolbar displays the controls without extra labels.
-function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize, onSetTextColor, onSetBgColor }) {
+// Secondary Toolbar: text-editing options (with labels and controls)
+function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize, onSetTextColor, onSetBgColor, onDeleteOverlay }) {
   return (
-    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-      {/* Font Family */}
-      <div>
-        <select
-          className="p-2 border border-gray-300 rounded"
-          onChange={(e) => onSetFontFamily(e.target.value)}
-          defaultValue={selectedOverlay ? selectedOverlay.fontFamily : "Arial, sans-serif"}
-        >
-          {FONT_FAMILIES.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-      </div>
-      {/* Font Size */}
-      <div>
-        <input
-          type="range"
-          min="8"
-          max="80"
-          step="1"
-          onChange={(e) => onSetFontSize(e.target.value)}
-          defaultValue={selectedOverlay ? selectedOverlay.fontSize : 20}
-          className="w-32"
-        />
-      </div>
-      {/* Text Color */}
-      <div className="flex flex-wrap gap-1">
-        {TEXT_COLORS.map((c) => (
-          <button
-            key={c}
-            onClick={() => onSetTextColor(c)}
-            style={{ backgroundColor: c }}
-            className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
-          />
-        ))}
-      </div>
-      {/* Surface Color */}
-      <div className="flex flex-wrap gap-1">
-        {BG_COLORS.map((bg) => (
-          <button
-            key={bg.value}
-            onClick={() => onSetBgColor(bg.value)}
-            style={{ backgroundColor: bg.value || "transparent" }}
-            className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
+    <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4">
+      <div className="flex flex-wrap justify-around items-center gap-4">
+        {/* Text Style */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Text Style</label>
+          <select
+            className="p-2 border border-gray-300 rounded"
+            onChange={(e) => onSetFontFamily(e.target.value)}
+            value={selectedOverlay ? selectedOverlay.fontFamily : "Arial, sans-serif"}
           >
-            {!bg.value && <span className="text-xs">N</span>}
+            {FONT_FAMILIES.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {/* Font Size */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Font Size</label>
+          <div className="flex items-center space-x-2">
+            <button 
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                const currentSize = selectedOverlay ? selectedOverlay.fontSize : 20;
+                const newSize = Math.max(8, currentSize - 1);
+                onSetFontSize(newSize);
+              }}
+            >-</button>
+            <select
+              className="p-2 border border-gray-300 rounded"
+              onChange={(e) => onSetFontSize(e.target.value)}
+              value={selectedOverlay ? selectedOverlay.fontSize : 20}
+            >
+              {FONT_SIZES.map((size) => (
+                <option key={size} value={size}>
+                  {size}px
+                </option>
+              ))}
+            </select>
+            <button 
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                const currentSize = selectedOverlay ? selectedOverlay.fontSize : 20;
+                const newSize = currentSize + 1;
+                onSetFontSize(newSize);
+              }}
+            >+</button>
+          </div>
+        </div>
+        {/* Text Color */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Text Color</label>
+          <input
+            type="color"
+            value={selectedOverlay ? selectedOverlay.textColor : "#FFFFFF"}
+            onChange={(e) => onSetTextColor(e.target.value)}
+            className="w-10 h-10 border border-gray-300 rounded"
+          />
+        </div>
+        {/* Surface Color */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Surface Color</label>
+          <input
+            type="color"
+            value={selectedOverlay ? selectedOverlay.bgColor : "#000000"}
+            onChange={(e) => onSetBgColor(e.target.value)}
+            className="w-10 h-10 border border-gray-300 rounded"
+          />
+        </div>
+        {/* Delete Text */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Delete Text</label>
+          <button onClick={onDeleteOverlay} title="Delete Text" className="p-2 text-red-500">
+            <AiOutlineDelete size={24} />
           </button>
-        ))}
+        </div>
       </div>
     </div>
   );
