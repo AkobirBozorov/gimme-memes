@@ -807,7 +807,7 @@ function MemeEditorToolbar({
       {/* Delete Text */}
       <div className="flex flex-col items-center">
         <button onClick={onDeleteOverlay} title="Delete Text" className="p-2">
-          <AiOutlineClose size={24} />
+          <AiOutlineDelete size={24} />
         </button>
         <span className="text-xs text-gray-600">Delete Text</span>
       </div>
@@ -847,7 +847,7 @@ function MemeEditorToolbar({
       {/* Remove File */}
       <div className="flex flex-col items-center">
         <button onClick={onRemoveFile} title="Remove File" className="p-2">
-          <AiOutlineDelete size={24} />
+          <AiOutlineClose size={24} />
         </button>
         <span className="text-xs text-gray-600">Remove File</span>
       </div>
