@@ -8,6 +8,7 @@ import {
   AiOutlineDownload,
   AiOutlineSave,
   AiOutlineClose,
+  AiOutlineDelete
 } from "react-icons/ai";
 import { FiType } from "react-icons/fi";
 import { MdPalette } from "react-icons/md";
