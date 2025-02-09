@@ -779,7 +779,7 @@ function SecondaryTextToolbar({
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
       <div className="flex flex-wrap justify-between items-center gap-4">
 
-        {/* Font Selection */}
+        {/* Font Family Selection */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Style</label>
           <select
@@ -790,6 +790,22 @@ function SecondaryTextToolbar({
             {FONT_FAMILIES.map((f) => (
               <option key={f.value} value={f.value}>
                 {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {/* Font Size Dropdown */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Font Size</label>
+          <select
+            className="p-2 border border-gray-300 rounded-lg"
+            onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
+            value={selectedOverlay ? selectedOverlay.fontSize : 20}
+          >
+            {FONT_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}px
               </option>
             ))}
           </select>
