@@ -778,6 +778,14 @@ function SecondaryTextToolbar({
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
 
+  // Ensure font size is always a valid number
+  const currentFontSize = selectedOverlay?.fontSize
+    ? Math.round(selectedOverlay.fontSize)
+    : 20;
+
+  // Include current font size dynamically if it's not in the predefined list
+  const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
+
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
       <div className="flex flex-wrap justify-between items-center gap-4">
@@ -788,7 +796,7 @@ function SecondaryTextToolbar({
           <select
             className="p-2 border border-gray-300 rounded-lg"
             onChange={(e) => onSetFontFamily(e.target.value)}
-            value={selectedOverlay ? selectedOverlay.fontFamily : "Arial, sans-serif"}
+            value={selectedOverlay?.fontFamily || "Arial, sans-serif"}
           >
             {FONT_FAMILIES.map((f) => (
               <option key={f.value} value={f.value}>
@@ -805,7 +813,7 @@ function SecondaryTextToolbar({
             <button
               className="px-2 py-1 border rounded"
               onClick={() => {
-                const newSize = Math.max(8, selectedOverlay.fontSize - 1);
+                const newSize = Math.max(8, currentFontSize - 1);
                 onSetFontSize(newSize);
               }}
             >
@@ -813,10 +821,10 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded-lg"
-              value={selectedOverlay.fontSize}
+              value={currentFontSize}
               onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
             >
-              {FONT_SIZES.map((size) => (
+              {fontSizesWithCurrent.map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>
@@ -825,7 +833,7 @@ function SecondaryTextToolbar({
             <button
               className="px-2 py-1 border rounded"
               onClick={() => {
-                const newSize = selectedOverlay.fontSize + 1;
+                const newSize = currentFontSize + 1;
                 onSetFontSize(newSize);
               }}
             >
