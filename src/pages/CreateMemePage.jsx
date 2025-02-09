@@ -354,12 +354,15 @@ function CreateMemePage() {
       )
     );
   }
+
+  const lastTapRef = useRef(0);
+
   function handleDoubleTap(overlayId) {
-    const now = new Date().getTime();
-    if (
-      lastTapRef.current &&
-      now - lastTapRef.current < 300 // Double-tap detected within 300ms
-    ) {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current;
+  
+    if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+      // Double-tap detected
       setSelectedOverlayId(overlayId);
       setDisplayOverlays((prev) =>
         prev.map((ov) =>
@@ -367,11 +370,10 @@ function CreateMemePage() {
         )
       );
     }
+  
     lastTapRef.current = now;
   }
-  
-  const lastTapRef = useRef(null);
-  
+    
   function handleFinishEditing(overlayId) {
     commitOverlays(
       displayOverlays.map((ov) =>
@@ -653,8 +655,8 @@ function CreateMemePage() {
                 userSelect: "none",
                 outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
               }}
+              onTouchStart={() => handleDoubleTap(ov.id)} // Detect double-tap on mobile
               onClick={() => handleDoubleTap(ov.id)}
-              onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
             >
               {ov.isEditing ? (
                 <input
@@ -663,7 +665,7 @@ function CreateMemePage() {
                 value={ov.text}
                 onChange={(e) => handleTextChange(ov.id, e.target.value)}
                 onBlur={() => handleFinishEditing(ov.id)}
-                onFocus={(e) => e.target.select()} // Select full text when editing starts
+                onFocus={(e) => e.target.select()} // Ensures full text selection
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFinishEditing(ov.id);
                 }}
