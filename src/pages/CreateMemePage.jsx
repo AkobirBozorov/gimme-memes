@@ -705,30 +705,30 @@ function CreateMemePage() {
 /** Primary Toolbar Component **/
 function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile, loadingDownload }) {
   return (
-    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
+    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-3 shadow-md border border-gray-300">
       <div className="flex flex-col items-center">
-        <button onClick={onAddText} title="Add Text" className="p-2">
+        <button onClick={onAddText} title="Add Text" className="p-2 bg-[#528265] text-white rounded-lg hover:bg-[#437254] transition">
           <FiType size={24} />
         </button>
         <span className="text-xs text-gray-600">Add Text</span>
       </div>
       <div className="flex flex-col items-center">
-        <button onClick={onUndo} title="Undo" className="p-2">
+        <button onClick={onUndo} title="Undo" className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
           <AiOutlineUndo size={24} />
         </button>
         <span className="text-xs text-gray-600">Undo</span>
       </div>
       <div className="flex flex-col items-center">
-        <button onClick={onRedo} title="Redo" className="p-2">
+        <button onClick={onRedo} title="Redo" className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
           <AiOutlineRedo size={24} />
         </button>
         <span className="text-xs text-gray-600">Redo</span>
       </div>
       <div className="flex flex-col items-center">
-        <button
+        <button 
           onClick={onDownload}
           title="Download"
-          className={`p-2 ${loadingDownload ? "opacity-50 cursor-not-allowed" : ""}`}
+          className={`p-2 rounded-lg transition ${loadingDownload ? "bg-gray-300 cursor-not-allowed" : "bg-[#528265] text-white hover:bg-[#437254]"}`}
           disabled={loadingDownload}
         >
           {loadingDownload ? (
@@ -748,13 +748,13 @@ function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemov
         <span className="text-xs text-gray-600">Download</span>
       </div>
       <div className="flex flex-col items-center">
-        <button onClick={onSave} title="Save" className="p-2">
+        <button onClick={onSave} title="Save" className="p-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition">
           <AiOutlineSave size={24} />
         </button>
         <span className="text-xs text-gray-600">Save</span>
       </div>
       <div className="flex flex-col items-center">
-        <button onClick={onRemoveFile} title="Remove File" className="p-2">
+        <button onClick={onRemoveFile} title="Remove File" className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
           <AiOutlineClose size={24} />
         </button>
         <span className="text-xs text-gray-600">Remove File</span>
@@ -774,38 +774,16 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  const textColorRef = useRef(null);
-  const surfaceColorRef = useRef(null);
-
-  // Get the current font size of the selected overlay and round it
-  const currentFontSize = selectedOverlay ? Math.round(selectedOverlay.fontSize) : 20;
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (textColorRef.current && !textColorRef.current.contains(e.target)) {
-        setShowTextColorPicker(false);
-      }
-      if (surfaceColorRef.current && !surfaceColorRef.current.contains(e.target)) {
-        setShowSurfaceColorPicker(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Ensure the font size dropdown includes the rounded current font size in the correct order
-  const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
 
   return (
-    <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4">
-      <div className="flex flex-wrap justify-around items-center gap-4">
-        {/* Font Family Selection */}
+    <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+
+        {/* Font Selection */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Style</label>
           <select
-            className="p-2 border border-gray-300 rounded"
+            className="p-2 border border-gray-300 rounded-lg"
             onChange={(e) => onSetFontFamily(e.target.value)}
             value={selectedOverlay ? selectedOverlay.fontFamily : "Arial, sans-serif"}
           >
@@ -817,49 +795,8 @@ function SecondaryTextToolbar({
           </select>
         </div>
 
-        {/* Font Size Control */}
+        {/* Text Color Picker */}
         <div className="flex flex-col items-center">
-          <label className="text-sm font-medium text-gray-700">Font Size</label>
-          <div className="flex items-center space-x-2">
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                const newSize = Math.max(8, currentFontSize - 1);
-                onSetFontSize(newSize);
-              }}
-            >
-              -
-            </button>
-            <select
-              className="p-2 border border-gray-300 rounded"
-              value={currentFontSize}
-              onChange={(e) => {
-                onSetFontSize(parseInt(e.target.value, 10));
-                setIsDropdownOpen(false);
-              }}
-              onFocus={() => setIsDropdownOpen(true)}
-              onBlur={() => setIsDropdownOpen(false)}
-            >
-              {fontSizesWithCurrent.map((size) => (
-                <option key={size} value={size}>
-                  {size}
-                </option>
-              ))}
-            </select>
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                const newSize = currentFontSize + 1;
-                onSetFontSize(newSize);
-              }}
-            >
-              +
-            </button>
-          </div>
-        </div>
-
-        {/* Text Color Picker (Mobile-Friendly) */}
-        <div className="flex flex-col items-center relative" ref={textColorRef}>
           <label className="text-sm font-medium text-gray-700">Text Color</label>
           <button
             className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
@@ -888,11 +825,11 @@ function SecondaryTextToolbar({
           )}
         </div>
 
-        {/* Background Color Picker (Mobile-Friendly) */}
-        <div className="flex flex-col items-center relative" ref={surfaceColorRef}>
-          <label className="text-sm font-medium text-gray-700">Background Color</label>
+        {/* Background Color Picker */}
+        <div className="flex flex-col items-center">
+          <label className="text-sm font-medium text-gray-700">Background</label>
           <button
-            className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition flex items-center justify-center"
+            className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
             style={{ backgroundColor: selectedOverlay?.bgColor || "transparent" }}
             onClick={() => {
               setShowSurfaceColorPicker(!showSurfaceColorPicker);
@@ -912,23 +849,21 @@ function SecondaryTextToolbar({
                       setShowSurfaceColorPicker(false);
                     }}
                     style={{ backgroundColor: bg.value || "transparent" }}
-                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition flex items-center justify-center"
-                  >
-                    {!bg.value && <span className="text-xs">N</span>}
-                  </button>
+                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+                  />
                 ))}
               </div>
             </div>
           )}
         </div>
 
-        {/* Delete Text Button */}
+        {/* Delete Button */}
         <div className="flex flex-col items-center">
-          <label className="text-sm font-medium text-gray-700">Delete Text</label>
-          <button onClick={onDeleteOverlay} title="Delete Text" className="p-2 text-red-500">
+          <button onClick={onDeleteOverlay} title="Delete" className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition">
             <AiOutlineDelete size={24} />
           </button>
         </div>
+
       </div>
     </div>
   );
