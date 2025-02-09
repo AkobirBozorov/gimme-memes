@@ -548,7 +548,7 @@ function CreateMemePage() {
         `}</script>
       </Helmet>
 
-      <h1 className="text-3xl font-extrabold text-gray-800 mb-6">
+      <h1 className="text-4xl font-extrabold text-gray-900 mb-8 text-center">
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
 
@@ -566,32 +566,32 @@ function CreateMemePage() {
         </div>
       )}
 
-      {!hasImage && (
-        <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-[#528265] transition duration-300 ease-in-out shadow-md bg-white">
-          <input
-            id="file-upload"
-            type="file"
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
-          <label htmlFor="file-upload" className="cursor-pointer text-center">
-            <span className="block mb-4 text-3xl font-semibold text-gray-700">
-              Upload an Image
-            </span>
-            <span className="inline-block px-8 py-4 bg-[#528265] text-white rounded-full shadow hover:bg-[#437254] transition-colors">
-              Choose File
-            </span>
-            <span className="block mt-4 text-lg text-gray-500">
-              or drag &amp; drop your image here
-            </span>
-          </label>
-        </div>
-      )}
+{!hasImage && (
+  <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-[#528265] rounded-xl hover:border-[#437254] transition duration-300 ease-in-out shadow-md bg-white">
+    <input
+      id="file-upload"
+      type="file"
+      accept="image/*"
+      onChange={handleFileSelect}
+      className="hidden"
+    />
+    <label htmlFor="file-upload" className="cursor-pointer text-center">
+      <span className="block mb-4 text-3xl font-bold text-gray-800">
+        Upload an Image
+      </span>
+      <span className="inline-block px-8 py-4 bg-[#528265] text-white font-medium rounded-lg shadow-md hover:bg-[#437254] transition-colors">
+        Choose File
+      </span>
+      <span className="block mt-4 text-lg text-gray-600 font-medium">
+        or drag & drop your image here
+      </span>
+    </label>
+  </div>
+)}
 
       {hasImage && (
         <div
-          className="relative border border-gray-300 bg-white rounded-xl overflow-hidden shadow-lg mx-auto"
+          className="relative border border-gray-300 bg-white rounded-lg overflow-hidden shadow-md mx-auto"
           style={{
             width: `${displayWidth}px`,
             height: `${displayHeight}px`,
@@ -669,7 +669,7 @@ function CreateMemePage() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFinishEditing(ov.id);
                 }}
-                className="w-full h-full text-center bg-transparent outline-none"
+                className="w-full h-full text-center bg-transparent outline-none px-2"
                   style={{
                     color: ov.textColor,
                     fontSize: `${ov.fontSize}px`,
@@ -677,7 +677,7 @@ function CreateMemePage() {
                   }}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center px-1">
+                <div className="w-full h-full flex items-center justify-center px-1 cursor-pointer">
                   {ov.text}
                 </div>
               )}
