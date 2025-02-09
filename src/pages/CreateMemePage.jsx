@@ -320,22 +320,25 @@ function CreateMemePage() {
     commitOverlays(displayOverlays.filter((ov) => ov.id !== selectedOverlayId));
     setSelectedOverlayId(null);
   }
-  function handleSetTextColor(c) {
+  function handleSetTextColor(color) {
     if (!selectedOverlayId) return;
+    
     commitOverlays(
       displayOverlays.map((ov) =>
-        ov.id === selectedOverlayId ? { ...ov, textColor: c } : ov
+        ov.id === selectedOverlayId ? { ...ov, textColor: color } : ov
       )
     );
   }
-  function handleSetBgColor(val) {
+  
+  function handleSetBgColor(color) {
     if (!selectedOverlayId) return;
+    
     commitOverlays(
       displayOverlays.map((ov) =>
-        ov.id === selectedOverlayId ? { ...ov, bgColor: val } : ov
+        ov.id === selectedOverlayId ? { ...ov, bgColor: color } : ov
       )
     );
-  }
+  }  
   function handleSetFontFamily(fam) {
     if (!selectedOverlayId) return;
     commitOverlays(
@@ -774,22 +777,6 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-
-  // Get the current font size of the selected overlay and round it
-  const currentFontSize = selectedOverlay ? Math.round(selectedOverlay.fontSize) : 20;
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      setShowTextColorPicker(false);
-      setShowSurfaceColorPicker(false);
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Ensure the font size dropdown includes the rounded current font size in the correct order
-  const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
@@ -811,14 +798,14 @@ function SecondaryTextToolbar({
           </select>
         </div>
 
-        {/* Font Size Control (with +/- and Dropdown) */}
+        {/* Font Size Control (Dropdown with +/- Buttons) */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Size</label>
           <div className="flex items-center space-x-2">
             <button
               className="px-2 py-1 border rounded"
               onClick={() => {
-                const newSize = Math.max(8, currentFontSize - 1);
+                const newSize = Math.max(8, selectedOverlay.fontSize - 1);
                 onSetFontSize(newSize);
               }}
             >
@@ -826,15 +813,10 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded-lg"
-              value={currentFontSize}
-              onChange={(e) => {
-                onSetFontSize(parseInt(e.target.value, 10));
-                setIsDropdownOpen(false);
-              }}
-              onFocus={() => setIsDropdownOpen(true)}
-              onBlur={() => setIsDropdownOpen(false)}
+              value={selectedOverlay.fontSize}
+              onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
             >
-              {fontSizesWithCurrent.map((size) => (
+              {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>
@@ -843,7 +825,7 @@ function SecondaryTextToolbar({
             <button
               className="px-2 py-1 border rounded"
               onClick={() => {
-                const newSize = currentFontSize + 1;
+                const newSize = selectedOverlay.fontSize + 1;
                 onSetFontSize(newSize);
               }}
             >
