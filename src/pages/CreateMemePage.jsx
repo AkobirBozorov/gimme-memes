@@ -791,7 +791,7 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded"
-              value={isDropdownOpen ? "" : currentFontSize.toString()} // Show current size when closed
+              value={isDropdownOpen ? "" : currentFontSize} // Always show the actual size when closed
               onChange={(e) => {
                 onSetFontSize(parseInt(e.target.value, 10));
                 setIsDropdownOpen(false);
@@ -802,6 +802,10 @@ function SecondaryTextToolbar({
               <option value="" disabled hidden>
                 Select size
               </option>
+              {/* Always include the current font size in the dropdown */}
+              {!FONT_SIZES.includes(currentFontSize) && (
+                <option value={currentFontSize}>{currentFontSize}</option>
+              )}
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size}
