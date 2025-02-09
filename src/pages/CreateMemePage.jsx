@@ -736,14 +736,12 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
-
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  
   const textColorRef = useRef(null);
   const surfaceColorRef = useRef(null);
 
   // Check if current font size is in the preset list
-  const isInList = selectedOverlay
-    ? FONT_SIZES.includes(selectedOverlay.fontSize)
-    : false;
   const currentFontSize = selectedOverlay ? selectedOverlay.fontSize : 20;
 
   useEffect(() => {
@@ -751,10 +749,7 @@ function SecondaryTextToolbar({
       if (textColorRef.current && !textColorRef.current.contains(e.target)) {
         setShowTextColorPicker(false);
       }
-      if (
-        surfaceColorRef.current &&
-        !surfaceColorRef.current.contains(e.target)
-      ) {
+      if (surfaceColorRef.current && !surfaceColorRef.current.contains(e.target)) {
         setShowSurfaceColorPicker(false);
       }
     }
@@ -765,9 +760,9 @@ function SecondaryTextToolbar({
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4">
       <div className="flex flex-wrap justify-around items-center gap-4">
-        {/* Text Style */}
+        {/* Font Family Selection */}
         <div className="flex flex-col items-center">
-          <label className="text-sm font-medium text-gray-700">Text Style</label>
+          <label className="text-sm font-medium text-gray-700">Font Style</label>
           <select
             className="p-2 border border-gray-300 rounded"
             onChange={(e) => onSetFontFamily(e.target.value)}
@@ -780,7 +775,8 @@ function SecondaryTextToolbar({
             ))}
           </select>
         </div>
-        {/* Font Size */}
+
+        {/* Font Size Control */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Size</label>
           <div className="flex items-center space-x-2">
@@ -795,9 +791,17 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded"
-              onChange={(e) => onSetFontSize(e.target.value)}
-              value={currentFontSize.toString()}
+              value={isDropdownOpen ? currentFontSize.toString() : ""}
+              onChange={(e) => {
+                onSetFontSize(parseInt(e.target.value, 10));
+                setIsDropdownOpen(false);
+              }}
+              onFocus={() => setIsDropdownOpen(true)}
+              onBlur={() => setIsDropdownOpen(false)}
             >
+              <option value="" disabled hidden>
+                Select size
+              </option>
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size}
@@ -815,7 +819,8 @@ function SecondaryTextToolbar({
             </button>
           </div>
         </div>
-        {/* Text Color */}
+
+        {/* Text Color Picker */}
         <div className="flex flex-col items-center relative" ref={textColorRef}>
           <label className="text-sm font-medium text-gray-700">Text Color</label>
           <button
@@ -842,14 +847,13 @@ function SecondaryTextToolbar({
             </div>
           )}
         </div>
-        {/* Surface Color */}
+
+        {/* Background Color Picker */}
         <div className="flex flex-col items-center relative" ref={surfaceColorRef}>
-          <label className="text-sm font-medium text-gray-700">Surface Color</label>
+          <label className="text-sm font-medium text-gray-700">Background Color</label>
           <button
             className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
-            style={{
-              backgroundColor: selectedOverlay?.bgColor || "transparent",
-            }}
+            style={{ backgroundColor: selectedOverlay?.bgColor || "transparent" }}
             onClick={() => {
               setShowSurfaceColorPicker(!showSurfaceColorPicker);
               setShowTextColorPicker(false);
@@ -875,7 +879,8 @@ function SecondaryTextToolbar({
             </div>
           )}
         </div>
-        {/* Delete Text */}
+
+        {/* Delete Text Button */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Delete Text</label>
           <button onClick={onDeleteOverlay} title="Delete Text" className="p-2 text-red-500">
