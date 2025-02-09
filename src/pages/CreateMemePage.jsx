@@ -102,6 +102,8 @@ function CreateMemePage() {
   // Derived state: whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
+  const [loadingDownload, setLoadingDownload] = useState(false);
+
   // Close dropdowns when clicking outside the toolbar container
   useEffect(() => {
     function handleClickOutside(e) {
@@ -410,13 +412,16 @@ function CreateMemePage() {
         link.download = "meme.png";
         link.href = dataUrl;
         link.click();
+        setLoadingDownload(false);
       };
       baseImg.onerror = () =>
         alert("Error loading base image for local download");
       baseImg.src = filePath || tempImageDataUrl || "";
+      setLoadingDownload(false);
     } catch (err) {
       console.error("Download local error:", err);
       alert(err.message);
+      setLoadingDownload(false);
     }
   }
 
@@ -540,6 +545,7 @@ function CreateMemePage() {
             onDownload={handleDownloadLocal}
             onSave={handleSaveMeme}
             onRemoveFile={handleRemoveFile}
+            loadingDownload={loadingDownload}
           />
         </div>
       )}
@@ -682,7 +688,7 @@ function CreateMemePage() {
 }
 
 /** Primary Toolbar Component **/
-function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile }) {
+function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile, loadingDownload }) {
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
       <div className="flex flex-col items-center">
@@ -704,8 +710,25 @@ function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemov
         <span className="text-xs text-gray-600">Redo</span>
       </div>
       <div className="flex flex-col items-center">
-        <button onClick={onDownload} title="Download" className="p-2">
-          <AiOutlineDownload size={24} />
+        <button
+          onClick={onDownload}
+          title="Download"
+          className={`p-2 ${loadingDownload ? "opacity-50 cursor-not-allowed" : ""}`}
+          disabled={loadingDownload}
+        >
+          {loadingDownload ? (
+            <svg
+              className="animate-spin h-6 w-6 text-gray-700"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 118 8 8 8 0 01-8-8zm2 0a6 6 0 106-6 6 6 0 00-6 6z"></path>
+            </svg>
+          ) : (
+            <AiOutlineDownload size={24} />
+          )}
         </button>
         <span className="text-xs text-gray-600">Download</span>
       </div>
