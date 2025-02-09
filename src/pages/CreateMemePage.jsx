@@ -774,6 +774,22 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // Get the current font size of the selected overlay and round it
+  const currentFontSize = selectedOverlay ? Math.round(selectedOverlay.fontSize) : 20;
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      setShowTextColorPicker(false);
+      setShowSurfaceColorPicker(false);
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Ensure the font size dropdown includes the rounded current font size in the correct order
+  const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
 
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
@@ -795,24 +811,49 @@ function SecondaryTextToolbar({
           </select>
         </div>
 
-        {/* Font Size Dropdown */}
+        {/* Font Size Control (with +/- and Dropdown) */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Size</label>
-          <select
-            className="p-2 border border-gray-300 rounded-lg"
-            onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
-            value={selectedOverlay ? selectedOverlay.fontSize : 20}
-          >
-            {FONT_SIZES.map((size) => (
-              <option key={size} value={size}>
-                {size}px
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center space-x-2">
+            <button
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                const newSize = Math.max(8, currentFontSize - 1);
+                onSetFontSize(newSize);
+              }}
+            >
+              -
+            </button>
+            <select
+              className="p-2 border border-gray-300 rounded-lg"
+              value={currentFontSize}
+              onChange={(e) => {
+                onSetFontSize(parseInt(e.target.value, 10));
+                setIsDropdownOpen(false);
+              }}
+              onFocus={() => setIsDropdownOpen(true)}
+              onBlur={() => setIsDropdownOpen(false)}
+            >
+              {fontSizesWithCurrent.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+            <button
+              className="px-2 py-1 border rounded"
+              onClick={() => {
+                const newSize = currentFontSize + 1;
+                onSetFontSize(newSize);
+              }}
+            >
+              +
+            </button>
+          </div>
         </div>
 
         {/* Text Color Picker */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center relative">
           <label className="text-sm font-medium text-gray-700">Text Color</label>
           <button
             className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
@@ -842,7 +883,7 @@ function SecondaryTextToolbar({
         </div>
 
         {/* Background Color Picker */}
-        <div className="flex flex-col items-center">
+        <div className="flex flex-col items-center relative">
           <label className="text-sm font-medium text-gray-700">Background</label>
           <button
             className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
