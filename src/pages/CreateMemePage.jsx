@@ -567,7 +567,7 @@ function CreateMemePage() {
       )}
 
       {!hasImage && (
-        <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition duration-300 ease-in-out shadow-md bg-white">
+        <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-[#528265] transition duration-300 ease-in-out shadow-md bg-white">
           <input
             id="file-upload"
             type="file"
@@ -579,7 +579,7 @@ function CreateMemePage() {
             <span className="block mb-4 text-3xl font-semibold text-gray-700">
               Upload an Image
             </span>
-            <span className="inline-block px-8 py-4 bg-blue-600 text-white rounded-full shadow hover:bg-blue-700 transition-colors">
+            <span className="inline-block px-8 py-4 bg-[#528265] text-white rounded-full shadow hover:bg-blue-700 transition-colors">
               Choose File
             </span>
             <span className="block mt-4 text-lg text-gray-500">
