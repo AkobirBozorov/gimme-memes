@@ -741,8 +741,8 @@ function SecondaryTextToolbar({
   const textColorRef = useRef(null);
   const surfaceColorRef = useRef(null);
 
-  // Get the current font size of the selected overlay
-  const currentFontSize = selectedOverlay ? selectedOverlay.fontSize : 20;
+  // Get the current font size of the selected overlay and round it
+  const currentFontSize = selectedOverlay ? Math.round(selectedOverlay.fontSize) : 20;
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -757,7 +757,7 @@ function SecondaryTextToolbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Ensure the font size dropdown includes the current font size in the correct position
+  // Ensure the font size dropdown includes the rounded current font size in the correct order
   const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
 
   return (
@@ -794,7 +794,7 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded"
-              value={currentFontSize} // Show the actual size when closed
+              value={currentFontSize} // Ensure it always displays an integer
               onChange={(e) => {
                 onSetFontSize(parseInt(e.target.value, 10));
                 setIsDropdownOpen(false);
