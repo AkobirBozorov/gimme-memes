@@ -757,6 +757,9 @@ function SecondaryTextToolbar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Ensure the font size dropdown includes the current font size in the correct position
+  const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
+
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4">
       <div className="flex flex-wrap justify-around items-center gap-4">
@@ -791,7 +794,7 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded"
-              value={isDropdownOpen ? "" : currentFontSize} // Always show the actual size when closed
+              value={currentFontSize} // Show the actual size when closed
               onChange={(e) => {
                 onSetFontSize(parseInt(e.target.value, 10));
                 setIsDropdownOpen(false);
@@ -799,14 +802,7 @@ function SecondaryTextToolbar({
               onFocus={() => setIsDropdownOpen(true)}
               onBlur={() => setIsDropdownOpen(false)}
             >
-              <option value="" disabled hidden>
-                Select size
-              </option>
-              {/* Always include the current font size in the dropdown */}
-              {!FONT_SIZES.includes(currentFontSize) && (
-                <option value={currentFontSize}>{currentFontSize}</option>
-              )}
-              {FONT_SIZES.map((size) => (
+              {fontSizesWithCurrent.map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>
