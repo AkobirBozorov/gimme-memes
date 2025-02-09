@@ -16,6 +16,26 @@ const HomePage = () => {
           gtag('config', 'G-CR21WBQXGL');
         `}</script>
 
+      <script type="application/ld+json">{`
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "GimmeMemes",
+          "url": "https://www.gimmememes.com",
+          "description": "GimmeMemes is a powerful online tool for creating and sharing memes instantly.",
+          "sameAs": [
+            "https://www.facebook.com/GimmeMemes",
+            "https://twitter.com/GimmeMemes",
+            "https://www.linkedin.com/company/gimmememes"
+          ],
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://www.gimmememes.com/search?q={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        }
+        `}</script>
+
         <title>
           GimmeMemes - Create & Share Memes Instantly | Your Ultimate Meme Creation Platform for Viral Humor
         </title>
@@ -24,6 +44,17 @@ const HomePage = () => {
           content="GimmeMemes is your ultimate platform to create and share hilarious memes instantly. With a user-friendly interface, powerful editing tools, and a vibrant community, you can craft memes in minutes and share them across social media. Join us and unleash your creativity today!" 
         />
         <link rel="canonical" href="https://www.gimmememes.com/" />
+
+        <meta property="og:title" content="GimmeMemes - Create & Share Memes Instantly" />
+        <meta property="og:description" content="Easily create and share hilarious memes with our powerful meme editor. Try it now!" />
+        <meta property="og:image" content="https://www.gimmememes.com/logo.png" />
+        <meta property="og:url" content="https://www.gimmememes.com/" />
+        <meta property="og:type" content="website" />
+  
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="GimmeMemes - Create & Share Memes Instantly" />
+        <meta name="twitter:description" content="Easily create and share hilarious memes with our powerful meme editor. Try it now!" />
+        <meta name="twitter:image" content="https://www.gimmememes.com/logo.png" />
       </Helmet>
       
       {/* Hero Section using only brand color */}
@@ -33,7 +64,7 @@ const HomePage = () => {
       >
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 text-center">
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
-            Welcome to GimmeMemes
+          Create & Share Viral Memes Instantly - GimmeMemes
           </h1>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
             Easily create hilarious memes with just a few clicks! Upload images or short videos, add captions, and share your creations with the world.
@@ -161,8 +192,8 @@ const HomePage = () => {
           <div className="flex flex-col md:flex-row items-center justify-center gap-8">
             <div className="flex-shrink-0">
               <img 
-                src="/logo.png" 
-                alt="Imagerize Logo" 
+                src="/imagerize.png" 
+                alt="Imagerize Logo - Image transforming tool" 
                 className="w-32 h-32 object-contain rounded-full" 
               />
             </div>
