@@ -579,7 +579,7 @@ function CreateMemePage() {
             <span className="block mb-4 text-3xl font-semibold text-gray-700">
               Upload an Image
             </span>
-            <span className="inline-block px-8 py-4 bg-[#528265] text-white rounded-full shadow hover:bg-blue-700 transition-colors">
+            <span className="inline-block px-8 py-4 bg-[#528265] text-white rounded-full shadow hover:bg-[#437254] transition-colors">
               Choose File
             </span>
             <span className="block mt-4 text-lg text-gray-500">
