@@ -354,14 +354,24 @@ function CreateMemePage() {
       )
     );
   }
-  function handleDoubleClickOverlay(overlayId) {
-    setSelectedOverlayId(overlayId);
-    setDisplayOverlays((prev) =>
-      prev.map((ov) =>
-        ov.id === overlayId ? { ...ov, isEditing: true } : ov
-      )
-    );
+  function handleDoubleTap(overlayId) {
+    const now = new Date().getTime();
+    if (
+      lastTapRef.current &&
+      now - lastTapRef.current < 300 // Double-tap detected within 300ms
+    ) {
+      setSelectedOverlayId(overlayId);
+      setDisplayOverlays((prev) =>
+        prev.map((ov) =>
+          ov.id === overlayId ? { ...ov, isEditing: true } : ov
+        )
+      );
+    }
+    lastTapRef.current = now;
   }
+  
+  const lastTapRef = useRef(null);
+  
   function handleFinishEditing(overlayId) {
     commitOverlays(
       displayOverlays.map((ov) =>
@@ -643,22 +653,21 @@ function CreateMemePage() {
                 userSelect: "none",
                 outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
               }}
-              onClick={() => setSelectedOverlayId(ov.id)}
+              onClick={() => handleDoubleTap(ov.id)}
               onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
             >
               {ov.isEditing ? (
                 <input
-                  autoFocus
-                  type="text"
-                  value={ov.text}
-                  onChange={(e) => handleTextChange(ov.id, e.target.value)}
-                  onFocus={handleInputFocus}
-                  onMouseDown={handleInputFocus}
-                  onBlur={() => handleFinishEditing(ov.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") handleFinishEditing(ov.id);
-                  }}
-                  className="w-full h-full text-center bg-transparent outline-none"
+                autoFocus
+                type="text"
+                value={ov.text}
+                onChange={(e) => handleTextChange(ov.id, e.target.value)}
+                onBlur={() => handleFinishEditing(ov.id)}
+                onFocus={(e) => e.target.select()} // Select full text when editing starts
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleFinishEditing(ov.id);
+                }}
+                className="w-full h-full text-center bg-transparent outline-none"
                   style={{
                     color: ov.textColor,
                     fontSize: `${ov.fontSize}px`,
