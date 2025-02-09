@@ -7,9 +7,9 @@ import {
   AiOutlineRedo,
   AiOutlineDownload,
   AiOutlineSave,
-  AiOutlineClose
+  AiOutlineClose,
+  AiOutlineDelete
 } from "react-icons/ai";
-import { AiOutlineDelete } from "react-icons/ai";
 import { FiType } from "react-icons/fi";
 import { MdPalette } from "react-icons/md";
 import { Helmet } from "react-helmet-async";
@@ -28,8 +28,7 @@ const LOCAL_KEY = "ephemeralMemeData";
 // Constants for options
 const TEXT_COLORS = [
   "#000000", "#FFFFFF", "#FF0000", "#00FF00", "#0000FF",
-  "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080",
-  "#808080", "#B22222",
+  "#FFFF00", "#FFA500", "#FF00FF", "#800080", "#008080", // first 10
 ];
 const BG_COLORS = [
   { label: "None", value: "" },
@@ -57,7 +56,7 @@ const FONT_FAMILIES = [
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
 
 function CreateMemePage() {
-  const { id } = useParams(); // If provided, we're editing an existing meme.
+  const { id } = useParams(); // Editing an existing meme if provided
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
@@ -84,14 +83,14 @@ function CreateMemePage() {
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar Dropdown state (for primary toolbar if needed)
+  // Toolbar state for primary dropdown (if needed)
   const [openDropdown, setOpenDropdown] = useState(null);
   const toolbarContainerRef = useRef(null);
 
-  // New state to control whether the secondary toolbar is visible
+  // New state to control secondary toolbar visibility
   const [showSecondaryToolbar, setShowSecondaryToolbar] = useState(false);
 
-  // Derived: Whether an image is available
+  // Derived state: whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
   // Close dropdown when clicking outside the toolbar container
@@ -643,9 +642,9 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* Secondary Toolbar: now rendered AFTER the preview image */}
+      {/* Secondary Toolbar: Rendered AFTER preview image */}
       {hasImage && showSecondaryToolbar && selectedOverlayId && (
-        <div className="mt-4 w-full max-w-2xl">
+        <div className="mt-4 w-full md:max-w-2xl">
           <SecondaryTextToolbar
             selectedOverlay={displayOverlays.find((ov) => ov.id === selectedOverlayId)}
             onSetFontFamily={handleSetFontFamily}
@@ -660,46 +659,40 @@ function CreateMemePage() {
   );
 }
 
-// Primary Toolbar: only essential actions
+// Primary Toolbar: Only essential actions (above preview)
 function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile }) {
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-      {/* Add Text */}
       <div className="flex flex-col items-center">
         <button onClick={onAddText} title="Add Text" className="p-2">
           <FiType size={24} />
         </button>
         <span className="text-xs text-gray-600">Add Text</span>
       </div>
-      {/* Undo */}
       <div className="flex flex-col items-center">
         <button onClick={onUndo} title="Undo" className="p-2">
           <AiOutlineUndo size={24} />
         </button>
         <span className="text-xs text-gray-600">Undo</span>
       </div>
-      {/* Redo */}
       <div className="flex flex-col items-center">
         <button onClick={onRedo} title="Redo" className="p-2">
           <AiOutlineRedo size={24} />
         </button>
         <span className="text-xs text-gray-600">Redo</span>
       </div>
-      {/* Download */}
       <div className="flex flex-col items-center">
-        <button onClick={onDownload} title="Download (Local)" className="p-2">
+        <button onClick={onDownload} title="Download" className="p-2">
           <AiOutlineDownload size={24} />
         </button>
         <span className="text-xs text-gray-600">Download</span>
       </div>
-      {/* Save */}
       <div className="flex flex-col items-center">
-        <button onClick={onSave} title="Save Meme" className="p-2">
+        <button onClick={onSave} title="Save" className="p-2">
           <AiOutlineSave size={24} />
         </button>
         <span className="text-xs text-gray-600">Save</span>
       </div>
-      {/* Remove File */}
       <div className="flex flex-col items-center">
         <button onClick={onRemoveFile} title="Remove File" className="p-2">
           <AiOutlineClose size={24} />
@@ -710,7 +703,7 @@ function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemov
   );
 }
 
-// Secondary Toolbar: text-editing options (with labels and controls)
+// Secondary Toolbar: Text-editing options with labels and dropdowns/buttons for mobile & desktop
 function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize, onSetTextColor, onSetBgColor, onDeleteOverlay }) {
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4">
@@ -744,12 +737,12 @@ function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize,
             >-</button>
             <select
               className="p-2 border border-gray-300 rounded"
-              onChange={(e) => onSetFontSize(e.target.value)}
+              onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
               value={selectedOverlay ? selectedOverlay.fontSize : 20}
             >
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
-                  {size}px
+                  {size}
                 </option>
               ))}
             </select>
@@ -766,22 +759,32 @@ function SecondaryTextToolbar({ selectedOverlay, onSetFontFamily, onSetFontSize,
         {/* Text Color */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Text Color</label>
-          <input
-            type="color"
-            value={selectedOverlay ? selectedOverlay.textColor : "#FFFFFF"}
-            onChange={(e) => onSetTextColor(e.target.value)}
-            className="w-10 h-10 border border-gray-300 rounded"
-          />
+          <div className="flex flex-wrap gap-1">
+            {TEXT_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => onSetTextColor(c)}
+                style={{ backgroundColor: c }}
+                className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80"
+              />
+            ))}
+          </div>
         </div>
         {/* Surface Color */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Surface Color</label>
-          <input
-            type="color"
-            value={selectedOverlay ? selectedOverlay.bgColor : "#000000"}
-            onChange={(e) => onSetBgColor(e.target.value)}
-            className="w-10 h-10 border border-gray-300 rounded"
-          />
+          <div className="flex flex-wrap gap-1">
+            {BG_COLORS.map((bg) => (
+              <button
+                key={bg.value}
+                onClick={() => onSetBgColor(bg.value)}
+                style={{ backgroundColor: bg.value || "transparent" }}
+                className="w-6 h-6 rounded-full border border-gray-300 hover:opacity-80 flex items-center justify-center"
+              >
+                {!bg.value && <span className="text-xs">None</span>}
+              </button>
+            ))}
+          </div>
         </div>
         {/* Delete Text */}
         <div className="flex flex-col items-center">
