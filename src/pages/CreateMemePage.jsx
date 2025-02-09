@@ -820,7 +820,7 @@ function SecondaryTextToolbar({
           </div>
         </div>
 
-        {/* Text Color Picker (Improved UI) */}
+        {/* Text Color Picker (Mobile-Friendly) */}
         <div className="flex flex-col items-center relative" ref={textColorRef}>
           <label className="text-sm font-medium text-gray-700">Text Color</label>
           <button
@@ -832,23 +832,25 @@ function SecondaryTextToolbar({
             }}
           />
           {showTextColorPicker && (
-            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl grid grid-cols-5 gap-2 z-50">
-              {TEXT_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => {
-                    onSetTextColor(c);
-                    setShowTextColorPicker(false);
-                  }}
-                  style={{ backgroundColor: c }}
-                  className="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition"
-                />
-              ))}
+            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl z-50 w-48">
+              <div className="flex gap-3 flex-wrap justify-center">
+                {TEXT_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => {
+                      onSetTextColor(c);
+                      setShowTextColorPicker(false);
+                    }}
+                    style={{ backgroundColor: c }}
+                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+                  />
+                ))}
+              </div>
             </div>
           )}
         </div>
 
-        {/* Background Color Picker (Improved UI) */}
+        {/* Background Color Picker (Mobile-Friendly) */}
         <div className="flex flex-col items-center relative" ref={surfaceColorRef}>
           <label className="text-sm font-medium text-gray-700">Background Color</label>
           <button
@@ -862,20 +864,22 @@ function SecondaryTextToolbar({
             {!selectedOverlay?.bgColor && <span className="text-xs text-gray-600">None</span>}
           </button>
           {showSurfaceColorPicker && (
-            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl grid grid-cols-5 gap-2 z-50">
-              {BG_COLORS.map((bg) => (
-                <button
-                  key={bg.value}
-                  onClick={() => {
-                    onSetBgColor(bg.value);
-                    setShowSurfaceColorPicker(false);
-                  }}
-                  style={{ backgroundColor: bg.value || "transparent" }}
-                  className="w-8 h-8 rounded-full border-2 border-gray-300 hover:scale-110 transition flex items-center justify-center"
-                >
-                  {!bg.value && <span className="text-xs">N</span>}
-                </button>
-              ))}
+            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl z-50 w-48">
+              <div className="flex gap-3 flex-wrap justify-center">
+                {BG_COLORS.map((bg) => (
+                  <button
+                    key={bg.value}
+                    onClick={() => {
+                      onSetBgColor(bg.value);
+                      setShowSurfaceColorPicker(false);
+                    }}
+                    style={{ backgroundColor: bg.value || "transparent" }}
+                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition flex items-center justify-center"
+                  >
+                    {!bg.value && <span className="text-xs">N</span>}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
