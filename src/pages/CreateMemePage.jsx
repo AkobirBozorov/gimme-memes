@@ -21,12 +21,9 @@ import {
 } from "../utils/scaleUtils";
 import { baseApiUrl } from "../utils/api";
 
-/** 
- * Constants and Arrays 
- **/
 const LOCAL_KEY = "ephemeralMemeData";
 
-// Text Colors
+// Predefined colors and font options
 const TEXT_COLORS = [
   "#000000",
   "#FFFFFF",
@@ -40,7 +37,6 @@ const TEXT_COLORS = [
   "#008080",
 ];
 
-// Surface (Background) Colors
 const BG_COLORS = [
   { label: "None", value: "" },
   { label: "White", value: "#FFFFFF" },
@@ -54,7 +50,6 @@ const BG_COLORS = [
   { label: "Gray", value: "#808080" },
 ];
 
-// Font Families
 const FONT_FAMILIES = [
   { label: "Arial", value: "Arial, sans-serif" },
   { label: "Impact", value: "Impact, Charcoal, sans-serif" },
@@ -66,7 +61,7 @@ const FONT_FAMILIES = [
   { label: "Trebuchet MS", value: "'Trebuchet MS', Helvetica, sans-serif" },
 ];
 
-// Common Font Sizes
+// Preset font sizes (numeric only)
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
 
 function CreateMemePage() {
@@ -93,7 +88,7 @@ function CreateMemePage() {
   const [pastStates, setPastStates] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
 
-  // Preview sizing
+  // Preview dimensions
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
@@ -101,13 +96,13 @@ function CreateMemePage() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const toolbarContainerRef = useRef(null);
 
-  // Secondary toolbar
+  // Secondary toolbar control
   const [showSecondaryToolbar, setShowSecondaryToolbar] = useState(false);
 
-  // Derived
+  // Derived state: whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
-  // Close open dropdown on outside click
+  // Close dropdowns when clicking outside the toolbar container
   useEffect(() => {
     function handleClickOutside(e) {
       if (
@@ -118,10 +113,11 @@ function CreateMemePage() {
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Load existing or ephemeral on mount
+  // On mount: load existing meme or ephemeral data
   useEffect(() => {
     if (id) {
       loadExistingMeme(id);
@@ -138,9 +134,10 @@ function CreateMemePage() {
         );
         setDisplayWidth(dispW);
         setDisplayHeight(dispH);
-
         if (parsed.realOverlays?.length) {
-          const scaled = parsed.realOverlays.map((ov) => realToDisplay(ov, scale));
+          const scaled = parsed.realOverlays.map((ov) =>
+            realToDisplay(ov, scale)
+          );
           setDisplayOverlays(scaled);
         }
         if (parsed.tempImageDataUrl) {
@@ -153,21 +150,21 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // If overlay selected, show secondary toolbar
+  // Ensure secondary toolbar is shown if an overlay is selected
   useEffect(() => {
     if (selectedOverlayId) {
       setShowSecondaryToolbar(true);
     }
   }, [selectedOverlayId]);
 
-  /** Store ephemeral data for new memes **/
+  // Helper: store ephemeral data for new memes
   function storeEphemeralData(
     overlays = realOverlays,
     w = realWidth,
     h = realHeight,
     dataUrl = tempImageDataUrl
   ) {
-    if (id) return; // skip if editing existing
+    if (id) return;
     const ephemeral = {
       realWidth: w,
       realHeight: h,
@@ -177,7 +174,6 @@ function CreateMemePage() {
     localStorage.setItem(LOCAL_KEY, JSON.stringify(ephemeral));
   }
 
-  /** Load existing meme from server **/
   async function loadExistingMeme(memeIdParam) {
     if (!isLoggedIn) {
       alert("Please log in to edit an existing meme!");
@@ -189,7 +185,8 @@ function CreateMemePage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error loading meme");
+      if (!res.ok)
+        throw new Error(data.error || "Error loading meme");
       const m = data.meme;
       setMemeId(m.id);
       setFilePath(m.filePath || "");
@@ -217,13 +214,12 @@ function CreateMemePage() {
     }
   }
 
-  /** Handle file selection **/
   function handleFileSelect(e) {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
 
-    // Reset states for new meme
+    // Reset states for a new meme
     setMemeId(null);
     setFilePath("");
     setTempImageDataUrl(null);
@@ -245,7 +241,6 @@ function CreateMemePage() {
         return;
       }
       setTempImageDataUrl(dataUrl);
-
       const img = new Image();
       img.onload = () => {
         const w = img.naturalWidth;
@@ -264,7 +259,6 @@ function CreateMemePage() {
     reader.readAsDataURL(file);
   }
 
-  /** Commit overlays locally **/
   function commitOverlays(newDisplay) {
     const { scale } = computeScale(realWidth, realHeight);
     const newReal = newDisplay.map((ov) => displayToReal(ov, scale));
@@ -275,7 +269,6 @@ function CreateMemePage() {
     storeEphemeralData(newReal, realWidth, realHeight, tempImageDataUrl);
   }
 
-  /** Undo / Redo **/
   function undo() {
     if (!pastStates.length) return;
     const prev = pastStates[pastStates.length - 1];
@@ -299,7 +292,6 @@ function CreateMemePage() {
     storeEphemeralData(nxt, realWidth, realHeight, tempImageDataUrl);
   }
 
-  /** Overlay text actions **/
   function handleAddText() {
     const newOverlay = {
       id: Date.now(),
@@ -363,7 +355,9 @@ function CreateMemePage() {
   function handleDoubleClickOverlay(overlayId) {
     setSelectedOverlayId(overlayId);
     setDisplayOverlays((prev) =>
-      prev.map((ov) => (ov.id === overlayId ? { ...ov, isEditing: true } : ov))
+      prev.map((ov) =>
+        ov.id === overlayId ? { ...ov, isEditing: true } : ov
+      )
     );
   }
   function handleFinishEditing(overlayId) {
@@ -375,14 +369,15 @@ function CreateMemePage() {
   }
   function handleTextChange(overlayId, newText) {
     setDisplayOverlays((prev) =>
-      prev.map((ov) => (ov.id === overlayId ? { ...ov, text: newText } : ov))
+      prev.map((ov) =>
+        ov.id === overlayId ? { ...ov, text: newText } : ov
+      )
     );
   }
   const handleInputFocus = (e) => {
     e.target.select();
   };
 
-  /** Download local: merges overlays on canvas **/
   async function handleDownloadLocal() {
     if (!hasImage) {
       alert("No image to download.");
@@ -425,7 +420,6 @@ function CreateMemePage() {
     }
   }
 
-  /** Save Meme **/
   async function handleSaveMeme() {
     if (!isLoggedIn) {
       alert("Please log in or create an account to save your meme!");
@@ -438,7 +432,6 @@ function CreateMemePage() {
     try {
       let currentId = memeId;
       if (!currentId) {
-        // Create new meme record first
         const createRes = await fetch(`${baseApiUrl}/api/memes`, {
           method: "POST",
           headers: {
@@ -454,7 +447,6 @@ function CreateMemePage() {
         currentId = createData.meme.id;
         setMemeId(currentId);
       }
-      // Merge overlays on canvas
       const canvas = document.createElement("canvas");
       canvas.width = realWidth;
       canvas.height = realHeight;
@@ -484,15 +476,11 @@ function CreateMemePage() {
           }
           const formData = new FormData();
           formData.append("file", blob, "final_meme.png");
-          // Upload final image
-          const uploadRes = await fetch(
-            `${baseApiUrl}/api/memes/${currentId}/upload`,
-            {
-              method: "POST",
-              headers: { Authorization: `Bearer ${token}` },
-              body: formData,
-            }
-          );
+          const uploadRes = await fetch(`${baseApiUrl}/api/memes/${currentId}/upload`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
           const uploadData = await uploadRes.json();
           if (!uploadRes.ok) {
             alert(uploadData.error || "Error uploading final meme");
@@ -511,7 +499,6 @@ function CreateMemePage() {
     }
   }
 
-  /** Remove File **/
   function handleRemoveFile() {
     setMemeId(null);
     setFilePath("");
@@ -544,7 +531,6 @@ function CreateMemePage() {
         {id ? "Edit Meme" : "Create a Meme"}
       </h1>
 
-      {/* Primary Toolbar (above preview) */}
       {hasImage && (
         <div ref={toolbarContainerRef} className="relative w-full max-w-2xl mb-6">
           <PrimaryToolbar
@@ -558,7 +544,6 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* If no image, show the file upload prompt */}
       {!hasImage && (
         <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto p-10 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 transition duration-300 ease-in-out shadow-md bg-white">
           <input
@@ -582,7 +567,6 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* Meme Preview */}
       {hasImage && (
         <div
           className="relative border border-gray-300 bg-white rounded-xl overflow-hidden shadow-lg mx-auto"
@@ -593,17 +577,9 @@ function CreateMemePage() {
           }}
         >
           {filePath ? (
-            <img
-              src={filePath}
-              alt="Meme"
-              className="w-full h-full object-contain"
-            />
+            <img src={filePath} alt="Meme" className="w-full h-full object-contain" />
           ) : tempImageDataUrl ? (
-            <img
-              src={tempImageDataUrl}
-              alt="Temp Meme"
-              className="w-full h-full object-contain"
-            />
+            <img src={tempImageDataUrl} alt="Temp Meme" className="w-full h-full object-contain" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-gray-500">
               No image
@@ -637,9 +613,7 @@ function CreateMemePage() {
                         y: newY,
                         fontSize:
                           item.fontSize *
-                          Math.sqrt(
-                            (newW / item.width) * (newH / item.height)
-                          ),
+                          Math.sqrt((newW / item.width) * (newH / item.height)),
                       }
                     : item
                 );
@@ -657,8 +631,7 @@ function CreateMemePage() {
                 justifyContent: "center",
                 textAlign: "center",
                 userSelect: "none",
-                outline:
-                  ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
+                outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
               }}
               onClick={() => setSelectedOverlayId(ov.id)}
               onDoubleClick={() => handleDoubleClickOverlay(ov.id)}
@@ -692,7 +665,6 @@ function CreateMemePage() {
         </div>
       )}
 
-      {/* Secondary Toolbar: below the preview */}
       {hasImage && showSecondaryToolbar && selectedOverlayId && (
         <div className="mt-4 w-full md:max-w-2xl">
           <SecondaryTextToolbar
@@ -709,53 +681,40 @@ function CreateMemePage() {
   );
 }
 
-/** Primary Toolbar (above preview) **/
-function PrimaryToolbar({
-  onAddText,
-  onUndo,
-  onRedo,
-  onDownload,
-  onSave,
-  onRemoveFile,
-}) {
+/** Primary Toolbar Component **/
+function PrimaryToolbar({ onAddText, onUndo, onRedo, onDownload, onSave, onRemoveFile }) {
   return (
     <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-      {/* Add Text */}
       <div className="flex flex-col items-center">
         <button onClick={onAddText} title="Add Text" className="p-2">
           <FiType size={24} />
         </button>
         <span className="text-xs text-gray-600">Add Text</span>
       </div>
-      {/* Undo */}
       <div className="flex flex-col items-center">
         <button onClick={onUndo} title="Undo" className="p-2">
           <AiOutlineUndo size={24} />
         </button>
         <span className="text-xs text-gray-600">Undo</span>
       </div>
-      {/* Redo */}
       <div className="flex flex-col items-center">
         <button onClick={onRedo} title="Redo" className="p-2">
           <AiOutlineRedo size={24} />
         </button>
         <span className="text-xs text-gray-600">Redo</span>
       </div>
-      {/* Download */}
       <div className="flex flex-col items-center">
         <button onClick={onDownload} title="Download" className="p-2">
           <AiOutlineDownload size={24} />
         </button>
         <span className="text-xs text-gray-600">Download</span>
       </div>
-      {/* Save */}
       <div className="flex flex-col items-center">
         <button onClick={onSave} title="Save" className="p-2">
           <AiOutlineSave size={24} />
         </button>
         <span className="text-xs text-gray-600">Save</span>
       </div>
-      {/* Remove File */}
       <div className="flex flex-col items-center">
         <button onClick={onRemoveFile} title="Remove File" className="p-2">
           <AiOutlineClose size={24} />
@@ -766,7 +725,7 @@ function PrimaryToolbar({
   );
 }
 
-/** Secondary Toolbar: text-editing options below preview **/
+/** Secondary Toolbar Component **/
 function SecondaryTextToolbar({
   selectedOverlay,
   onSetFontFamily,
@@ -778,18 +737,15 @@ function SecondaryTextToolbar({
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
 
-  // Refs for color pickers to handle outside click
   const textColorRef = useRef(null);
   const surfaceColorRef = useRef(null);
 
-  // Check if current font size is in the list
+  // Check if current font size is in the preset list
   const isInList = selectedOverlay
     ? FONT_SIZES.includes(selectedOverlay.fontSize)
     : false;
-  // Current font size
   const currentFontSize = selectedOverlay ? selectedOverlay.fontSize : 20;
 
-  // Hide color pickers on outside click
   useEffect(() => {
     function handleClickOutside(e) {
       if (textColorRef.current && !textColorRef.current.contains(e.target)) {
@@ -824,7 +780,6 @@ function SecondaryTextToolbar({
             ))}
           </select>
         </div>
-
         {/* Font Size */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Size</label>
@@ -841,12 +796,8 @@ function SecondaryTextToolbar({
             <select
               className="p-2 border border-gray-300 rounded"
               onChange={(e) => onSetFontSize(e.target.value)}
-              value={isInList ? currentFontSize : currentFontSize.toString()}
+              value={currentFontSize.toString()}
             >
-              {/* Add an option for the current size if not in the preset list */}
-              {!isInList && (
-                <option value={currentFontSize}>{currentFontSize}</option>
-              )}
               {FONT_SIZES.map((size) => (
                 <option key={size} value={size}>
                   {size}
@@ -864,7 +815,6 @@ function SecondaryTextToolbar({
             </button>
           </div>
         </div>
-
         {/* Text Color */}
         <div className="flex flex-col items-center relative" ref={textColorRef}>
           <label className="text-sm font-medium text-gray-700">Text Color</label>
@@ -873,7 +823,6 @@ function SecondaryTextToolbar({
             style={{ backgroundColor: selectedOverlay?.textColor || "#000000" }}
             onClick={() => {
               setShowTextColorPicker(!showTextColorPicker);
-              // Close surface color if open
               setShowSurfaceColorPicker(false);
             }}
           />
@@ -893,12 +842,8 @@ function SecondaryTextToolbar({
             </div>
           )}
         </div>
-
         {/* Surface Color */}
-        <div
-          className="flex flex-col items-center relative"
-          ref={surfaceColorRef}
-        >
+        <div className="flex flex-col items-center relative" ref={surfaceColorRef}>
           <label className="text-sm font-medium text-gray-700">Surface Color</label>
           <button
             className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center"
@@ -907,7 +852,6 @@ function SecondaryTextToolbar({
             }}
             onClick={() => {
               setShowSurfaceColorPicker(!showSurfaceColorPicker);
-              // Close text color if open
               setShowTextColorPicker(false);
             }}
           >
@@ -931,69 +875,13 @@ function SecondaryTextToolbar({
             </div>
           )}
         </div>
-
         {/* Delete Text */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Delete Text</label>
-          <button
-            onClick={onDeleteOverlay}
-            title="Delete Text"
-            className="p-2 text-red-500"
-          >
+          <button onClick={onDeleteOverlay} title="Delete Text" className="p-2 text-red-500">
             <AiOutlineDelete size={24} />
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** Primary Toolbar (above preview) **/
-function PrimaryToolbar({
-  onAddText,
-  onUndo,
-  onRedo,
-  onDownload,
-  onSave,
-  onRemoveFile,
-}) {
-  return (
-    <div className="flex justify-around items-center bg-gray-100 rounded-lg p-2 shadow">
-      <div className="flex flex-col items-center">
-        <button onClick={onAddText} title="Add Text" className="p-2">
-          <FiType size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Add Text</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <button onClick={onUndo} title="Undo" className="p-2">
-          <AiOutlineUndo size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Undo</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <button onClick={onRedo} title="Redo" className="p-2">
-          <AiOutlineRedo size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Redo</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <button onClick={onDownload} title="Download" className="p-2">
-          <AiOutlineDownload size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Download</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <button onClick={onSave} title="Save" className="p-2">
-          <AiOutlineSave size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Save</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <button onClick={onRemoveFile} title="Remove File" className="p-2">
-          <AiOutlineClose size={24} />
-        </button>
-        <span className="text-xs text-gray-600">Remove File</span>
       </div>
     </div>
   );
