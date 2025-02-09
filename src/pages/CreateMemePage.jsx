@@ -737,11 +737,11 @@ function SecondaryTextToolbar({
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  
+
   const textColorRef = useRef(null);
   const surfaceColorRef = useRef(null);
 
-  // Check if current font size is in the preset list
+  // Get the current font size of the selected overlay
   const currentFontSize = selectedOverlay ? selectedOverlay.fontSize : 20;
 
   useEffect(() => {
@@ -791,7 +791,7 @@ function SecondaryTextToolbar({
             </button>
             <select
               className="p-2 border border-gray-300 rounded"
-              value={isDropdownOpen ? currentFontSize.toString() : ""}
+              value={isDropdownOpen ? "" : currentFontSize.toString()} // Show current size when closed
               onChange={(e) => {
                 onSetFontSize(parseInt(e.target.value, 10));
                 setIsDropdownOpen(false);
