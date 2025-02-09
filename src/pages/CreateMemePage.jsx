@@ -385,6 +385,9 @@ function CreateMemePage() {
       alert("No image to download.");
       return;
     }
+
+    setLoadingDownload(true);
+
     try {
       const canvas = document.createElement("canvas");
       canvas.width = realWidth;
@@ -392,6 +395,7 @@ function CreateMemePage() {
       const ctx = canvas.getContext("2d");
       const baseImg = new Image();
       baseImg.crossOrigin = "anonymous";
+
       baseImg.onload = () => {
         ctx.drawImage(baseImg, 0, 0, realWidth, realHeight);
         realOverlays.forEach((ov) => {
@@ -407,9 +411,9 @@ function CreateMemePage() {
           const centerY = ov.y + ov.height / 2;
           ctx.fillText(ov.text || "", centerX, centerY, ov.width);
         });
-        const dataUrl = canvas.toDataURL("image/png");
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.8);
         const link = document.createElement("a");
-        link.download = "meme.png";
+        link.download = "meme.jpg";
         link.href = dataUrl;
         link.click();
         setLoadingDownload(false);
