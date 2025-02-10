@@ -776,8 +776,35 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
+
   const textColorRef = useRef(null);
   const surfaceColorRef = useRef(null);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (
+        textColorRef.current &&
+        !textColorRef.current.contains(e.target)
+      ) {
+        setShowTextColorPicker(false);
+      }
+
+      if (
+        surfaceColorRef.current &&
+        !surfaceColorRef.current.contains(e.target)
+      ) {
+        setShowSurfaceColorPicker(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, []);
 
   const currentFontSize = selectedOverlay?.fontSize
     ? Math.round(selectedOverlay.fontSize)
@@ -837,7 +864,7 @@ function SecondaryTextToolbar({
             }}
           />
           {showTextColorPicker && (
-            <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+            <div ref={textColorRef} className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2 color-picker-dropdown">
               {TEXT_COLORS.map((c) => (
                 <button
                   key={c}
@@ -865,7 +892,7 @@ function SecondaryTextToolbar({
             }}
           />
           {showSurfaceColorPicker && (
-            <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+            <div ref={surfaceColorRef} className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2 color-picker-dropdown">
               {BG_COLORS.map((bg) => (
                 <button
                   key={bg.value}
