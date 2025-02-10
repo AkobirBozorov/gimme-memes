@@ -1,22 +1,15 @@
 import React, { useState } from "react";
 
-// Replace with your real Humor API key (preferably store it in .env)
+// The Humor API key from your .env
 const API_KEY = import.meta.env.VITE_HUMOR_API_KEY || "YOUR_API_KEY_HERE";
 
 /**
- * Chatbot approach:
- *   - Use the "Random Meme" endpoint: GET /memes/random
- *   - We pass user’s message as "keywords".
- *   - E.g.: GET /memes/random?api-key=xxx&keywords=the+user+message
- *
- * Search approach:
- *   - Use the "Search Memes" endpoint: GET /memes/search
- *   - Pass user’s input as "keywords".
- *   - E.g. GET /memes/search?api-key=xxx&keywords=the+user+words&number=4
- *
- * We'll do GET requests with query params. This matches the official Humor API doc.
+ * MemeAssistantPage
+ * 
+ * - Chatbot uses GET /memes/random with optional keywords
+ * - Search uses GET /memes/search with ?keywords=...&number=4
+ * - Additional console logs to help debug 400 errors
  */
-
 function MemeAssistantPage() {
   const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
 
@@ -40,7 +33,17 @@ function MemeAssistantPage() {
   //         Meme Chatbot
   // ----------------------------------
   const handleSendChatMessage = async () => {
-    if (!chatInput.trim()) return;
+    if (!chatInput.trim()) {
+      // If user typed nothing, let's fetch a completely random meme
+      // or you can simply return and do nothing
+      // For demonstration, we fetch a completely random meme
+      const userMsg = { sender: "user", content: "(Random Meme)" };
+      setChatMessages((prev) => [...prev, userMsg]);
+      await fetchRandomMeme("");
+      setChatInput("");
+      return;
+    }
+
     setChatError(null);
 
     // Add user message
@@ -55,32 +58,41 @@ function MemeAssistantPage() {
       return;
     }
 
+    await fetchRandomMeme(chatInput);
+    setChatInput("");
+  };
+
+  // A helper to fetch a random meme (with optional keywords)
+  const fetchRandomMeme = async (input) => {
     setChatLoading(true);
     try {
-      // Convert spaces to plus for keywords param
-      const keywords = encodeURIComponent(chatInput.trim());
+      let url = `https://api.humorapi.com/memes/random?api-key=${API_KEY}`;
+      
+      // If there's input, add &keywords=
+      if (input.trim()) {
+        const keywords = encodeURIComponent(input.trim());
+        url += `&keywords=${keywords}`;
+      }
 
-      // Build the request URL for random meme
-      // E.g. https://api.humorapi.com/memes/random?api-key=xxx&keywords=hello+world
-      const url = `https://api.humorapi.com/memes/random?api-key=${API_KEY}&keywords=${keywords}`;
+      console.log("Chatbot GET URL:", url); // Debug
 
-      // GET request
-      const response = await fetch(url, {
-        method: "GET",
-      });
+      const response = await fetch(url, { method: "GET" });
       if (!response.ok) {
+        console.error("Chatbot fetch error response:", response);
         throw new Error(`API error: ${response.status}`);
       }
       const data = await response.json();
+      console.log("Chatbot response data:", data); // Debug
 
-      // data.url is the link to the meme, based on docs: { "id": 50561, "url": "...", "type": "image/png" }
+      // data.url is the link to the meme
       const memeUrl = data.url || "https://placekitten.com/300/300";
-
       const botMsg = { sender: "bot", content: memeUrl };
       setChatMessages((prev) => [...prev, botMsg]);
 
-      // Cache result
-      setChatCache((prev) => ({ ...prev, [chatInput]: memeUrl }));
+      // Cache result if user typed something
+      if (input.trim()) {
+        setChatCache((prev) => ({ ...prev, [input]: memeUrl }));
+      }
     } catch (error) {
       console.error("Chatbot error:", error);
       setChatError("Failed to fetch meme. Please try again.");
@@ -89,7 +101,6 @@ function MemeAssistantPage() {
       setChatMessages((prev) => [...prev, { sender: "bot", content: fallback }]);
     } finally {
       setChatLoading(false);
-      setChatInput("");
     }
   };
 
@@ -97,7 +108,10 @@ function MemeAssistantPage() {
   //         Meme Search
   // ----------------------------------
   const handleSearchMeme = async () => {
-    if (!searchQuery.trim()) return;
+    if (!searchQuery.trim()) {
+      console.log("Empty search query, doing nothing.");
+      return;
+    }
     setSearchError(null);
 
     // Check cache
@@ -110,35 +124,48 @@ function MemeAssistantPage() {
     setSearchLoading(true);
     try {
       const keywords = encodeURIComponent(searchQuery.trim());
-      // We'll fetch up to 4 memes
-      // E.g. https://api.humorapi.com/memes/search?api-key=xxx&keywords=rocket&number=4
-      const url = `https://api.humorapi.com/memes/search?api-key=${API_KEY}&keywords=${keywords}&number=4`;
+      let url = `https://api.humorapi.com/memes/search?api-key=${API_KEY}&number=4`;
 
-      const response = await fetch(url, {
-        method: "GET",
-      });
+      // If there's input, add &keywords
+      if (keywords) {
+        url += `&keywords=${keywords}`;
+      }
+
+      console.log("Search GET URL:", url); // Debug
+
+      const response = await fetch(url, { method: "GET" });
       if (!response.ok) {
+        console.error("Search fetch error response:", response);
         throw new Error(`API error: ${response.status}`);
       }
       const data = await response.json();
-      // data.memes is an array of { id, url, type }
-      const memes = data.memes || [
-        { url: "https://placekitten.com/300/300", title: "Fallback Meme" },
-      ];
+      console.log("Search response data:", data); // Debug
 
-      // Convert them to a shape { url, title } to display easily
-      const shapedResults = memes.map((m, idx) => ({
-        url: m.url,
-        title: `Meme #${m.id || idx + 1}`,
-      }));
-
-      setSearchResults(shapedResults);
-      setSearchCache((prev) => ({ ...prev, [searchQuery]: shapedResults }));
+      // data.memes => array of { id, url, type }
+      const memes = data.memes || [];
+      // If nothing returned, let's fallback to a friendly no-result
+      if (!memes.length) {
+        console.log("No memes found for query:", searchQuery);
+        setSearchResults([
+          { url: "https://placekitten.com/350/350", title: "No memes found." },
+        ]);
+      } else {
+        // Convert them to a shape { url, title }
+        const shapedResults = memes.map((m, idx) => ({
+          url: m.url || "https://placekitten.com/300/300",
+          title: `Meme #${m.id || idx + 1}`,
+        }));
+        setSearchResults(shapedResults);
+        setSearchCache((prev) => ({ ...prev, [searchQuery]: shapedResults }));
+      }
     } catch (error) {
       console.error("Search error:", error);
       setSearchError("Failed to search memes. Please try again.");
       setSearchResults([
-        { url: "https://placekitten.com/350/350", title: "Error retrieving meme" },
+        {
+          url: "https://placekitten.com/350/350",
+          title: "Error retrieving meme",
+        },
       ]);
     } finally {
       setSearchLoading(false);
@@ -182,7 +209,9 @@ function MemeAssistantPage() {
             {chatMessages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`flex mb-3 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
+                className={`flex mb-3 ${
+                  msg.sender === "user" ? "justify-end" : "justify-start"
+                }`}
               >
                 {msg.sender === "bot" ? (
                   <img
@@ -200,6 +229,7 @@ function MemeAssistantPage() {
 
             {chatLoading && (
               <div className="flex justify-center mt-4">
+                {/* You can replace with a fancy spinner */}
                 <div className="loader mr-2"></div>
                 <p className="text-gray-500">Fetching meme...</p>
               </div>
@@ -245,7 +275,7 @@ function MemeAssistantPage() {
             <input
               type="text"
               className="w-full border border-gray-300 rounded px-3 py-2"
-              placeholder="e.g. 'rocket', 'office cat', 'funny dog'..."
+              placeholder='e.g. "rocket", "office cat", "funny dog"...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
