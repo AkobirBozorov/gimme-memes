@@ -25,7 +25,8 @@ const LoginPage = ({ setIsAuthenticated }) => {
       if (res.ok) {
         localStorage.setItem("token", data.token);
         setIsAuthenticated(true);
-        navigate("/dashboard");
+        // If you removed the dashboard, redirect to home or /blog
+        navigate("/");
       } else {
         setError(data.error || "Error logging in");
       }
@@ -38,7 +39,6 @@ const LoginPage = ({ setIsAuthenticated }) => {
   return (
     <div className="max-w-md mx-auto p-4 mt-10">
       <Helmet>
-        {/* Google tag (gtag.js) */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];

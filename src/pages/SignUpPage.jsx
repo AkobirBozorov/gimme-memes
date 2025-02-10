@@ -1,4 +1,5 @@
 // gimme-memes-frontend/src/pages/SignUpPage.jsx
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseApiUrl } from "../utils/api";
@@ -6,7 +7,7 @@ import { Helmet } from "react-helmet-async";
 
 const SignUpPage = ({ setIsAuthenticated }) => {
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState(""); // now mandatory
+  // REMOVED username
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -19,7 +20,8 @@ const SignUpPage = ({ setIsAuthenticated }) => {
       const res = await fetch(`${baseApiUrl}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username }),
+        // Removed "username" from the body
+        body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
 
@@ -27,7 +29,8 @@ const SignUpPage = ({ setIsAuthenticated }) => {
         if (data.token) {
           localStorage.setItem("token", data.token);
           setIsAuthenticated(true);
-          navigate("/create");
+          // Just navigate to homepage or blog, instead of /create
+          navigate("/");
         } else {
           alert("User registered, please log in.");
           navigate("/login");
@@ -65,16 +68,9 @@ const SignUpPage = ({ setIsAuthenticated }) => {
             required
           />
         </div>
-        <div>
-          <label className="block text-gray-700 mb-1">Username</label>
-          <input
-            type="text"
-            className="w-full border p-2"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-          />
-        </div>
+
+        {/* REMOVED Username field */}
+
         <div>
           <label className="block text-gray-700 mb-1">Password</label>
           <input

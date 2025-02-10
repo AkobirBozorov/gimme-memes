@@ -4,7 +4,6 @@ import { Link, NavLink } from "react-router-dom";
 const Navbar = ({ isAuthenticated }) => {
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // Return classes based on active state using our brand color
   const navLinkClasses = ({ isActive }) =>
     isActive
       ? "text-[#528265] font-medium"
@@ -23,9 +22,6 @@ const Navbar = ({ isAuthenticated }) => {
           <NavLink to="/" className={navLinkClasses}>
             Home
           </NavLink>
-          <NavLink to="/community" className={navLinkClasses}>
-            Community
-          </NavLink>
           <NavLink to="/blog" className={navLinkClasses}>
             Blog
           </NavLink>
@@ -42,22 +38,7 @@ const Navbar = ({ isAuthenticated }) => {
               </Link>
             </>
           )}
-          {isAuthenticated && (
-            <NavLink to="/dashboard" className={navLinkClasses}>
-              Dashboard
-            </NavLink>
-          )}
-        </div>
-
-        {/* Create Meme Button (Right-Aligned) */}
-        <div className="hidden md:block">
-          <Link
-            to="/create"
-            className="bg-[#528265] text-white px-5 py-2 rounded-lg hover:bg-[#47795f] transition"
-          >
-            Create Meme
-          </Link>
-        </div>
+        </div>      
 
         {/* Hamburger Menu for Mobile */}
         <button
@@ -93,9 +74,6 @@ const Navbar = ({ isAuthenticated }) => {
           <NavLink to="/" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             Home
           </NavLink>
-          <NavLink to="/community" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
-            Community
-          </NavLink>
           <NavLink to="/blog" onClick={() => setMenuOpen(false)} className={navLinkClasses}>
             Blog
           </NavLink>
@@ -103,7 +81,7 @@ const Navbar = ({ isAuthenticated }) => {
             Contact
           </NavLink>
 
-          {!isAuthenticated ? (
+          {!isAuthenticated && (
             <>
               <Link
                 to="/signup"
@@ -120,23 +98,7 @@ const Navbar = ({ isAuthenticated }) => {
                 Login
               </Link>
             </>
-          ) : (
-            <NavLink
-              to="/dashboard"
-              onClick={() => setMenuOpen(false)}
-              className={navLinkClasses}
-            >
-              Dashboard
-            </NavLink>
           )}
-
-          <Link
-            to="/create"
-            onClick={() => setMenuOpen(false)}
-            className="bg-[#528265] text-white px-5 py-2 rounded-lg hover:bg-[#47795f] transition text-center"
-          >
-            Create Meme
-          </Link>
         </div>
       </div>
     </nav>

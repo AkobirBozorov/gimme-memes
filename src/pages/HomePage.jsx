@@ -1,9 +1,11 @@
 // gimme-memes-frontend/src/pages/HomePage.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 
 const HomePage = () => {
+  const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
+
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
@@ -16,103 +18,124 @@ const HomePage = () => {
           gtag('config', 'G-CR21WBQXGL');
         `}</script>
 
-      <script type="application/ld+json">{`
-        {
-          "@context": "https://schema.org",
-          "@type": "WebSite",
-          "name": "GimmeMemes",
-          "url": "https://www.gimmememes.com",
-          "description": "GimmeMemes is a powerful online tool for creating and sharing memes instantly.",
-          "sameAs": [
-            "https://www.facebook.com/GimmeMemes",
-            "https://twitter.com/GimmeMemes",
-            "https://www.linkedin.com/company/gimmememes"
-          ],
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": "https://www.gimmememes.com/search?q={search_term_string}",
-            "query-input": "required name=search_term_string"
+        <script type="application/ld+json">{`
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "GimmeMemes",
+            "url": "https://www.gimmememes.com",
+            "description": "GimmeMemes is your meme assistant to chat with and search for the perfect viral meme.",
+            "sameAs": [
+              "https://www.facebook.com/GimmeMemes",
+              "https://twitter.com/GimmeMemes",
+              "https://www.linkedin.com/company/gimmememes"
+            ],
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://www.gimmememes.com/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
           }
-        }
         `}</script>
 
         <title>
-          GimmeMemes - Create & Share Memes Instantly | Your Ultimate Meme Creation Platform for Viral Humor
+          GimmeMemes - Meme Chatbot & Search Assistant | Your Ultimate Meme Assistant
         </title>
         <meta 
           name="description" 
-          content="GimmeMemes is your ultimate platform to create and share hilarious memes instantly. With a user-friendly interface, powerful editing tools, and a vibrant community, you can craft memes in minutes and share them across social media. Join us and unleash your creativity today!" 
+          content="Interact with our Meme Chatbot to receive memes that match your mood or use our Meme Search Assistant to find exactly the meme you need. Try it now!" 
         />
         <link rel="canonical" href="https://www.gimmememes.com/" />
 
-        <meta property="og:title" content="GimmeMemes - Create & Share Memes Instantly" />
-        <meta property="og:description" content="Easily create and share hilarious memes with our powerful meme editor. Try it now!" />
+        <meta property="og:title" content="GimmeMemes - Meme Chatbot & Search Assistant" />
+        <meta property="og:description" content="Chat with our Meme Bot or search for the perfect viral meme using our advanced meme assistant tool." />
         <meta property="og:image" content="https://www.gimmememes.com/logo.png" />
         <meta property="og:url" content="https://www.gimmememes.com/" />
         <meta property="og:type" content="website" />
   
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="GimmeMemes - Create & Share Memes Instantly" />
-        <meta name="twitter:description" content="Easily create and share hilarious memes with our powerful meme editor. Try it now!" />
+        <meta name="twitter:title" content="GimmeMemes - Meme Chatbot & Search Assistant" />
+        <meta name="twitter:description" content="Interact with our Meme Bot for mood-based memes or use our search assistant to find the exact meme you're looking for." />
         <meta name="twitter:image" content="https://www.gimmememes.com/logo.png" />
       </Helmet>
       
-      {/* Hero Section using only brand color */}
+      {/* Hero Section with Brand Color */}
       <section
         className="relative bg-[#528265] text-white overflow-hidden"
         aria-label="Hero Section"
       >
         <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-32 text-center">
           <h1 className="text-5xl md:text-7xl font-extrabold mb-6 drop-shadow-lg">
-          Create & Share Viral Memes Instantly - GimmeMemes
+            Your Ultimate Meme Assistant
           </h1>
           <p className="text-xl md:text-2xl mb-10 max-w-2xl mx-auto leading-relaxed drop-shadow-md">
-            Easily create hilarious memes with just a few clicks! Upload images or short videos, add captions, and share your creations with the world.
+            Chat with our Meme Bot to get mood-matching memes or search for the perfect viral meme using our assistant. All powered by the Humor API.
           </p>
-          <Link
-            to="/create"
-            className="inline-block bg-white text-[#528265] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
-          >
-            Create a Meme
-          </Link>
+          <div className="flex justify-center space-x-4">
+            <button 
+              onClick={() => setMode("chatbot")}
+              className={`px-6 py-3 rounded-full font-bold transition duration-300 ${mode === "chatbot" ? "bg-white text-[#528265]" : "bg-transparent text-white border border-white"}`}
+            >
+              Meme Chatbot
+            </button>
+            <button 
+              onClick={() => setMode("search")}
+              className={`px-6 py-3 rounded-full font-bold transition duration-300 ${mode === "search" ? "bg-white text-[#528265]" : "bg-transparent text-white border border-white"}`}
+            >
+              Meme Search
+            </button>
+          </div>
+          <div className="mt-8">
+            {mode === "chatbot" ? (
+              <p className="text-lg md:text-xl">
+                Type your message and let our Meme Bot reply with a perfectly matched meme.
+              </p>
+            ) : (
+              <p className="text-lg md:text-xl">
+                Describe the meme you're looking for and our assistant will find the closest match for you.
+              </p>
+            )}
+          </div>
         </div>
       </section>
 
+      {/* Why Choose Section */}
       <section className="py-20 bg-gray-50" aria-label="Why Choose GimmeMemes">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-4xl md:text-5xl font-bold text-[#528265] mb-6">
             Why Choose GimmeMemes?
           </h2>
           <p className="text-lg md:text-xl text-gray-600 leading-relaxed">
-            GimmeMemes empowers everyone—from influencers to casual users—to craft hilarious memes effortlessly. With an intuitive UI and powerful tools, you can create viral-worthy content in minutes.
+            With our combined Meme Chatbot and Meme Search Assistant, finding the right meme has never been easier. Whether you're in the mood for a laugh or looking for the perfect reaction, we've got you covered.
           </p>
         </div>
       </section>
 
+      {/* Key Features Section */}
       <section className="py-20" aria-label="Key Features">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12">Key Features</h2>
           <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                title: "Easy Uploads",
-                desc: "Upload images or short video clips with support for popular formats.",
-                icon: "📤",
+                title: "Meme Chatbot",
+                desc: "Chat naturally and receive memes that reflect your mood and context.",
+                icon: "💬",
               },
               {
-                title: "Visual Editing",
-                desc: "Drag, resize, and style text overlays easily for a smooth workflow.",
-                icon: "🎨",
+                title: "Meme Search",
+                desc: "Describe a meme and find the closest match from our Humor API.",
+                icon: "🔍",
               },
               {
-                title: "Custom Styles",
-                desc: "Choose colors, fonts, and backgrounds to make your meme unique.",
-                icon: "🖌️",
+                title: "Instant Results",
+                desc: "Get memes instantly with our fast, API‑powered responses.",
+                icon: "⚡",
               },
               {
-                title: "Download & Share",
-                desc: "Save your meme in high quality or share it instantly online.",
-                icon: "📲",
+                title: "User Friendly",
+                desc: "An intuitive interface that makes meme searching a breeze.",
+                icon: "👍",
               },
             ].map((feature, index) => (
               <div
@@ -128,28 +151,33 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* How It Works Section */}
       <section className="py-20 bg-gray-50" aria-label="How It Works">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-4xl font-bold text-center mb-12">How It Works</h2>
           <div className="grid gap-10 md:grid-cols-2">
-            {[
-              {
-                step: "1. Upload Your Media",
-                desc: "Click 'Create a Meme' and upload an image or short video clip.",
-              },
-              {
-                step: "2. Add & Customize Text",
-                desc: "Resize text boxes, choose fonts, and adjust colors with ease.",
-              },
-              {
-                step: "3. Fine-Tune & Preview",
-                desc: "Adjust everything to perfection before exporting your meme.",
-              },
-              {
-                step: "4. Download & Share",
-                desc: "Save your meme in high resolution or share it instantly.",
-              },
-            ].map((item, index) => (
+            {mode === "chatbot"
+              ? [
+                  {
+                    step: "1. Send a Message",
+                    desc: "Type a message describing your mood or a reaction.",
+                  },
+                  {
+                    step: "2. Get a Meme",
+                    desc: "Our Meme Chatbot analyzes your message and fetches a matching meme.",
+                  },
+                ]
+              : [
+                  {
+                    step: "1. Describe the Meme",
+                    desc: "Enter a description of the meme you're searching for.",
+                  },
+                  {
+                    step: "2. Receive the Best Match",
+                    desc: "Our assistant queries the Humor API and returns the closest matching meme.",
+                  },
+                ]
+            .map((item, index) => (
               <div
                 key={index}
                 className="p-8 bg-white rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300"
@@ -162,17 +190,18 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* User Benefits Section */}
       <section className="py-20" aria-label="User Benefits">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-10">Why Users Love GimmeMemes</h2>
           <ul className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {[
-              "Quick and easy meme creation in minutes.",
-              "No design skills needed—perfect for beginners.",
-              "Works on any device, including mobile.",
-              "Supports both image and video memes.",
-              "Completely free—no hidden fees or subscriptions.",
-              "Download memes in high-quality formats.",
+              "Instant meme responses that match your mood.",
+              "Effortless search for the perfect reaction meme.",
+              "An interactive and fun chat experience.",
+              "Works seamlessly on any device.",
+              "Completely free with no hidden costs.",
+              "Powered by the best Humor API for quality memes.",
             ].map((benefit, index) => (
               <li
                 key={index}
@@ -186,6 +215,7 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Imagerize Section (Unchanged) */}
       <section className="py-20 bg-gray-50" aria-label="Our Other Website">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Explore Our Other Website</h2>
@@ -214,11 +244,12 @@ const HomePage = () => {
         </div>
       </section>
 
+      {/* Share Section */}
       <section className="py-20 bg-gray-50" aria-label="Share This Page">
         <div className="max-w-6xl mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Share GimmeMemes</h2>
           <p className="text-lg text-gray-700 mb-8">
-            Spread the laughter by sharing GimmeMemes on your favorite social media platforms.
+            Spread the word about our Meme Assistant by sharing GimmeMemes on your favorite social media platforms.
           </p>
           <div className="flex justify-center gap-6">
             <a 
@@ -252,21 +283,6 @@ const HomePage = () => {
               </svg>
             </a>
           </div>
-        </div>
-      </section>
-
-      <section className="py-20 bg-[#528265] text-white" aria-label="Call to Action">
-        <div className="max-w-6xl mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-4">Start Creating Memes Now</h2>
-          <p className="text-lg text-gray-200 max-w-2xl mx-auto mb-8">
-            Express your creativity and humor with GimmeMemes. Get started in seconds and create memes that make the internet laugh!
-          </p>
-          <Link
-            to="/create"
-            className="inline-block bg-white text-[#528265] px-10 py-3 rounded-full shadow-lg transform hover:scale-105 transition duration-300 ease-in-out"
-          >
-            Get Started
-          </Link>
         </div>
       </section>
     </div>
