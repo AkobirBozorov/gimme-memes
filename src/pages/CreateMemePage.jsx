@@ -98,15 +98,30 @@ function CreateMemePage() {
 
   useEffect(() => {
     function handleClickOutside(e) {
-      if (textColorRef.current && !textColorRef.current.contains(e.target)) {
+      if (
+        textColorRef.current &&
+        !textColorRef.current.contains(e.target) &&
+        !e.target.closest(".color-picker-dropdown")
+      ) {
         setShowTextColorPicker(false);
       }
-      if (surfaceColorRef.current && !surfaceColorRef.current.contains(e.target)) {
+  
+      if (
+        surfaceColorRef.current &&
+        !surfaceColorRef.current.contains(e.target) &&
+        !e.target.closest(".color-picker-dropdown")
+      ) {
         setShowSurfaceColorPicker(false);
       }
     }
+  
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside); // ✅ Fix for mobile
+  
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   useEffect(() => {
@@ -323,7 +338,7 @@ function CreateMemePage() {
       )
     );
   }
-  
+
   function handleSetFontFamily(fam) {
     if (!selectedOverlayId) return;
     commitOverlays(
