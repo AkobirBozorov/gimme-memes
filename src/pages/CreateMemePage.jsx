@@ -762,7 +762,8 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
-  const selectedOverlay = displayOverlays.find((ov) => ov.id === selectedOverlayId) || {};
+  const textColorRef = useRef(null);
+  const surfaceColorRef = useRef(null);
 
   const currentFontSize = selectedOverlay?.fontSize
     ? Math.round(selectedOverlay.fontSize)
