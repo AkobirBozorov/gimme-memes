@@ -308,7 +308,6 @@ function CreateMemePage() {
   }
   function handleSetTextColor(color) {
     if (!selectedOverlayId) return;
-    
     commitOverlays(
       displayOverlays.map((ov) =>
         ov.id === selectedOverlayId ? { ...ov, textColor: color } : ov
@@ -318,13 +317,13 @@ function CreateMemePage() {
   
   function handleSetBgColor(color) {
     if (!selectedOverlayId) return;
-    
     commitOverlays(
       displayOverlays.map((ov) =>
         ov.id === selectedOverlayId ? { ...ov, bgColor: color } : ov
       )
     );
-  }  
+  }
+  
   function handleSetFontFamily(fam) {
     if (!selectedOverlayId) return;
     commitOverlays(
@@ -774,7 +773,7 @@ function SecondaryTextToolbar({
   return (
     <div className="flex flex-col bg-gray-100 rounded-lg p-4 shadow space-y-4 border border-gray-300">
       <div className="flex flex-wrap justify-between items-center gap-4">
-
+        
         {/* Font Family Selection */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Style</label>
@@ -791,37 +790,21 @@ function SecondaryTextToolbar({
           </select>
         </div>
 
-        {/* Font Size Control (Dropdown with +/- Buttons) */}
+        {/* Font Size Control */}
         <div className="flex flex-col items-center">
           <label className="text-sm font-medium text-gray-700">Font Size</label>
           <div className="flex items-center space-x-2">
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                const newSize = Math.max(8, currentFontSize - 1);
-                onSetFontSize(newSize);
-              }}
-            >
+            <button className="px-2 py-1 border rounded" onClick={() => onSetFontSize(Math.max(8, currentFontSize - 1))}>
               -
             </button>
-            <select
-              className="p-2 border border-gray-300 rounded-lg"
-              value={currentFontSize}
-              onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}
-            >
+            <select className="p-2 border border-gray-300 rounded-lg" value={currentFontSize} onChange={(e) => onSetFontSize(parseInt(e.target.value, 10))}>
               {fontSizesWithCurrent.map((size) => (
                 <option key={size} value={size}>
                   {size}
                 </option>
               ))}
             </select>
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => {
-                const newSize = currentFontSize + 1;
-                onSetFontSize(newSize);
-              }}
-            >
+            <button className="px-2 py-1 border rounded" onClick={() => onSetFontSize(currentFontSize + 1)}>
               +
             </button>
           </div>
@@ -829,59 +812,59 @@ function SecondaryTextToolbar({
 
         {/* Text Color Picker */}
         <div className="relative flex flex-col items-center" ref={textColorRef}>
-  <label className="text-sm font-medium">Text Color</label>
-  <button
-    className="w-8 h-8 rounded-full border border-gray-400"
-    style={{ backgroundColor: selectedOverlay.textColor || "#000000" }}
-    onClick={() => {
-      setShowTextColorPicker(!showTextColorPicker);
-      setShowSurfaceColorPicker(false);
-    }}
-  />
-  {showTextColorPicker && (
-    <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
-      {TEXT_COLORS.map((c) => (
-        <button
-          key={c}
-          onClick={() => {
-            handleSetTextColor(c);
-            setShowTextColorPicker(false);
-          }}
-          style={{ backgroundColor: c }}
-          className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
-        />
-      ))}
-    </div>
-  )}
-</div>
+          <label className="text-sm font-medium">Text Color</label>
+          <button
+            className="w-8 h-8 rounded-full border border-gray-400"
+            style={{ backgroundColor: selectedOverlay.textColor || "#000000" }}
+            onClick={() => {
+              setShowTextColorPicker(!showTextColorPicker);
+              setShowSurfaceColorPicker(false);
+            }}
+          />
+          {showTextColorPicker && (
+            <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    onSetTextColor(c);
+                    setShowTextColorPicker(false);
+                  }}
+                  style={{ backgroundColor: c }}
+                  className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Background Color Picker */}
         <div className="relative flex flex-col items-center" ref={surfaceColorRef}>
-  <label className="text-sm font-medium">Background</label>
-  <button
-    className="w-8 h-8 rounded-full border border-gray-400"
-    style={{ backgroundColor: selectedOverlay.bgColor || "transparent" }}
-    onClick={() => {
-      setShowSurfaceColorPicker(!showSurfaceColorPicker);
-      setShowTextColorPicker(false);
-    }}
-  />
-  {showSurfaceColorPicker && (
-    <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
-      {BG_COLORS.map((bg) => (
-        <button
-          key={bg.value}
-          onClick={() => {
-            handleSetBgColor(bg.value);
-            setShowSurfaceColorPicker(false);
-          }}
-          style={{ backgroundColor: bg.value || "transparent" }}
-          className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
-        />
-      ))}
-    </div>
-  )}
-</div>
+          <label className="text-sm font-medium">Background</label>
+          <button
+            className="w-8 h-8 rounded-full border border-gray-400"
+            style={{ backgroundColor: selectedOverlay.bgColor || "transparent" }}
+            onClick={() => {
+              setShowSurfaceColorPicker(!showSurfaceColorPicker);
+              setShowTextColorPicker(false);
+            }}
+          />
+          {showSurfaceColorPicker && (
+            <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+              {BG_COLORS.map((bg) => (
+                <button
+                  key={bg.value}
+                  onClick={() => {
+                    onSetBgColor(bg.value);
+                    setShowSurfaceColorPicker(false);
+                  }}
+                  style={{ backgroundColor: bg.value || "transparent" }}
+                  className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Delete Button */}
         <div className="flex flex-col items-center">
