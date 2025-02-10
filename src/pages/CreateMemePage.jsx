@@ -23,7 +23,6 @@ import { baseApiUrl } from "../utils/api";
 
 const LOCAL_KEY = "ephemeralMemeData";
 
-// Predefined colors and font options
 const TEXT_COLORS = [
   "#000000",
   "#FFFFFF",
@@ -61,7 +60,6 @@ const FONT_FAMILIES = [
   { label: "Trebuchet MS", value: "'Trebuchet MS', Helvetica, sans-serif" },
 ];
 
-// Preset font sizes (numeric only)
 const FONT_SIZES = [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72];
 
 function CreateMemePage() {
@@ -70,56 +68,47 @@ function CreateMemePage() {
   const token = localStorage.getItem("token");
   const isLoggedIn = !!token;
 
-  // Meme states
   const [memeId, setMemeId] = useState(null);
   const [filePath, setFilePath] = useState("");
   const [tempImageDataUrl, setTempImageDataUrl] = useState(null);
 
-  // Dimensions
   const [realWidth, setRealWidth] = useState(400);
   const [realHeight, setRealHeight] = useState(400);
 
-  // Overlays
   const [realOverlays, setRealOverlays] = useState([]);
   const [displayOverlays, setDisplayOverlays] = useState([]);
   const [selectedOverlayId, setSelectedOverlayId] = useState(null);
 
-  // Undo/Redo
   const [pastStates, setPastStates] = useState([]);
   const [futureStates, setFutureStates] = useState([]);
 
-  // Preview dimensions
   const [displayWidth, setDisplayWidth] = useState(PREVIEW_MAX_WIDTH);
   const [displayHeight, setDisplayHeight] = useState(PREVIEW_MAX_HEIGHT);
 
-  // Toolbar references
-  const [openDropdown, setOpenDropdown] = useState(null);
   const toolbarContainerRef = useRef(null);
 
-  // Secondary toolbar control
   const [showSecondaryToolbar, setShowSecondaryToolbar] = useState(false);
 
-  // Derived state: whether an image is available
   const hasImage = !!filePath || !!tempImageDataUrl;
 
   const [loadingDownload, setLoadingDownload] = useState(false);
 
-  // Close dropdowns when clicking outside the toolbar container
+  const textColorRef = useRef(null);
+  const surfaceColorRef = useRef(null);
+
   useEffect(() => {
     function handleClickOutside(e) {
-      if (
-        toolbarContainerRef.current &&
-        !toolbarContainerRef.current.contains(e.target)
-      ) {
-        setOpenDropdown(null);
+      if (textColorRef.current && !textColorRef.current.contains(e.target)) {
+        setShowTextColorPicker(false);
+      }
+      if (surfaceColorRef.current && !surfaceColorRef.current.contains(e.target)) {
+        setShowSurfaceColorPicker(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // On mount: load existing meme or ephemeral data
   useEffect(() => {
     if (id) {
       loadExistingMeme(id);
@@ -152,14 +141,12 @@ function CreateMemePage() {
     };
   }, [id]);
 
-  // Ensure secondary toolbar is shown if an overlay is selected
   useEffect(() => {
     if (selectedOverlayId) {
       setShowSecondaryToolbar(true);
     }
   }, [selectedOverlayId]);
 
-  // Helper: store ephemeral data for new memes
   function storeEphemeralData(
     overlays = realOverlays,
     w = realWidth,
@@ -221,7 +208,6 @@ function CreateMemePage() {
     e.target.value = "";
     if (!file) return;
 
-    // Reset states for a new meme
     setMemeId(null);
     setFilePath("");
     setTempImageDataUrl(null);
@@ -365,7 +351,6 @@ function CreateMemePage() {
     const timeSinceLastTap = now - lastTapRef.current;
   
     if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
-      // Double-tap detected
       setSelectedOverlayId(overlayId);
       setDisplayOverlays((prev) =>
         prev.map((ov) =>
@@ -658,7 +643,7 @@ function CreateMemePage() {
                 userSelect: "none",
                 outline: ov.id === selectedOverlayId ? "2px solid #6366F1" : "none",
               }}
-              onTouchStart={() => handleDoubleTap(ov.id)} // Detect double-tap on mobile
+              onTouchStart={() => handleDoubleTap(ov.id)}
               onClick={() => handleDoubleTap(ov.id)}
             >
               {ov.isEditing ? (
@@ -668,7 +653,7 @@ function CreateMemePage() {
                 value={ov.text}
                 onChange={(e) => handleTextChange(ov.id, e.target.value)}
                 onBlur={() => handleFinishEditing(ov.id)}
-                onFocus={(e) => e.target.select()} // Ensures full text selection
+                onFocus={(e) => e.target.select()}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleFinishEditing(ov.id);
                 }}
@@ -778,12 +763,10 @@ function SecondaryTextToolbar({
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
 
-  // Ensure font size is always a valid number
   const currentFontSize = selectedOverlay?.fontSize
     ? Math.round(selectedOverlay.fontSize)
     : 20;
 
-  // Include current font size dynamically if it's not in the predefined list
   const fontSizesWithCurrent = [...new Set([...FONT_SIZES, currentFontSize])].sort((a, b) => a - b);
 
   return (
@@ -843,66 +826,62 @@ function SecondaryTextToolbar({
         </div>
 
         {/* Text Color Picker */}
-        <div className="flex flex-col items-center relative">
-          <label className="text-sm font-medium text-gray-700">Text Color</label>
-          <button
-            className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
-            style={{ backgroundColor: selectedOverlay?.textColor || "#000000" }}
-            onClick={() => {
-              setShowTextColorPicker(!showTextColorPicker);
-              setShowSurfaceColorPicker(false);
-            }}
-          />
-          {showTextColorPicker && (
-            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl z-50 w-48">
-              <div className="flex gap-3 flex-wrap justify-center">
-                {TEXT_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => {
-                      onSetTextColor(c);
-                      setShowTextColorPicker(false);
-                    }}
-                    style={{ backgroundColor: c }}
-                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <div className="relative flex flex-col items-center" ref={textColorRef}>
+  <label className="text-sm font-medium">Text Color</label>
+  <button
+    className="w-8 h-8 rounded-full border border-gray-400"
+    style={{ backgroundColor: displayOverlays.find((ov) => ov.id === selectedOverlayId)?.textColor }}
+    onClick={() => {
+      setShowTextColorPicker(!showTextColorPicker);
+      setShowSurfaceColorPicker(false);
+    }}
+  />
+  {showTextColorPicker && (
+    <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+      {TEXT_COLORS.map((c) => (
+        <button
+          key={c}
+          onClick={() => {
+            handleSetTextColor(c);
+            setShowTextColorPicker(false);
+          }}
+          style={{ backgroundColor: c }}
+          className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+        />
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Background Color Picker */}
-        <div className="flex flex-col items-center relative">
-          <label className="text-sm font-medium text-gray-700">Background</label>
-          <button
-            className="w-9 h-9 rounded-full border-2 border-gray-400 shadow-md hover:shadow-lg transition"
-            style={{ backgroundColor: selectedOverlay?.bgColor || "transparent" }}
-            onClick={() => {
-              setShowSurfaceColorPicker(!showSurfaceColorPicker);
-              setShowTextColorPicker(false);
-            }}
-          >
-            {!selectedOverlay?.bgColor && <span className="text-xs text-gray-600">None</span>}
-          </button>
-          {showSurfaceColorPicker && (
-            <div className="absolute mt-2 p-3 bg-white border rounded-lg shadow-xl z-50 w-48">
-              <div className="flex gap-3 flex-wrap justify-center">
-                {BG_COLORS.map((bg) => (
-                  <button
-                    key={bg.value}
-                    onClick={() => {
-                      onSetBgColor(bg.value);
-                      setShowSurfaceColorPicker(false);
-                    }}
-                    style={{ backgroundColor: bg.value || "transparent" }}
-                    className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <div className="relative flex flex-col items-center" ref={surfaceColorRef}>
+  <label className="text-sm font-medium">Background</label>
+  <button
+    className="w-8 h-8 rounded-full border border-gray-400"
+    style={{
+      backgroundColor: displayOverlays.find((ov) => ov.id === selectedOverlayId)?.bgColor || "transparent",
+    }}
+    onClick={() => {
+      setShowSurfaceColorPicker(!showSurfaceColorPicker);
+      setShowTextColorPicker(false);
+    }}
+  />
+  {showSurfaceColorPicker && (
+    <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 p-3 bg-white border rounded-lg shadow-lg z-50 w-40 grid grid-cols-3 gap-2">
+      {BG_COLORS.map((bg) => (
+        <button
+          key={bg.value}
+          onClick={() => {
+            handleSetBgColor(bg.value);
+            setShowSurfaceColorPicker(false);
+          }}
+          style={{ backgroundColor: bg.value || "transparent" }}
+          className="w-8 h-8 rounded-full border border-gray-300 hover:scale-110 transition"
+        />
+      ))}
+    </div>
+  )}
+</div>
 
         {/* Delete Button */}
         <div className="flex flex-col items-center">
