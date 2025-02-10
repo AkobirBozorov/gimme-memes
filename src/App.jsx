@@ -16,6 +16,7 @@ import ContactPage from "./pages/ContactPage";
 import SignUpPage from "./pages/SignUpPage";
 import LoginPage from "./pages/LoginPage";
 import NotFoundPage from "./pages/NotFoundPage";
+import MemeAssistantPage from "./pages/MemeAssistantPage";
 
 // Blog pages
 import BlogListPage from "./pages/BlogListPage";
@@ -43,6 +44,7 @@ function App() {
             <Route path="/about" element={<AboutPage />} />
             <Route path="/faq" element={<FaqPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/assistant" element={<MemeAssistantPage />} />
             {/* Blog pages */}
             <Route path="/blog" element={<BlogListPage />} />
             <Route path="/blog/:slug" element={<BlogPostPage />} />
