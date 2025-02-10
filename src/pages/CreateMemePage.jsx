@@ -762,6 +762,7 @@ function SecondaryTextToolbar({
 }) {
   const [showTextColorPicker, setShowTextColorPicker] = useState(false);
   const [showSurfaceColorPicker, setShowSurfaceColorPicker] = useState(false);
+  const selectedOverlay = displayOverlays.find((ov) => ov.id === selectedOverlayId) || {};
 
   const currentFontSize = selectedOverlay?.fontSize
     ? Math.round(selectedOverlay.fontSize)
@@ -830,7 +831,7 @@ function SecondaryTextToolbar({
   <label className="text-sm font-medium">Text Color</label>
   <button
     className="w-8 h-8 rounded-full border border-gray-400"
-    style={{ backgroundColor: displayOverlays.find((ov) => ov.id === selectedOverlayId)?.textColor }}
+    style={{ backgroundColor: selectedOverlay.textColor || "#000000" }}
     onClick={() => {
       setShowTextColorPicker(!showTextColorPicker);
       setShowSurfaceColorPicker(false);
@@ -858,9 +859,7 @@ function SecondaryTextToolbar({
   <label className="text-sm font-medium">Background</label>
   <button
     className="w-8 h-8 rounded-full border border-gray-400"
-    style={{
-      backgroundColor: displayOverlays.find((ov) => ov.id === selectedOverlayId)?.bgColor || "transparent",
-    }}
+    style={{ backgroundColor: selectedOverlay.bgColor || "transparent" }}
     onClick={() => {
       setShowSurfaceColorPicker(!showSurfaceColorPicker);
       setShowTextColorPicker(false);
