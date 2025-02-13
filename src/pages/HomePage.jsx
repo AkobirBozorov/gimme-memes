@@ -187,15 +187,20 @@ async function fetchRedditMeme(query) {
   return bestMeme || await fetchFromHot();
 }
 
-  function extractImage(post) {
-    const pd = post.data;
-    let url = pd.url_overridden_by_dest || "";
-    if (!/\.(jpg|jpeg|png|gif)/i.test(url)) {
+function extractImage(post) {
+  const pd = post.data;
+  let url = pd.url_overridden_by_dest || "";
+
+  // ✅ Only allow static image formats (JPG, JPEG, PNG)
+  if (!/\.(jpg|jpeg|png)$/i.test(url)) {
       url = pd.preview?.images?.[0]?.source?.url || "";
-    }
-    if (!/\.(jpg|jpeg|png|gif)/i.test(url)) return null;
-    return url.replace(/&amp;/g, "&");
   }
+
+  // ✅ Filter again to ensure no GIFs/videos
+  if (!/\.(jpg|jpeg|png)$/i.test(url)) return null;
+
+  return url.replace(/&amp;/g, "&");
+}
 
   function computeScore(post, query) {
     const pd = post.data;
