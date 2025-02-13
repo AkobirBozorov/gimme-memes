@@ -1,26 +1,28 @@
 import React, { useState } from "react";
 
-// Put your keys in .env files
-const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "YOUR_OPENAI_KEY";
-const HUMOR_API_KEY = import.meta.env.VITE_HUMOR_API_KEY || "YOUR_HUMOR_KEY";
+/** 
+ * We still rely on an OpenAI key, stored in .env:
+ *   VITE_OPENAI_API_KEY=sk-xxxxx
+ */
+const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
 /**
- * MemeAssistantPage
- * 
- *   - We use OpenAI to generate 3-5 short keywords from the user input
- *   - Then we call the Humor API with those keywords
- *   - If that fails, we fallback to random/no-keywords
+ * MemeAssistantPage (OpenAI + Reddit "r/memes" search)
+ *
+ *  1) For Chatbot mode, we take user text -> callOpenAIForKeywords -> fetchRedditRandomMeme(keywords).
+ *  2) For Search mode, we do the same but show multiple results from fetchRedditSearch(keywords).
+ *  3) If we can’t find relevant memes, we fallback to random top posts from r/memes.
  */
-function MemeAssistantPage() {
+export default function MemeAssistantPage() {
   const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
 
-  // Chatbot states
+  // Chatbot
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
 
-  // Search states
+  // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -30,11 +32,12 @@ function MemeAssistantPage() {
   const [chatCache, setChatCache] = useState({});
   const [searchCache, setSearchCache] = useState({});
 
-  //------------------------------------------------
-  // 1) Call OpenAI to interpret user text
-  //------------------------------------------------
+  //----------------------------------------------------------------
+  // 1) Use OpenAI to interpret user text => short comma-sep keywords
+  //----------------------------------------------------------------
   async function callOpenAIForKeywords(userText) {
     if (!userText.trim()) return "";
+
     const systemMessage = {
       role: "system",
       content: `
@@ -45,22 +48,20 @@ function MemeAssistantPage() {
       `,
     };
     const userMessage = { role: "user", content: userText };
-    const apiUrl = "https://api.openai.com/v1/chat/completions";
-    const payload = {
-      model: "gpt-3.5-turbo",
-      messages: [systemMessage, userMessage],
-      max_tokens: 50,
-      temperature: 0.7,
-    };
 
     try {
-      const resp = await fetch(apiUrl, {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [systemMessage, userMessage],
+          max_tokens: 50,
+          temperature: 0.7,
+        }),
       });
       if (!resp.ok) {
         console.error("OpenAI error response:", resp);
@@ -70,14 +71,12 @@ function MemeAssistantPage() {
       const aiOutput = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("OpenAI output:", aiOutput);
 
-      // Clean punctuation, etc.
-      let keywords = aiOutput.replace(/[^\w,\s]/g, ""); 
-      // Split on comma, filter empty
+      // Clean punctuation
+      let keywords = aiOutput.replace(/[^\w,\s]/g, "");
       const splitted = keywords
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
-      // Limit to 5
       const limited = splitted.slice(0, 5).join(",");
       return limited;
     } catch (err) {
@@ -86,26 +85,26 @@ function MemeAssistantPage() {
     }
   }
 
-  //------------------------------------------------
-  // 2) Chatbot
-  //------------------------------------------------
+  //----------------------------------------------------------------
+  // 2) Chatbot Mode: get user text -> call AI -> fetch random meme
+  //----------------------------------------------------------------
   async function handleSendChatMessage() {
     if (!chatInput.trim()) {
-      // If user typed nothing, just fetch a random meme
+      // If user typed nothing, just fetch random top
       const userMsg = { sender: "user", content: "(Random Meme)" };
       setChatMessages((prev) => [...prev, userMsg]);
-      await fetchRandomMeme("");
+      await fetchRedditRandomMeme("");
       setChatInput("");
       return;
     }
 
     setChatError(null);
+    // Put user message in UI
     const userMsg = { sender: "user", content: chatInput };
     setChatMessages((prev) => [...prev, userMsg]);
 
     // Check cache
     if (chatCache[chatInput]) {
-      // Reuse
       const botCached = { sender: "bot", content: chatCache[chatInput] };
       setChatMessages((prev) => [...prev, botCached]);
       setChatInput("");
@@ -115,13 +114,13 @@ function MemeAssistantPage() {
     setChatLoading(true);
     try {
       const aiKeywords = await callOpenAIForKeywords(chatInput);
-      const memeUrl = await fetchRandomMeme(aiKeywords);
+      const memeUrl = await fetchRedditRandomMeme(aiKeywords);
       if (memeUrl) {
         setChatCache((prev) => ({ ...prev, [chatInput]: memeUrl }));
       }
     } catch (err) {
       console.error("handleSendChatMessage error:", err);
-      setChatError("Failed to fetch meme. Please try again.");
+      setChatError("Failed to fetch meme. Please try again or simpler text.");
     } finally {
       setChatLoading(false);
       setChatInput("");
@@ -129,69 +128,88 @@ function MemeAssistantPage() {
   }
 
   /**
-   * fetchRandomMeme:
-   *   1) Attempt call with aiKeywords
-   *   2) If fails, fallback to random with no keywords
+   * fetchRedditRandomMeme:
+   * - We'll do a search in r/memes with the given keywords, pick 1 random result from the top 10
+   * - If no keywords or none found, fallback to top/hot
    */
-  async function fetchRandomMeme(aiKeywords) {
-    let urlWithKeywords = `https://api.humorapi.com/memes/random?api-key=${HUMOR_API_KEY}&media-type=image`;
-    if (aiKeywords) {
-      urlWithKeywords += `&keywords=${encodeURIComponent(aiKeywords)}`;
-    }
-    console.log("Chatbot GET URL:", urlWithKeywords);
-
+  async function fetchRedditRandomMeme(aiKeywords) {
     try {
-      const resp = await fetch(urlWithKeywords);
-      if (!resp.ok) {
-        throw new Error(`API error: ${resp.status}`);
+      if (!aiKeywords) {
+        console.log("Chatbot random approach with no keywords. Fetching /r/memes/hot");
+        const randomUrl = await fetchFromRedditMemesHot();
+        addBotMessage(randomUrl);
+        return randomUrl;
       }
+
+      console.log("Chatbot searching r/memes with keywords:", aiKeywords);
+      // We convert commas to plus for a simple search query
+      const query = encodeURIComponent(aiKeywords.replace(/,/g, " "));
+      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
+      console.log("Chatbot GET URL:", url);
+
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
       const data = await resp.json();
-      console.log("Chatbot response data:", data);
 
-      const memeUrl = data.url || "https://placekitten.com/300/300";
-      const botMsg = { sender: "bot", content: memeUrl };
-      setChatMessages((prev) => [...prev, botMsg]);
-      return memeUrl;
-    } catch (error) {
-      console.error("fetchRandomMeme error:", error);
-
-      // Fallback attempt with NO keywords if we had any
-      if (aiKeywords) {
-        console.log("Retrying random meme with no keywords...");
-        try {
-          const fallbackUrl = `https://api.humorapi.com/memes/random?api-key=${HUMOR_API_KEY}&media-type=image`;
-          const fallbackResp = await fetch(fallbackUrl);
-          if (!fallbackResp.ok) {
-            throw new Error(`Fallback API error: ${fallbackResp.status}`);
-          }
-          const fallbackData = await fallbackResp.json();
-          console.log("Fallback random data:", fallbackData);
-
-          const fallbackMemeUrl = fallbackData.url || "https://placekitten.com/300/300";
-          const fallbackMsg = { sender: "bot", content: fallbackMemeUrl };
-          setChatMessages((prev) => [...prev, fallbackMsg]);
-          return fallbackMemeUrl;
-        } catch (fallbackErr) {
-          console.error("Fallback random meme also failed:", fallbackErr);
-        }
+      const posts = data?.data?.children || [];
+      const imageLinks = extractImagesFromRedditPosts(posts);
+      if (!imageLinks.length) {
+        // fallback to no keywords
+        console.log("No results from search, fallback to random hot memes");
+        const fallbackUrl = await fetchFromRedditMemesHot();
+        addBotMessage(fallbackUrl);
+        return fallbackUrl;
       }
 
-      // Final fallback
-      setChatError("Humor API request failed. Maybe try again or simpler text.");
-      const localFallback = "https://placekitten.com/400/400";
-      const fallbackMsg = { sender: "bot", content: localFallback };
-      setChatMessages((prev) => [...prev, fallbackMsg]);
-      return localFallback;
+      // pick a random one
+      const randomPick = imageLinks[Math.floor(Math.random() * imageLinks.length)];
+      addBotMessage(randomPick);
+      return randomPick;
+    } catch (err) {
+      console.error("fetchRedditRandomMeme error:", err);
+      // fallback
+      const fallbackUrl = await fetchFromRedditMemesHot();
+      addBotMessage(fallbackUrl);
+      return fallbackUrl;
     }
   }
 
-  //------------------------------------------------
+  // Fetch from the "hot" listing of r/memes, pick 1 random
+  async function fetchFromRedditMemesHot() {
+    const hotUrl = `https://www.reddit.com/r/memes/hot.json?limit=20`;
+    console.log("Fetching from /r/memes/hot:", hotUrl);
+    try {
+      const resp = await fetch(hotUrl);
+      if (!resp.ok) throw new Error(`Reddit hot error: ${resp.status}`);
+      const data = await resp.json();
+      const posts = data?.data?.children || [];
+      const imageLinks = extractImagesFromRedditPosts(posts);
+      if (!imageLinks.length) {
+        console.log("No images found even in hot!");
+        return "https://placekitten.com/400/400";
+      }
+      const randomPick = imageLinks[Math.floor(Math.random() * imageLinks.length)];
+      return randomPick;
+    } catch (err) {
+      console.error("fetchFromRedditMemesHot error:", err);
+      // final fallback
+      return "https://placekitten.com/400/400";
+    }
+  }
+
+  function addBotMessage(url) {
+    const botMsg = { sender: "bot", content: url };
+    setChatMessages((prev) => [...prev, botMsg]);
+  }
+
+  //----------------------------------------------------------------
   // 3) Meme Search
-  //------------------------------------------------
+  //----------------------------------------------------------------
   async function handleSearchMeme() {
     if (!searchQuery.trim()) return;
     setSearchError(null);
 
+    // check cache
     if (searchCache[searchQuery]) {
       setSearchResults(searchCache[searchQuery]);
       setSearchQuery("");
@@ -201,13 +219,13 @@ function MemeAssistantPage() {
     setSearchLoading(true);
     try {
       const aiKeywords = await callOpenAIForKeywords(searchQuery);
-      const memes = await fetchMemesSearch(aiKeywords);
-      if (memes && memes.length) {
-        setSearchCache((prev) => ({ ...prev, [searchQuery]: memes }));
+      const foundMemes = await fetchRedditSearch(aiKeywords);
+      if (foundMemes.length && searchQuery.trim()) {
+        setSearchCache((prev) => ({ ...prev, [searchQuery]: foundMemes }));
       }
     } catch (err) {
       console.error("handleSearchMeme error:", err);
-      setSearchError("Failed to search memes. Please try simpler text.");
+      setSearchError("Failed to search memes. Try simpler text or check connection.");
     } finally {
       setSearchLoading(false);
       setSearchQuery("");
@@ -215,98 +233,120 @@ function MemeAssistantPage() {
   }
 
   /**
-   * fetchMemesSearch:
-   * 1) Attempt call with aiKeywords
-   * 2) If fails or empty, fallback
+   * fetchRedditSearch:
+   * - If AI gave no keywords or there's nothing found, fallback to hot
    */
-  async function fetchMemesSearch(aiKeywords) {
-    let url = `https://api.humorapi.com/memes/search?api-key=${HUMOR_API_KEY}&number=4&media-type=image`;
-    if (aiKeywords) {
-      url += `&keywords=${encodeURIComponent(aiKeywords)}`;
+  async function fetchRedditSearch(aiKeywords) {
+    if (!aiKeywords) {
+      console.log("No AI keywords, fallback to random hot search");
+      const randomOne = await fetchFromRedditMemesHot();
+      setSearchResults([
+        { url: randomOne, title: "Random Meme from r/memes/hot" },
+      ]);
+      return [
+        { url: randomOne, title: "Random Meme from r/memes/hot" },
+      ];
     }
+    console.log("Search mode with AI keywords:", aiKeywords);
+    const query = encodeURIComponent(aiKeywords.replace(/,/g, " "));
+    const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=6`;
     console.log("Search GET URL:", url);
 
     try {
       const resp = await fetch(url);
-      if (!resp.ok) {
-        throw new Error(`API error: ${resp.status}`);
-      }
+      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
       const data = await resp.json();
-      console.log("Search response data:", data);
 
-      const memes = data.memes || [];
-      if (!memes.length) {
-        console.log("No memes found for AI keywords:", aiKeywords);
+      const posts = data?.data?.children || [];
+      const imageLinks = extractImagesFromRedditPosts(posts);
+      console.log("Search found image links:", imageLinks);
 
-        // Fallback attempt with fewer or no keywords
-        if (aiKeywords.includes(",")) {
-          // Try just the first word or random
-          const firstKeyword = aiKeywords.split(",")[0].trim();
-          if (firstKeyword) {
-            return await fetchMemesSearch(firstKeyword);
-          }
-        }
-        // final fallback => random
+      if (!imageLinks.length) {
+        // fallback random
+        console.log("No memes found for AI keywords => fallback random hot...");
+        const fallbackOne = await fetchFromRedditMemesHot();
         setSearchResults([
           {
-            url: "https://placekitten.com/350/350",
-            title: "No memes found. Try another search",
+            url: fallbackOne,
+            title: "No relevant memes found. Here's a random hot meme.",
           },
         ]);
-        return [];
+        return [
+          {
+            url: fallbackOne,
+            title: "No relevant memes found. Here's a random hot meme.",
+          },
+        ];
       } else {
-        const shaped = memes.map((m, idx) => ({
-          url: m.url || "https://placekitten.com/300/300",
-          title: `Meme #${m.id || idx + 1}`,
+        // shape
+        const shaped = imageLinks.map((link, i) => ({
+          url: link,
+          title: `Meme #${i + 1}`,
         }));
         setSearchResults(shaped);
         return shaped;
       }
-    } catch (error) {
-      console.error("fetchMemesSearch error:", error);
-
-      // fallback random?
-      try {
-        console.log("Retry searching with NO keywords => random...");
-        const fallbackResp = await fetch(
-          `https://api.humorapi.com/memes/random?api-key=${HUMOR_API_KEY}&media-type=image`
-        );
-        if (fallbackResp.ok) {
-          const fallbackData = await fallbackResp.json();
-          console.log("Fallback random data (search):", fallbackData);
-          const randomMeme = [
-            {
-              url: fallbackData.url || "https://placekitten.com/350/350",
-              title: "Random Meme (fallback)",
-            },
-          ];
-          setSearchResults(randomMeme);
-          return randomMeme;
-        }
-      } catch (fallbackErr) {
-        console.error("Fallback random also failed in search:", fallbackErr);
-      }
-
-      // final local fallback
-      setSearchError("Humor API request failed. Possibly blocked or no network.");
+    } catch (err) {
+      console.error("fetchRedditSearch error:", err);
+      // fallback
+      const fallbackOne = await fetchFromRedditMemesHot();
       setSearchResults([
         {
-          url: "https://placekitten.com/350/350",
-          title: "Error retrieving meme",
+          url: fallbackOne,
+          title: "Error retrieving memes, fallback random hot",
         },
       ]);
-      return [];
+      return [
+        {
+          url: fallbackOne,
+          title: "Error retrieving memes, fallback random hot",
+        },
+      ];
     }
   }
 
-  //------------------------------------------------
-  //                 RENDER
-  //------------------------------------------------
+  //----------------------------------------------------------------
+  //  Utility to parse Reddit post data into image links
+  //----------------------------------------------------------------
+  function extractImagesFromRedditPosts(posts) {
+    /** 
+     * We look for:
+     *   - post.data.preview.images[0].source.url
+     *   - or post.data.url_overridden_by_dest
+     * Then we do basic checks for .jpg, .png, .gif
+     */
+    const images = [];
+    for (const p of posts) {
+      const pd = p.data;
+      if (!pd) continue;
+
+      // 1) Check if there's a preview object
+      const preview = pd.preview;
+      const maybeImg =
+        preview?.images?.[0]?.source?.url ||
+        pd.url_overridden_by_dest ||
+        "";
+      // Some reddit links have &amp; or HTML escapes
+      const sanitized = maybeImg.replace(/&amp;/g, "&");
+
+      // Make sure it's an image extension or looks like an image
+      if (/\.(jpg|jpeg|png|gif)/i.test(sanitized)) {
+        images.push(sanitized);
+      }
+    }
+    return images;
+  }
+
+  //----------------------------------------------------------------
+  //                   RENDER
+  //----------------------------------------------------------------
   return (
     <div className="max-w-3xl mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold text-center mb-6">Meme Assistant (OpenAI + Humor API)</h1>
+      <h1 className="text-3xl font-bold text-center mb-6">
+        Meme Assistant (OpenAI + Reddit)
+      </h1>
 
-      {/* Mode Buttons */}
+      {/* Mode buttons */}
       <div className="flex justify-center gap-4 mb-8">
         <button
           onClick={() => setMode("chatbot")}
@@ -356,7 +396,7 @@ function MemeAssistantPage() {
             {chatLoading && (
               <div className="flex justify-center mt-4">
                 <div className="loader mr-2"></div>
-                <p className="text-gray-500">Fetching meme (AI + Humor API)...</p>
+                <p className="text-gray-500">Fetching from OpenAI + Reddit ...</p>
               </div>
             )}
           </div>
@@ -366,7 +406,7 @@ function MemeAssistantPage() {
             <input
               type="text"
               className="flex-grow border border-gray-300 rounded px-3 py-2"
-              placeholder="e.g. 'I won the lottery!'"
+              placeholder='e.g. "I won the lottery!"'
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               onKeyDown={(e) => {
@@ -394,7 +434,7 @@ function MemeAssistantPage() {
             <input
               type="text"
               className="w-full border border-gray-300 rounded px-3 py-2"
-              placeholder='e.g. "cat office funny" or "spiderman pointing"'
+              placeholder='e.g. "spiderman pointing" or "awkward office cat"'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -420,15 +460,12 @@ function MemeAssistantPage() {
             {searchLoading && (
               <div className="flex justify-center mt-4">
                 <div className="loader mr-2"></div>
-                <p className="text-gray-500">Searching memes (AI + Humor API)...</p>
+                <p className="text-gray-500">Searching r/memes ...</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {searchResults.map((item, idx) => (
-                <div
-                  key={idx}
-                  className="p-4 bg-white rounded border border-gray-200 text-center"
-                >
+                <div key={idx} className="p-4 bg-white rounded border border-gray-200 text-center">
                   <img
                     src={item.url}
                     alt={item.title || `Meme #${idx + 1}`}
@@ -444,5 +481,3 @@ function MemeAssistantPage() {
     </div>
   );
 }
-
-export default MemeAssistantPage;
