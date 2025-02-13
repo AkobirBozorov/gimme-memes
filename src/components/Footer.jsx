@@ -9,7 +9,7 @@ const Footer = () => {
           <div>
             <h2 className="text-2xl font-bold">GimmeMemes</h2>
             <p className="mt-4 text-gray-200">
-              Create, share, and go viral with memes. Unleash your creativity and join our fun community.
+              Chat with Memebot or search memes with Meme search.
             </p>
             <div className="flex mt-4 space-x-4">
               <a

@@ -31,6 +31,7 @@ export default function HomePage() {
   STRICTLY avoid phrases like "Casual meme", "Meme trend", "Meme phrase", etc.
   DO NOT include the word "meme".
   ONLY return two lines of text.
+  Ensure the second line contains **ONLY the keyword(s)**.
       `,
     };
     try {
@@ -55,10 +56,13 @@ export default function HomePage() {
       console.log("GPT Chat Reply Raw Output:", output);
   
       let lines = output.split("\n").map(s => s.trim()).filter(Boolean);
-      if (lines.length > 2) lines = [lines[0], lines.slice(1).join(" ")];
+      if (lines.length !== 2) {
+        console.error("Unexpected GPT format:", output);
+        return { reply: "Let's just get a random one!", keywords: "funny" };
+      }
   
-      const reply = lines[0] || "Interesting!";
-      let keywords = lines[1] || "";
+      const reply = lines[0];
+      let keywords = lines[1];
   
       // Ensure keywords are precise and stripped of unnecessary words
       keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim(); // Remove symbols
@@ -70,7 +74,7 @@ export default function HomePage() {
       console.error("Error in callOpenAIForChatReply:", err);
       return { reply: "Let's just get a random one!", keywords: "funny" };
     }
-  }  
+  }   
 
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
