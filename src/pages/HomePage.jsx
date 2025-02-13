@@ -26,10 +26,9 @@ export default function HomePage() {
       role: "system",
       content: `
   You are a witty AI that replies in exactly two lines.
-  Line 1: A friendly, witty response based on user input.
-  Line 2: The most relevant meme topic in 1-3 words (e.g., "winning lottery", "awkward moment").
-  DO NOT include the word "meme" or phrases like "funny moment".
-  STRICTLY return only two lines without any extra formatting.
+  Line 1: A fun, engaging response based on user input.
+  Line 2: The most relevant 1-3 words describing a meme topic (NO hashtags, NO emojis, NO unnecessary words).
+  STRICTLY return only these two lines, nothing else.
       `,
     };
   
@@ -58,13 +57,13 @@ export default function HomePage() {
   
       if (lines.length !== 2) {
         console.error("Unexpected GPT format:", output);
-        return { reply: "Let's just get a random one!", keywords: "random" };
+        return { reply: "Let's just get a random one!", keywords: "random meme" };
       }
   
       const reply = lines[0];
       let keywords = lines[1];
   
-      // Clean up and limit keyword length
+      // Clean up keywords (remove special characters, limit length)
       keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim();
       keywords = keywords.split(/\s+/).slice(0, 3).join(" "); // Ensure max 3 words
   
@@ -72,9 +71,9 @@ export default function HomePage() {
       return { reply, keywords };
     } catch (err) {
       console.error("Error in callOpenAIForChatReply:", err);
-      return { reply: "Let's just get a random one!", keywords: "random" };
+      return { reply: "Let's just get a random one!", keywords: "random meme" };
     }
-  }
+  }  
   
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
@@ -128,8 +127,8 @@ Do not include quotes or the word "meme".
       return await fetchFromHot();
     }
   
-    // Ignore overly generic terms
-    const ignoredWords = ["funny", "humor", "joke", "lol", "random"];
+    // Remove overly generic terms
+    const ignoredWords = ["funny", "humor", "joke", "random", "meme"];
     const words = query.split(/\s+/).filter(w => !ignoredWords.includes(w));
   
     if (words.length === 0) {
@@ -183,7 +182,7 @@ Do not include quotes or the word "meme".
   
     console.log("Best meme score:", bestScore);
     return bestMeme || await fetchFromHot();
-  }    
+  }  
 
   function extractImage(post) {
     const pd = post.data;
@@ -212,7 +211,7 @@ Do not include quotes or the word "meme".
     else relevance -= 20;
   
     return relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2; // Balance relevance + engagement
-  }  
+  }
 
   async function fetchFromHot() {
     const url = "https://www.reddit.com/r/memes/hot.json?limit=50";
