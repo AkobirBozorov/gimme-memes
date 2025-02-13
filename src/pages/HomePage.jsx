@@ -9,10 +9,6 @@ export default function HomePage() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState(null);
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
@@ -73,49 +69,6 @@ export default function HomePage() {
         console.error("Error in callOpenAIForChatReply:", err);
         return { reply: "Let's just get a random one!", keywords: "random meme" };
     }
-}
-  
-async function callOpenAIForSearchPhrase(userText) {
-  const sys = {
-    role: "system",
-    content: `
-You are a meme topic generator. 
-- Respond with only a short, meaningful meme topic (1-4 words) based on the input. 
-- Do NOT include phrases like "funny," "humor," "meme," "trend," or extra words. 
-- Example: If user says "I need money," return "broke life" or "cash problems" (no unnecessary words). 
-    `,
-  };
-
-  try {
-      console.log("GPT Search Phrase Request with:", userText);
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: { 
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${OPENAI_API_KEY}`
-          },
-          body: JSON.stringify({
-              model: "gpt-4-turbo", // Use GPT-4 for better topic accuracy
-              messages: [sys, { role: "user", content: userText }],
-              max_tokens: 20,
-              temperature: 0.6,
-          }),
-      });
-
-      if (!response.ok) throw new Error(`GPT search error: ${response.status}`);
-      const data = await response.json();
-      let phrase = data.choices?.[0]?.message?.content?.trim() || "";
-
-      // ✅ Remove unwanted characters & limit to 4 words
-      phrase = phrase.replace(/[^\w\s-]/g, "").trim();
-      phrase = phrase.split(/\s+/).slice(0, 4).join(" ");
-
-      console.log("Extracted Search Phrase:", phrase);
-      return phrase;
-  } catch (err) {
-      console.error("Error in callOpenAIForSearchPhrase:", err);
-      return "";
-  }
 }
 
   function addUserMessage(c) {
@@ -303,74 +256,6 @@ function extractImage(post) {
     }
 }
 
-  async function handleSearchMeme() {
-    const text = searchQuery.trim();
-    if (!text) return;
-    setSearchLoading(true);
-    try {
-      const phrase = await callOpenAIForSearchPhrase(text);
-      const results = await fetchMultiSearchArray(phrase);
-      setSearchResults(results);
-    } catch (err) {
-      console.error("Search error:", err);
-      setSearchError("Couldn't search memes. Try again.");
-    } finally {
-      setSearchLoading(false);
-      setSearchQuery("");
-    }
-  }
-
-  async function fetchMultiSearchArray(query) {
-    if (!query) {
-        const fallback = await fetchFromHot();
-        return [{ url: fallback, title: "Random Meme" }];
-    }
-
-    const cleanQuery = query.replace(/[^\w\s]/g, "").trim(); // Clean search term
-    const searchVariants = [
-        `title:"${cleanQuery}"`, 
-        cleanQuery,
-        cleanQuery.split(" ").slice(0, 2).join(" "),
-        cleanQuery.split(" ")[0]
-    ];
-
-    let bestMemes = [];
-    
-    for (const variant of searchVariants) {
-        const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(variant)}&restrict_sr=1&sort=relevance&limit=50`;
-        console.log("Searching variant:", variant, "URL:", url);
-
-        try {
-            const res = await fetch(url);
-            if (!res.ok) {
-                console.log("Variant query failed:", res.status);
-                continue;
-            }
-
-            const data = await res.json();
-            const posts = data?.data?.children || [];
-
-            posts.forEach(post => {
-                const img = extractImage(post);
-                if (!img) return;
-
-                bestMemes.push({ url: img, title: post.data.title });
-            });
-
-            if (bestMemes.length > 0) break; // Stop if good memes are found
-        } catch (err) {
-            console.error("Error in fetchMultiSearchArray:", err);
-        }
-    }
-
-    if (bestMemes.length === 0) {
-        const fallback = await fetchFromHot();
-        return [{ url: fallback, title: "Random Meme" }];
-    }
-
-    return bestMemes.slice(0, 10);
-}
-
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
@@ -384,7 +269,6 @@ function extractImage(post) {
       <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
         <div className="flex justify-center gap-4 mb-8">
           <button onClick={() => setMode("chatbot")} className={`px-4 py-2 rounded-full font-semibold transition ${mode === "chatbot" ? "bg-green-600 text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}>Meme Chatbot</button>
-          <button onClick={() => setMode("search")} className={`px-4 py-2 rounded-full font-semibold transition ${mode === "search" ? "bg-green-600 text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}>Meme Search</button>
         </div>
         {mode === "chatbot" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
@@ -406,34 +290,6 @@ function extractImage(post) {
             <div className="flex items-center gap-2">
               <input type="text" className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition" placeholder='e.g. "I won the lottery!"' value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }} />
               <button onClick={handleSendChatMessage} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition" disabled={chatLoading}>{chatLoading ? "Sending..." : "Send"}</button>
-            </div>
-          </div>
-        )}
-        {mode === "search" && (
-          <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-            <h2 className="text-xl font-bold text-center mb-4">Search Memes</h2>
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-1 font-semibold">Describe the Meme:</label>
-              <input type="text" className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition" placeholder='e.g. "spiderman pointing"' value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSearchMeme(); }} />
-            </div>
-            <button onClick={handleSearchMeme} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition" disabled={searchLoading}>{searchLoading ? "Searching..." : "Search Meme"}</button>
-            {searchError && <div className="text-red-600 mt-4 text-center">{searchError}</div>}
-            <div className="mt-6 min-h-[400px] bg-gray-50 border border-gray-100 rounded p-4">
-              {searchResults.length > 0 && <h3 className="text-lg font-semibold mb-2">{searchResults.length === 1 ? "Your Meme Match" : "Top Meme Results"}</h3>}
-              {searchLoading && <div className="flex justify-center mt-4"><div className="loader mr-2"></div><p className="text-gray-600">Loading...</p></div>}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {searchResults.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm">
-                    <img src={item.url} alt={item.title || `Meme #${idx + 1}`} className="max-w-full h-auto mb-2 mx-auto" />
-                    <p className="text-gray-700 mb-2">{item.title}</p>
-                    <a href={item.url} download className="text-blue-600 text-sm underline inline-flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" /></svg>
-                      Download
-                    </a>
-                  </div>
-                ))}
-              </div>
-              {!searchLoading && searchResults.length === 0 && <p className="text-gray-500 text-center mt-8">No memes found!</p>}
             </div>
           </div>
         )}
