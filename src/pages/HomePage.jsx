@@ -1,71 +1,44 @@
 // src/pages/HomePage.jsx
+
 import React, { useState, useRef, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 
-/**
- * We rely on an OpenAI key stored in .env:
- *   VITE_OPENAI_API_KEY=sk-xxxxx
- */
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
 export default function HomePage() {
-  // ------------------ STATE ------------------ //
-  const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
-
-  // Chatbot
+  const [mode, setMode] = useState("chatbot");
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
 
-  // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
 
-  // Simple caches
   const [chatCache, setChatCache] = useState({});
   const [searchCache, setSearchCache] = useState({});
 
-  // Chat container ref to auto-scroll
   const chatContainerRef = useRef(null);
 
-  // Auto-scroll on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
-  // ---------------------------------------------------------
-  // 1) GPT PROMPTS
-  // ---------------------------------------------------------
-
-  /**
-   * Chatbot Prompt:
-   * EXACTLY two lines:
-   *   - Line 1: comedic/empathetic reply (1-2 sentences), not revealing the meme name or using the word "meme."
-   *   - Line 2: short search phrase (1-5 words). 
-   *     => "Do NOT include the word 'meme' or quotes in line 2."
-   */
   async function callOpenAIForChatReply(userText) {
-    const systemMessage = {
+    const sys = {
       role: "system",
       content: `
-You are a friendly, empathetic AI. You must produce EXACTLY two lines:
-Line1: comedic or empathetic reply to the user (1-2 sentences), 
-       but do NOT reveal the actual meme name or use the word "meme."
-Line2: a short search phrase (1-5 words) describing the EXACT known meme or concept, 
-       WITHOUT the word "meme," and NO quotes around it.
-
-No extra lines. If user references e.g. "spiderman pointing," line2 should be "spiderman pointing" only. 
+You produce EXACTLY 2 lines.
+Line1: comedic or empathetic reply, no mention of "meme."
+Line2: short phrase (1-5 words), no "meme," no quotes.
       `,
     };
-
-    const userMessage = { role: "user", content: userText };
     try {
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -73,80 +46,37 @@ No extra lines. If user references e.g. "spiderman pointing," line2 should be "s
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
-          messages: [systemMessage, userMessage],
+          messages: [sys, { role: "user", content: userText }],
           max_tokens: 60,
           temperature: 0.8,
         }),
       });
-      if (!resp.ok) {
-        console.error("OpenAI chat error:", resp);
-        throw new Error(`OpenAI error: ${resp.status}`);
-      }
-
-      const data = await resp.json();
-      const fullOutput = data.choices?.[0]?.message?.content?.trim() || "";
-      console.log("Chatbot 2-line output:\n", fullOutput);
-
-      // split lines
-      let lines = fullOutput
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean);
-
-      // If GPT returns more than 2 lines, we combine extras or ignore them
+      if (!r.ok) throw new Error(`OpenAI error: ${r.status}`);
+      const d = await r.json();
+      let out = d.choices?.[0]?.message?.content?.trim() || "";
+      let lines = out.split("\n").map(s => s.trim()).filter(Boolean);
       if (lines.length > 2) {
-        const line1 = lines[0];
-        const line2 = lines.slice(1).join(" ");
-        lines = [line1, line2];
+        lines = [lines[0], lines.slice(1).join(" ")];
       }
-
-      let comedicReply = "Hey, that's interesting!";
-      let shortPhrase = "";
-
-      if (lines.length >= 2) {
-        comedicReply = lines[0];
-        shortPhrase = lines[1];
-      } else if (lines.length === 1) {
-        comedicReply = lines[0];
-      }
-
-      // Remove all quotes. For instance, if GPT includes them anyway
-      shortPhrase = shortPhrase.replaceAll(/["']/g, "");
-      // Remove non alphanumeric spaces/punctuation
-      shortPhrase = shortPhrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim(); 
-      // limit to 5 words
-      const words = shortPhrase.split(/\s+/).filter(Boolean).slice(0, 5);
-      const finalPhrase = words.join(" ");
-
-      return {
-        reply: comedicReply,
-        keywords: finalPhrase,
-      };
-    } catch (err) {
-      console.error("callOpenAIForChatReply failed:", err);
-      return {
-        reply: "Oops, something went wrong. Let’s just get a random one!",
-        keywords: "",
-      };
+      let rep = lines[0] || "Interesting!";
+      let kw = lines[1] || "";
+      kw = kw.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
+      kw = kw.split(/\s+/).slice(0,5).join(" ");
+      return { reply: rep, keywords: kw };
+    } catch {
+      return { reply: "Hmm, let's just get something random!", keywords: "" };
     }
   }
 
-  /**
-   * Meme Search Prompt:
-   * short search phrase (1-5 words), no "meme" or quotes, if user references a known meme
-   */
   async function callOpenAIForSearchPhrase(userText) {
-    const systemMessage = {
+    const sys = {
       role: "system",
       content: `
-You are a helpful AI that outputs only a short search phrase (1-5 words). 
-No quotes, no synonyms, no "meme" word. 
-If user references "spiderman pointing," output "spiderman pointing."
+You output only a short phrase (1-5 words). No "meme," no quotes.
       `,
     };
-    const userMessage = { role: "user", content: userText };
     try {
-      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -154,334 +84,267 @@ If user references "spiderman pointing," output "spiderman pointing."
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
-          messages: [systemMessage, userMessage],
+          messages: [sys, { role: "user", content: userText }],
           max_tokens: 30,
           temperature: 0.7,
         }),
       });
-      if (!resp.ok) {
-        console.error("OpenAI search error:", resp);
-        throw new Error(`OpenAI error: ${resp.status}`);
-      }
-      const data = await resp.json();
-      let phrase = data.choices?.[0]?.message?.content?.trim() || "";
-      console.log("Search phrase from GPT:", phrase);
-
-      // remove quotes
-      phrase = phrase.replaceAll(/["']/g, "");
-      // remove non alphanumeric except spaces
-      phrase = phrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim(); 
-      // limit to 5 words
-      const words = phrase.split(/\s+/).filter(Boolean).slice(0, 5);
-      const finalPhrase = words.join(" ");
-
-      return finalPhrase;
-    } catch (err) {
-      console.error("callOpenAIForSearchPhrase failed:", err);
+      if (!r.ok) throw new Error(`OpenAI search error: ${r.status}`);
+      const d = await r.json();
+      let phrase = d.choices?.[0]?.message?.content?.trim() || "";
+      phrase = phrase.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
+      phrase = phrase.split(/\s+/).slice(0,5).join(" ");
+      return phrase;
+    } catch {
       return "";
     }
   }
 
-  // ---------------------------------------------------------
-  // 2) CHATBOT FLOW
-  // ---------------------------------------------------------
-
-  // Adds user message to the chat
-  function addUserMessage(content) {
-    setChatMessages((prev) => [...prev, { sender: "user", content }]);
+  function addUserMessage(c) {
+    setChatMessages(p => [...p, { sender: "user", content: c }]);
   }
-
-  // Adds a text-based bot response
-  function addBotTextMessage(content) {
-    setChatMessages((prev) => [...prev, { sender: "bot_text", content }]);
+  function addBotTextMessage(c) {
+    setChatMessages(p => [...p, { sender: "bot_text", content: c }]);
   }
-
-  // Adds a meme-based bot response
-  function addBotMemeMessage(url) {
-    setChatMessages((prev) => [...prev, { sender: "bot_meme", content: url }]);
+  function addBotMemeMessage(u) {
+    setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
   }
 
   async function handleSendChatMessage() {
-    const userText = chatInput.trim();
-    if (!userText) {
-      // If empty, fetch random from fallback
-      addUserMessage("(Random Meme)");
-      await fetchRandomMeme(""); 
+    const txt = chatInput.trim();
+    if (!txt) {
+      addUserMessage("(Random)");
+      await fetchRandomMeme("");
       setChatInput("");
       return;
     }
-
     setChatError(null);
-    addUserMessage(userText);
-
-    // Check cache
-    if (chatCache[userText]) {
-      addBotMemeMessage(chatCache[userText]);
+    addUserMessage(txt);
+    if (chatCache[txt]) {
+      addBotMemeMessage(chatCache[txt]);
       setChatInput("");
       return;
     }
-
     setChatLoading(true);
     try {
-      const { reply, keywords } = await callOpenAIForChatReply(userText);
-      // Add comedic text
+      const { reply, keywords } = await callOpenAIForChatReply(txt);
       addBotTextMessage(reply);
-
-      // fetch meme from r/memes with `keywords`
       const memeUrl = await fetchRandomMeme(keywords);
       if (memeUrl) {
-        setChatCache((prev) => ({ ...prev, [userText]: memeUrl }));
+        setChatCache(p => ({ ...p, [txt]: memeUrl }));
       }
-    } catch (err) {
-      console.error("handleSendChatMessage error:", err);
-      setChatError("Failed to fetch meme. Please try again or simpler text.");
+    } catch {
+      setChatError("Couldn't fetch meme. Try again.");
     } finally {
       setChatLoading(false);
       setChatInput("");
     }
   }
 
-  /**
-   * fetchRandomMeme:
-   * - We'll do a search in r/memes with the given keywords, pick 1 random
-   * - If no keywords or none found, fallback to r/memes/hot
-   */
-  async function fetchRandomMeme(aiKeywords) {
+  async function fetchRandomMeme(k) {
+    if (!k) {
+      const f = await fetchFromRedditMemesHot();
+      addBotMemeMessage(f);
+      return f;
+    }
+    const q = encodeURIComponent(`title:${k}`);
+    const u = `https://www.reddit.com/r/memes/search.json?q=${q}&restrict_sr=1&sort=relevance&limit=30`;
     try {
-      if (!aiKeywords) {
-        console.log("Chatbot: no keywords => fallback hot from r/memes");
-        const randomUrl = await fetchFromRedditMemesHot();
-        addBotMemeMessage(randomUrl);
-        return randomUrl;
+      const r = await fetch(u);
+      if (!r.ok) {
+        const f = await fetchFromRedditMemesHot();
+        addBotMemeMessage(f);
+        return f;
       }
-
-      const query = encodeURIComponent(aiKeywords);
-      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
-      console.log("Chatbot GET from /r/memes:", url);
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        console.log("Search gave error => fallback hot");
-        const fallback = await fetchFromRedditMemesHot();
-        addBotMemeMessage(fallback);
-        return fallback;
+      const d = await r.json();
+      const posts = d?.data?.children || [];
+      if (!posts.length) {
+        const ff = await fetchFromRedditMemesHot();
+        addBotMemeMessage(ff);
+        return ff;
       }
-
-      const data = await resp.json();
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      const uniqueLinks = [...new Set(imageLinks)];
-
-      if (!uniqueLinks.length) {
-        console.log("No results => fallback hot from r/memes");
-        const fallbackOne = await fetchFromRedditMemesHot();
-        addBotMemeMessage(fallbackOne);
-        return fallbackOne;
+      const best = pickBestPost(posts, k);
+      if (!best) {
+        const fb = await fetchFromRedditMemesHot();
+        addBotMemeMessage(fb);
+        return fb;
       }
-
-      const randomPick = uniqueLinks[Math.floor(Math.random() * uniqueLinks.length)];
-      addBotMemeMessage(randomPick);
-      return randomPick;
-    } catch (err) {
-      console.error("fetchRandomMeme error => fallback hot");
-      const fallbackUrl = await fetchFromRedditMemesHot();
-      addBotMemeMessage(fallbackUrl);
-      return fallbackUrl;
+      addBotMemeMessage(best);
+      return best;
+    } catch {
+      const f = await fetchFromRedditMemesHot();
+      addBotMemeMessage(f);
+      return f;
     }
   }
 
-  // ---------------------------------------------------------
-  // 3) MEME SEARCH FLOW
-  // ---------------------------------------------------------
-
   async function handleSearchMeme() {
-    const userText = searchQuery.trim();
-    if (!userText) return;
+    const txt = searchQuery.trim();
+    if (!txt) return;
     setSearchError(null);
-
-    // Check cache
-    if (searchCache[userText]) {
-      setSearchResults(searchCache[userText]);
+    if (searchCache[txt]) {
+      setSearchResults(searchCache[txt]);
       setSearchQuery("");
       return;
     }
-
     setSearchLoading(true);
     try {
-      // 1) a short phrase from GPT
-      const phrase = await callOpenAIForSearchPhrase(userText);
-      // 2) fetch from r/memes
+      const phrase = await callOpenAIForSearchPhrase(txt);
       const foundMemes = await fetchMemeSearch(phrase);
       if (foundMemes.length) {
-        setSearchCache((prev) => ({ ...prev, [userText]: foundMemes }));
+        setSearchCache(p => ({ ...p, [txt]: foundMemes }));
       }
-    } catch (err) {
-      console.error("handleSearchMeme error:", err);
-      setSearchError("Failed to search memes. Try simpler text or check connection.");
+    } catch {
+      setSearchError("Couldn't search memes. Try again.");
     } finally {
       setSearchLoading(false);
       setSearchQuery("");
     }
   }
 
-  /**
-   * fetchMemeSearch:
-   * - r/memes with the given phrase, fallback if nothing found
-   */
-  async function fetchMemeSearch(aiKeywords) {
-    if (!aiKeywords) {
-      console.log("Search: no AI keywords => fallback random hot from r/memes");
-      const fallback = await fetchFromRedditMemesHot();
-      setSearchResults([{ url: fallback, title: "Random Meme from r/memes/hot" }]);
-      return [{ url: fallback, title: "Random Meme from r/memes/hot" }];
+  async function fetchMemeSearch(k) {
+    if (!k) {
+      const f = await fetchFromRedditMemesHot();
+      setSearchResults([{ url: f, title: "Random Meme" }]);
+      return [{ url: f, title: "Random Meme" }];
     }
+    const q = encodeURIComponent(`title:${k}`);
+    const u = `https://www.reddit.com/r/memes/search.json?q=${q}&restrict_sr=1&sort=relevance&limit=30`;
     try {
-      const query = encodeURIComponent(aiKeywords);
-      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
-      console.log("Search GET from /r/memes:", url);
-
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        console.log("Search error => fallback random hot");
-        const fallbackOne = await fetchFromRedditMemesHot();
-        setSearchResults([
-          {
-            url: fallbackOne,
-            title: "No relevant memes found. Here's a random hot meme.",
-          },
-        ]);
-        return [
-          {
-            url: fallbackOne,
-            title: "No relevant memes found. Here's a random hot meme.",
-          },
-        ];
+      const r = await fetch(u);
+      if (!r.ok) {
+        const ff = await fetchFromRedditMemesHot();
+        setSearchResults([{ url: ff, title: "No relevant memes. Random." }]);
+        return [{ url: ff, title: "No relevant memes. Random." }];
       }
-
-      const data = await resp.json();
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      const uniqueLinks = [...new Set(imageLinks)];
-
-      if (!uniqueLinks.length) {
-        console.log("No memes found => fallback random hot from r/memes");
-        const fallbackOne = await fetchFromRedditMemesHot();
-        setSearchResults([
-          {
-            url: fallbackOne,
-            title: "No relevant memes found. Here's a random hot meme.",
-          },
-        ]);
-        return [
-          {
-            url: fallbackOne,
-            title: "No relevant memes found. Here's a random hot meme.",
-          },
-        ];
+      const d = await r.json();
+      const posts = d?.data?.children || [];
+      if (!posts.length) {
+        const ff = await fetchFromRedditMemesHot();
+        setSearchResults([{ url: ff, title: "No relevant memes. Random." }]);
+        return [{ url: ff, title: "No relevant memes. Random." }];
       }
-
-      const shaped = uniqueLinks.map((link, i) => ({
-        url: link,
-        title: `Meme #${i + 1}`,
-      }));
-      setSearchResults(shaped);
-      return shaped;
-    } catch (err) {
-      console.error("fetchMemeSearch error => fallback random hot");
-      const fallbackOne = await fetchFromRedditMemesHot();
-      setSearchResults([
-        {
-          url: fallbackOne,
-          title: "Error retrieving memes, fallback random hot",
-        },
-      ]);
-      return [
-        {
-          url: fallbackOne,
-          title: "Error retrieving memes, fallback random hot",
-        },
-      ];
+      const bestArr = pickBestPostsArray(posts, k);
+      setSearchResults(bestArr);
+      return bestArr;
+    } catch {
+      const fb = await fetchFromRedditMemesHot();
+      setSearchResults([{ url: fb, title: "Error. Fallback random." }]);
+      return [{ url: fb, title: "Error. Fallback random." }];
     }
   }
 
-  // ---------------------------------------------------------
-  // 4) Fallback: random from r/memes/hot
-  // ---------------------------------------------------------
   async function fetchFromRedditMemesHot() {
-    const hotUrl = `https://www.reddit.com/r/memes/hot.json?limit=20`;
-    console.log("Fetching from /r/memes/hot:", hotUrl);
+    const u = "https://www.reddit.com/r/memes/hot.json?limit=20";
     try {
-      const resp = await fetch(hotUrl);
-      if (!resp.ok) throw new Error(`Reddit hot error: ${resp.status}`);
-      const data = await resp.json();
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      if (!imageLinks.length) {
-        return "https://placekitten.com/400/400";
-      }
-      const randomPick = imageLinks[Math.floor(Math.random() * imageLinks.length)];
-      return randomPick;
-    } catch (err) {
-      console.error("fetchFromRedditMemesHot error:", err);
+      const r = await fetch(u);
+      if (!r.ok) return "https://placekitten.com/400/400";
+      const d = await r.json();
+      const p = d?.data?.children || [];
+      if (!p.length) return "https://placekitten.com/400/400";
+      const arr = extractImages(p);
+      if (!arr.length) return "https://placekitten.com/400/400";
+      return arr[Math.floor(Math.random() * arr.length)];
+    } catch {
       return "https://placekitten.com/400/400";
     }
   }
 
-  // ---------------------------------------------------------
-  // 5) Helper: extract images from reddit posts
-  // ---------------------------------------------------------
-  function extractImagesFromRedditPosts(posts) {
+  function extractImages(posts) {
     const images = [];
-    for (const p of posts) {
-      const pd = p.data;
+    for (const c of posts) {
+      const pd = c.data;
       if (!pd) continue;
-      const preview = pd.preview;
-      const maybeImg =
-        preview?.images?.[0]?.source?.url ||
-        pd.url_overridden_by_dest ||
-        "";
-      // fix &amp;
-      const sanitized = maybeImg.replace(/&amp;/g, "&");
-      if (/\.(jpg|jpeg|png|gif)/i.test(sanitized)) {
-        images.push(sanitized);
-      }
+      const prev = pd.preview;
+      const link = prev?.images?.[0]?.source?.url || pd.url_overridden_by_dest || "";
+      const clean = link.replace(/&amp;/g, "&");
+      if (/\.(jpg|jpeg|png|gif)/i.test(clean)) images.push(clean);
     }
     return images;
   }
 
-  // ---------------------------------------------------------
-  // 6) RENDER
-  // ---------------------------------------------------------
+  function pickBestPost(posts, searchWords) {
+    let bestUrl = null;
+    let bestScore = -99999;
+    const sw = searchWords.toLowerCase().split(/\s+/);
+
+    for (const c of posts) {
+      const pd = c.data;
+      if (!pd) continue;
+      const images = extractImages([c]);
+      if (!images.length) continue;
+      const title = (pd.title || "").toLowerCase();
+      const score = pd.score || 0;
+      const comm = pd.num_comments || 0;
+      let rel = 0;
+      let allFound = true;
+      for (const w of sw) {
+        if (!title.includes(w)) {
+          allFound = false;
+          break;
+        }
+      }
+      if (allFound) rel += 10;
+      else if (title.includes(searchWords.toLowerCase())) rel += 5;
+      const total = rel + score * 0.1 + comm * 0.01;
+      if (total > bestScore) {
+        bestScore = total;
+        bestUrl = images[0];
+      }
+    }
+    if (!bestUrl || bestScore < -9999) return null;
+    return bestUrl;
+  }
+
+  function pickBestPostsArray(posts, searchWords) {
+    const arr = [];
+    let bestScoreArr = [];
+    const sw = searchWords.toLowerCase().split(/\s+/);
+
+    for (const c of posts) {
+      const pd = c.data;
+      if (!pd) continue;
+      const images = extractImages([c]);
+      if (!images.length) continue;
+      const title = (pd.title || "").toLowerCase();
+      const score = pd.score || 0;
+      const comm = pd.num_comments || 0;
+      let rel = 0;
+      let allFound = true;
+      for (const w of sw) {
+        if (!title.includes(w)) {
+          allFound = false;
+          break;
+        }
+      }
+      if (allFound) rel += 10;
+      else if (title.includes(searchWords.toLowerCase())) rel += 5;
+      const total = rel + score * 0.1 + comm * 0.01;
+      bestScoreArr.push({ url: images[0], val: total });
+    }
+    bestScoreArr.sort((a,b) => b.val - a.val);
+    if (!bestScoreArr.length) return [];
+    return bestScoreArr.map((o,i) => ({ url: o.url, title: "Meme #" + (i+1) }));
+  }
+
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
         <title>Meme Assistant</title>
-        <meta 
-          name="description" 
-          content="Get personalized memes for your mood! Chat or search for the perfect meme."
-        />
-        <link rel="canonical" href="https://www.gimmememes.com/" />
+        <meta name="description" content="Get personalized memes for your mood." />
       </Helmet>
 
-      {/* Simple top banner */}
       <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 drop-shadow-sm">
-          Get the Perfect Meme for Your Mood
-        </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">
-          Choose Chatbot or Search to find the best laugh.
-        </p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2 drop-shadow-sm">Get Perfect Memes</h1>
+        <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">Chat or search for a quick laugh.</p>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
-        {/* Mode buttons */}
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => setMode("chatbot")}
             className={`px-4 py-2 rounded-full font-semibold transition ${
-              mode === "chatbot"
-                ? "bg-green-600 text-white shadow-lg"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+              mode === "chatbot" ? "bg-green-600 text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
           >
             Meme Chatbot
@@ -489,62 +352,40 @@ If user references "spiderman pointing," output "spiderman pointing."
           <button
             onClick={() => setMode("search")}
             className={`px-4 py-2 rounded-full font-semibold transition ${
-              mode === "search"
-                ? "bg-green-600 text-white shadow-lg"
-                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+              mode === "search" ? "bg-green-600 text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
           >
             Meme Search
           </button>
         </div>
 
-        {/* -------------- Chatbot UI -------------- */}
         {mode === "chatbot" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-            <h2 className="text-xl font-bold text-center mb-4">
-              Chat with Meme Bot
-            </h2>
+            <h2 className="text-xl font-bold text-center mb-4">Chat with Bot</h2>
             <div
               ref={chatContainerRef}
               className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto"
               style={{ minHeight: "32rem", maxHeight: "75vh" }}
             >
-              {chatMessages.length === 0 && !chatLoading && (
-                <p className="text-gray-500 text-center mt-10">
-                  No messages yet. Type something to get a meme!
-                </p>
+              {!chatMessages.length && !chatLoading && (
+                <p className="text-gray-500 text-center mt-10">No messages yet.</p>
               )}
-
-              {chatMessages.map((msg, idx) => {
-                if (msg.sender === "bot_text") {
-                  // comedic text line
+              {chatMessages.map((m,i) => {
+                if (m.sender === "bot_text") {
                   return (
-                    <div key={idx} className="flex justify-start mb-3">
+                    <div key={i} className="flex justify-start mb-3">
                       <div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">
-                        {msg.content}
+                        {m.content}
                       </div>
                     </div>
                   );
-                } else if (msg.sender === "bot_meme") {
-                  // meme
+                } else if (m.sender === "bot_meme") {
                   return (
-                    <div key={idx} className="flex justify-start mb-3">
+                    <div key={i} className="flex justify-start mb-3">
                       <div className="flex flex-col items-start">
-                        <img
-                          src={msg.content}
-                          alt="Bot Meme"
-                          className="max-w-xs rounded-lg border border-gray-300 shadow-sm"
-                        />
-                        <a
-                          href={msg.content}
-                          download
-                          className="text-blue-600 text-sm underline mt-1 flex items-center"
-                        >
-                          <svg
-                            className="w-4 h-4 mr-1"
-                            fill="currentColor"
-                            viewBox="0 0 24 24"
-                          >
+                        <img src={m.content} alt="Bot Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
+                        <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                           </svg>
                           Download
@@ -553,17 +394,15 @@ If user references "spiderman pointing," output "spiderman pointing."
                     </div>
                   );
                 } else {
-                  // user message
                   return (
-                    <div key={idx} className="flex justify-end mb-3">
+                    <div key={i} className="flex justify-end mb-3">
                       <div className="bg-green-200 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">
-                        {msg.content}
+                        {m.content}
                       </div>
                     </div>
                   );
                 }
               })}
-
               {chatLoading && (
                 <div className="flex justify-center mt-4">
                   <div className="loader mr-2"></div>
@@ -571,10 +410,7 @@ If user references "spiderman pointing," output "spiderman pointing."
                 </div>
               )}
             </div>
-
-            {chatError && (
-              <div className="text-red-600 mb-4 text-center">{chatError}</div>
-            )}
+            {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
 
             <div className="flex items-center gap-2">
               <input
@@ -582,10 +418,8 @@ If user references "spiderman pointing," output "spiderman pointing."
                 className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
                 placeholder='e.g. "I won the lottery!"'
                 value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSendChatMessage();
-                }}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }}
               />
               <button
                 onClick={handleSendChatMessage}
@@ -598,28 +432,20 @@ If user references "spiderman pointing," output "spiderman pointing."
           </div>
         )}
 
-        {/* -------------- Search UI -------------- */}
         {mode === "search" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-            <h2 className="text-xl font-bold text-center mb-4">
-              Search Memes
-            </h2>
+            <h2 className="text-xl font-bold text-center mb-4">Search Memes</h2>
             <div className="mb-4">
-              <label className="block text-gray-700 mb-1 font-semibold">
-                Describe the Meme:
-              </label>
+              <label className="block text-gray-700 mb-1 font-semibold">Describe the Meme:</label>
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
-                placeholder='e.g. "spiderman pointing" or "drake hotline bling"'
+                placeholder='e.g. "spiderman pointing"'
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleSearchMeme();
-                }}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter") handleSearchMeme(); }}
               />
             </div>
-
             <button
               onClick={handleSearchMeme}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
@@ -627,17 +453,12 @@ If user references "spiderman pointing," output "spiderman pointing."
             >
               {searchLoading ? "Searching..." : "Search Meme"}
             </button>
-
-            {searchError && (
-              <div className="text-red-600 mt-4 text-center">{searchError}</div>
-            )}
+            {searchError && <div className="text-red-600 mt-4 text-center">{searchError}</div>}
 
             <div className="mt-6 min-h-[400px] bg-gray-50 border border-gray-100 rounded p-4">
               {searchResults.length > 0 && (
                 <h3 className="text-lg font-semibold mb-2">
-                  {searchResults.length === 1
-                    ? "Your Meme Match"
-                    : "Top Meme Results"}
+                  {searchResults.length === 1 ? "Your Meme Match" : "Top Meme Results"}
                 </h3>
               )}
               {searchLoading && (
@@ -648,27 +469,11 @@ If user references "spiderman pointing," output "spiderman pointing."
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm"
-                  >
-                    <img
-                      src={item.url}
-                      alt={item.title || `Meme #${idx + 1}`}
-                      className="max-w-full h-auto mb-2 mx-auto"
-                    />
+                  <div key={idx} className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm">
+                    <img src={item.url} alt={item.title || `Meme #${idx + 1}`} className="max-w-full h-auto mb-2 mx-auto" />
                     <p className="text-gray-700 mb-2">{item.title}</p>
-                    {/* Download link */}
-                    <a
-                      href={item.url}
-                      download
-                      className="text-blue-600 text-sm underline inline-flex items-center"
-                    >
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 24 24"
-                      >
+                    <a href={item.url} download className="text-blue-600 text-sm underline inline-flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                       </svg>
                       Download
@@ -676,11 +481,8 @@ If user references "spiderman pointing," output "spiderman pointing."
                   </div>
                 ))}
               </div>
-
               {!searchLoading && searchResults.length === 0 && (
-                <p className="text-gray-500 text-center mt-8">
-                  No memes found. Try describing your meme differently!
-                </p>
+                <p className="text-gray-500 text-center mt-8">No memes found!</p>
               )}
             </div>
           </div>
