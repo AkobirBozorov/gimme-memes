@@ -25,10 +25,11 @@ export default function HomePage() {
     const sys = {
       role: "system",
       content: `
-You are a friendly, witty AI assistant. Respond in EXACTLY TWO lines.
-Line 1: Provide a friendly, witty reply (1-2 sentences) to the user.
-Line 2: Provide a short search phrase (1-5 words) that best describes the meme to fetch based solely on the user's input.
-Do not include quotes or the word "meme" in your output.
+  You are a witty AI that replies in exactly two lines.
+  Line 1: A friendly, witty response based on user input.
+  Line 2: A short, precise search phrase (1-4 words) that describes a meme for the situation. 
+  DO NOT include words like "search phrase", "meme trend", or "meme".
+  Only output two lines without extra text.
       `,
     };
     try {
@@ -42,7 +43,7 @@ Do not include quotes or the word "meme" in your output.
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
           messages: [sys, { role: "user", content: userText }],
-          max_tokens: 60,
+          max_tokens: 40,
           temperature: 0.8,
         }),
       });
@@ -50,13 +51,16 @@ Do not include quotes or the word "meme" in your output.
       const d = await r.json();
       const output = d.choices?.[0]?.message?.content?.trim() || "";
       console.log("GPT Chat Reply Raw Output:", output);
+  
       let lines = output.split("\n").map(s => s.trim()).filter(Boolean);
       if (lines.length > 2) lines = [lines[0], lines.slice(1).join(" ")];
       const reply = lines[0] || "Interesting!";
       let keywords = lines[1] || "";
-      if (!keywords) keywords = "funny";
-      keywords = keywords.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
-      keywords = keywords.split(/\s+/).slice(0,5).join(" ");
+      
+      // Clean up keywords to avoid irrelevant searches
+      keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim(); // Remove symbols
+      keywords = keywords.split(/\s+/).slice(0, 4).join(" "); // Limit to 4 words
+      
       console.log("Extracted Chat Reply:", reply, "Keywords:", keywords);
       return { reply, keywords };
     } catch (err) {
@@ -116,12 +120,22 @@ Do not include quotes or the word "meme".
       console.log("No keywords provided; falling back to hot memes.");
       return await fetchFromHot();
     }
-    const variants = [`title:"${query}"`, query, `${query} meme`];
+  
+    const words = query.split(/\s+/);
+    const variants = [
+      `title:"${query}"`, 
+      query, 
+      words.slice(0, 2).join(" "), 
+      words[0] // Try single-word search
+    ];
+    
     let bestMeme = null;
     let bestScore = -Infinity;
+  
     for (const v of variants) {
       const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(v)}&restrict_sr=1&sort=relevance&limit=50`;
       console.log("Searching variant:", v, "URL:", url);
+      
       try {
         const res = await fetch(url);
         if (!res.ok) {
@@ -131,23 +145,28 @@ Do not include quotes or the word "meme".
         const data = await res.json();
         const posts = data?.data?.children || [];
         console.log("Variant", v, "returned", posts.length, "posts");
+        
         posts.forEach(post => {
           const img = extractImage(post);
           if (!img) return;
           const score = computeScore(post, query);
           console.log("Post:", post.data.title, "Score:", score);
+  
           if (score > bestScore) {
             bestScore = score;
             bestMeme = img;
           }
         });
+  
+        if (bestMeme) break; // Stop early if a good meme is found
       } catch (err) {
         console.error("Error with variant:", v, err);
       }
     }
+  
     console.log("Best meme score:", bestScore);
     return bestMeme || await fetchFromHot();
-  }
+  }  
 
   function extractImage(post) {
     const pd = post.data;
@@ -165,38 +184,48 @@ Do not include quotes or the word "meme".
     const upvotes = pd.score || 0;
     const comments = pd.num_comments || 0;
     let relevance = 0;
+  
     const words = query.toLowerCase().split(/\s+/);
     let allMatch = words.every(w => title.includes(w));
-    if (allMatch) relevance += 20;
-    else if (title.includes(query.toLowerCase())) relevance += 10;
-    return relevance + upvotes * 0.1 + comments * 0.01;
+    let partialMatch = words.some(w => title.includes(w));
+  
+    if (allMatch) relevance += 50; // Strong match
+    else if (partialMatch) relevance += 20; // Partial match
+    else relevance -= 10; // Penalize irrelevant memes
+  
+    return relevance + upvotes * 0.05 + comments * 0.01;
   }
 
   async function fetchFromHot() {
     const url = "https://www.reddit.com/r/memes/hot.json?limit=50";
     console.log("Fetching hot memes from:", url);
+  
     try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error("Hot memes fetch error");
-      const data = await r.json();
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Hot memes fetch error");
+      const data = await res.json();
       const posts = data?.data?.children || [];
+  
       let best = null, bestScore = -Infinity;
       posts.forEach(post => {
         const img = extractImage(post);
         if (!img) return;
         const sc = computeScore(post, "");
-        if (sc > bestScore) {
+        
+        // Prefer newer high-score memes
+        if (sc > bestScore && post.data.created_utc > (Date.now() / 1000) - 86400) { 
           bestScore = sc;
           best = img;
         }
       });
+  
       console.log("Best hot meme score:", bestScore);
       return best || "https://placekitten.com/400/400";
     } catch (err) {
       console.error("Error fetching hot memes:", err);
       return "https://placekitten.com/400/400";
     }
-  }
+  }  
 
   async function handleSendChatMessage() {
     const text = chatInput.trim();
