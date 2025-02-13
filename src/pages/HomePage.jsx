@@ -1,44 +1,56 @@
 // src/pages/HomePage.jsx
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
 export default function HomePage() {
   const [mode, setMode] = useState("chatbot");
+
+  // Chatbot
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState([]);
   const [chatLoading, setChatLoading] = useState(false);
   const [chatError, setChatError] = useState(null);
 
+  // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState(null);
 
+  // Caches (optional)
   const [chatCache, setChatCache] = useState({});
   const [searchCache, setSearchCache] = useState({});
 
+  // For auto-scrolling the chatbot container
   const chatContainerRef = useRef(null);
-
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // GPT PROMPTS
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  // Chatbot: produce EXACTLY two lines:
+  //  1) comedic/empathetic reply
+  //  2) short search phrase (1-5 words)
   async function callOpenAIForChatReply(userText) {
-    const sys = {
-      role: "system",
-      content: `
-You produce EXACTLY 2 lines.
-Line1: comedic or empathetic reply, no mention of "meme."
-Line2: short phrase (1-5 words), no "meme," no quotes.
-      `,
-    };
     try {
-      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      const systemPrompt = {
+        role: "system",
+        content: `
+You are a funny, empathetic AI assistant. You respond in EXACTLY 2 lines:
+Line 1: comedic or empathetic reply to the user (1-2 sentences), no mention of the word "meme".
+Line 2: a short phrase (1-5 words) representing a known meme template or search terms, no quotes or "meme".
+        `,
+      };
+
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -46,37 +58,49 @@ Line2: short phrase (1-5 words), no "meme," no quotes.
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
-          messages: [sys, { role: "user", content: userText }],
+          // or "gpt-4" if you have access and want higher accuracy
+          messages: [systemPrompt, { role: "user", content: userText }],
           max_tokens: 60,
           temperature: 0.8,
         }),
       });
-      if (!r.ok) throw new Error(`OpenAI error: ${r.status}`);
-      const d = await r.json();
-      let out = d.choices?.[0]?.message?.content?.trim() || "";
-      let lines = out.split("\n").map(s => s.trim()).filter(Boolean);
-      if (lines.length > 2) {
-        lines = [lines[0], lines.slice(1).join(" ")];
+
+      if (!resp.ok) {
+        throw new Error(`OpenAI error: ${resp.status}`);
       }
-      let rep = lines[0] || "Interesting!";
-      let kw = lines[1] || "";
-      kw = kw.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
-      kw = kw.split(/\s+/).slice(0,5).join(" ");
-      return { reply: rep, keywords: kw };
-    } catch {
-      return { reply: "Hmm, let's just get something random!", keywords: "" };
+
+      const data = await resp.json();
+      const text = data.choices?.[0]?.message?.content?.trim() || "";
+      const lines = text.split("\n").map(s => s.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        return { reply: lines[0] || "Interesting!", keywords: "" };
+      }
+      const comedicReply = lines[0];
+      let shortPhrase = lines[1];
+
+      shortPhrase = shortPhrase.replaceAll(/["']/g, "");
+      shortPhrase = shortPhrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
+      shortPhrase = shortPhrase.split(/\s+/).slice(0,5).join(" ");
+
+      return { reply: comedicReply, keywords: shortPhrase };
+    } catch (err) {
+      console.error("callOpenAIForChatReply error:", err);
+      return { reply: "Let's just get a random meme!", keywords: "" };
     }
   }
 
+  // Search: produce a short phrase (1-5 words), no "meme" or quotes
   async function callOpenAIForSearchPhrase(userText) {
-    const sys = {
-      role: "system",
-      content: `
-You output only a short phrase (1-5 words). No "meme," no quotes.
-      `,
-    };
     try {
-      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      const systemPrompt = {
+        role: "system",
+        content: `
+Return a short phrase (1-5 words) describing the user's meme request.
+No quotes, no "meme" in the text. If user references a known template, use that name.
+        `,
+      };
+
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -84,259 +108,281 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
         },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
-          messages: [sys, { role: "user", content: userText }],
+          messages: [systemPrompt, { role: "user", content: userText }],
           max_tokens: 30,
           temperature: 0.7,
         }),
       });
-      if (!r.ok) throw new Error(`OpenAI search error: ${r.status}`);
-      const d = await r.json();
-      let phrase = d.choices?.[0]?.message?.content?.trim() || "";
-      phrase = phrase.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
+
+      if (!resp.ok) {
+        throw new Error(`OpenAI error: ${resp.status}`);
+      }
+
+      const data = await resp.json();
+      let phrase = data.choices?.[0]?.message?.content?.trim() || "";
+      phrase = phrase.replaceAll(/["']/g, "");
+      phrase = phrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
       phrase = phrase.split(/\s+/).slice(0,5).join(" ");
+
       return phrase;
-    } catch {
+    } catch (err) {
+      console.error("callOpenAIForSearchPhrase error:", err);
       return "";
     }
   }
 
-  function addUserMessage(c) {
-    setChatMessages(p => [...p, { sender: "user", content: c }]);
+  // ─────────────────────────────────────────────────────────────────────────────
+  // REDDIT FETCHING (with multi-query & scoring)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  async function fetchRedditForKeywords(keywords) {
+    // If no keywords, fallback
+    if (!keywords) {
+      return await fetchFromRedditMemesHot();
+    }
+
+    // We'll do multiple queries to increase coverage:
+    // 1) title:keywords
+    // 2) keywords
+    // 3) keywords + "meme"
+    const queries = [`title:${keywords}`, keywords, `${keywords} meme`];
+    let bestUrl = null;
+    let bestScore = -999999;
+
+    for (const q of queries) {
+      const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(q)}&restrict_sr=1&sort=relevance&limit=30`;
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+
+        const data = await r.json();
+        const posts = data?.data?.children || [];
+
+        for (const post of posts) {
+          const potentialUrl = pickBestImageUrl(post);
+          if (!potentialUrl) continue;
+
+          const scoreVal = computeScore(post, keywords);
+          if (scoreVal > bestScore) {
+            bestScore = scoreVal;
+            bestUrl = potentialUrl;
+          }
+        }
+      } catch {
+        // ignore and continue
+      }
+    }
+
+    if (!bestUrl) {
+      // fallback
+      return await fetchFromRedditMemesHot();
+    }
+    return bestUrl;
   }
-  function addBotTextMessage(c) {
-    setChatMessages(p => [...p, { sender: "bot_text", content: c }]);
+
+  async function fetchMultiSearchArray(keywords) {
+    // If no keywords, fallback random
+    if (!keywords) {
+      const fallback = await fetchFromRedditMemesHot();
+      return [{ url: fallback, title: "Random Meme" }];
+    }
+
+    const queries = [`title:${keywords}`, keywords, `${keywords} meme`];
+    let postList = [];
+    for (const q of queries) {
+      const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(q)}&restrict_sr=1&sort=relevance&limit=30`;
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const p = d?.data?.children || [];
+        postList = [...postList, ...p];
+      } catch {
+        // ignore
+      }
+    }
+
+    if (!postList.length) {
+      const fallbackUrl = await fetchFromRedditMemesHot();
+      return [{ url: fallbackUrl, title: "No relevant memes. Fallback random." }];
+    }
+
+    const arrScored = [];
+    for (const post of postList) {
+      const potentialUrl = pickBestImageUrl(post);
+      if (!potentialUrl) continue;
+      const sc = computeScore(post, keywords);
+      arrScored.push({ url: potentialUrl, sc });
+    }
+    arrScored.sort((a, b) => b.sc - a.sc);
+
+    if (!arrScored.length) {
+      const fallbackUrl = await fetchFromRedditMemesHot();
+      return [{ url: fallbackUrl, title: "No relevant memes. Fallback random." }];
+    }
+
+    return arrScored.map((obj, i) => ({
+      url: obj.url,
+      title: `Meme #${i + 1}`,
+    }));
   }
-  function addBotMemeMessage(u) {
-    setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
+
+  function pickBestImageUrl(redditPost) {
+    const pd = redditPost?.data;
+    if (!pd) return null;
+    let url = pd.url_overridden_by_dest || "";
+    if (!/\.(jpg|jpeg|png|gif)/i.test(url)) {
+      const preview = pd.preview;
+      const alt = preview?.images?.[0]?.source?.url || "";
+      url = alt;
+    }
+    if (!/\.(jpg|jpeg|png|gif)/i.test(url)) return null;
+    return url.replace(/&amp;/g, "&");
+  }
+
+  function computeScore(redditPost, keywords) {
+    const pd = redditPost?.data;
+    if (!pd) return -999999;
+    const title = (pd.title || "").toLowerCase();
+    const upvotes = pd.score || 0;
+    const commentCount = pd.num_comments || 0;
+    let relevance = 0;
+    const kwArr = keywords.toLowerCase().split(/\s+/);
+
+    let allFound = true;
+    for (const w of kwArr) {
+      if (!title.includes(w)) {
+        allFound = false;
+        break;
+      }
+    }
+    if (allFound) relevance += 10;
+    else if (title.includes(keywords.toLowerCase())) relevance += 5;
+
+    const total = relevance + upvotes * 0.1 + commentCount * 0.01;
+    return total;
+  }
+
+  async function fetchFromRedditMemesHot() {
+    const url = "https://www.reddit.com/r/memes/hot.json?limit=20";
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      const posts = data?.data?.children || [];
+      let best = null;
+      let bestScore = -9999;
+
+      for (const post of posts) {
+        const potentialUrl = pickBestImageUrl(post);
+        if (!potentialUrl) continue;
+        const sc = computeScore(post, ""); 
+        if (sc > bestScore) {
+          bestScore = sc;
+          best = potentialUrl;
+        }
+      }
+      if (!best) return "https://placekitten.com/400/400";
+      return best;
+    } catch {
+      return "https://placekitten.com/400/400";
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CHATBOT FLOW
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  function addUserMessage(content) {
+    setChatMessages((prev) => [...prev, { sender: "user", content }]);
+  }
+  function addBotTextMessage(content) {
+    setChatMessages((prev) => [...prev, { sender: "bot_text", content }]);
+  }
+  function addBotMemeMessage(url) {
+    setChatMessages((prev) => [...prev, { sender: "bot_meme", content: url }]);
   }
 
   async function handleSendChatMessage() {
-    const txt = chatInput.trim();
-    if (!txt) {
-      addUserMessage("(Random)");
-      await fetchRandomMeme("");
-      setChatInput("");
+    const text = chatInput.trim();
+    if (!text) {
+      addUserMessage("(Random Meme)");
+      try {
+        setChatLoading(true);
+        const fallbackUrl = await fetchFromRedditMemesHot();
+        addBotMemeMessage(fallbackUrl);
+      } finally {
+        setChatLoading(false);
+        setChatInput("");
+      }
       return;
     }
     setChatError(null);
-    addUserMessage(txt);
-    if (chatCache[txt]) {
-      addBotMemeMessage(chatCache[txt]);
+    addUserMessage(text);
+    if (chatCache[text]) {
+      addBotMemeMessage(chatCache[text]);
       setChatInput("");
       return;
     }
     setChatLoading(true);
     try {
-      const { reply, keywords } = await callOpenAIForChatReply(txt);
+      const { reply, keywords } = await callOpenAIForChatReply(text);
       addBotTextMessage(reply);
-      const memeUrl = await fetchRandomMeme(keywords);
-      if (memeUrl) {
-        setChatCache(p => ({ ...p, [txt]: memeUrl }));
-      }
-    } catch {
-      setChatError("Couldn't fetch meme. Try again.");
+      const memeUrl = await fetchRedditForKeywords(keywords);
+      addBotMemeMessage(memeUrl);
+      setChatCache((prev) => ({ ...prev, [text]: memeUrl }));
+    } catch (err) {
+      setChatError("Failed to fetch meme. Try again.");
     } finally {
       setChatLoading(false);
       setChatInput("");
     }
   }
 
-  async function fetchRandomMeme(k) {
-    if (!k) {
-      const f = await fetchFromRedditMemesHot();
-      addBotMemeMessage(f);
-      return f;
-    }
-    const q = encodeURIComponent(`title:${k}`);
-    const u = `https://www.reddit.com/r/memes/search.json?q=${q}&restrict_sr=1&sort=relevance&limit=30`;
-    try {
-      const r = await fetch(u);
-      if (!r.ok) {
-        const f = await fetchFromRedditMemesHot();
-        addBotMemeMessage(f);
-        return f;
-      }
-      const d = await r.json();
-      const posts = d?.data?.children || [];
-      if (!posts.length) {
-        const ff = await fetchFromRedditMemesHot();
-        addBotMemeMessage(ff);
-        return ff;
-      }
-      const best = pickBestPost(posts, k);
-      if (!best) {
-        const fb = await fetchFromRedditMemesHot();
-        addBotMemeMessage(fb);
-        return fb;
-      }
-      addBotMemeMessage(best);
-      return best;
-    } catch {
-      const f = await fetchFromRedditMemesHot();
-      addBotMemeMessage(f);
-      return f;
-    }
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SEARCH FLOW
+  // ─────────────────────────────────────────────────────────────────────────────
 
   async function handleSearchMeme() {
-    const txt = searchQuery.trim();
-    if (!txt) return;
+    const text = searchQuery.trim();
+    if (!text) return;
     setSearchError(null);
-    if (searchCache[txt]) {
-      setSearchResults(searchCache[txt]);
+    if (searchCache[text]) {
+      setSearchResults(searchCache[text]);
       setSearchQuery("");
       return;
     }
     setSearchLoading(true);
     try {
-      const phrase = await callOpenAIForSearchPhrase(txt);
-      const foundMemes = await fetchMemeSearch(phrase);
-      if (foundMemes.length) {
-        setSearchCache(p => ({ ...p, [txt]: foundMemes }));
-      }
+      const phrase = await callOpenAIForSearchPhrase(text);
+      const arr = await fetchMultiSearchArray(phrase);
+      setSearchResults(arr);
+      setSearchCache((prev) => ({ ...prev, [text]: arr }));
     } catch {
-      setSearchError("Couldn't search memes. Try again.");
+      setSearchError("Failed to search memes. Try again.");
     } finally {
       setSearchLoading(false);
       setSearchQuery("");
     }
   }
 
-  async function fetchMemeSearch(k) {
-    if (!k) {
-      const f = await fetchFromRedditMemesHot();
-      setSearchResults([{ url: f, title: "Random Meme" }]);
-      return [{ url: f, title: "Random Meme" }];
-    }
-    const q = encodeURIComponent(`title:${k}`);
-    const u = `https://www.reddit.com/r/memes/search.json?q=${q}&restrict_sr=1&sort=relevance&limit=30`;
-    try {
-      const r = await fetch(u);
-      if (!r.ok) {
-        const ff = await fetchFromRedditMemesHot();
-        setSearchResults([{ url: ff, title: "No relevant memes. Random." }]);
-        return [{ url: ff, title: "No relevant memes. Random." }];
-      }
-      const d = await r.json();
-      const posts = d?.data?.children || [];
-      if (!posts.length) {
-        const ff = await fetchFromRedditMemesHot();
-        setSearchResults([{ url: ff, title: "No relevant memes. Random." }]);
-        return [{ url: ff, title: "No relevant memes. Random." }];
-      }
-      const bestArr = pickBestPostsArray(posts, k);
-      setSearchResults(bestArr);
-      return bestArr;
-    } catch {
-      const fb = await fetchFromRedditMemesHot();
-      setSearchResults([{ url: fb, title: "Error. Fallback random." }]);
-      return [{ url: fb, title: "Error. Fallback random." }];
-    }
-  }
-
-  async function fetchFromRedditMemesHot() {
-    const u = "https://www.reddit.com/r/memes/hot.json?limit=20";
-    try {
-      const r = await fetch(u);
-      if (!r.ok) return "https://placekitten.com/400/400";
-      const d = await r.json();
-      const p = d?.data?.children || [];
-      if (!p.length) return "https://placekitten.com/400/400";
-      const arr = extractImages(p);
-      if (!arr.length) return "https://placekitten.com/400/400";
-      return arr[Math.floor(Math.random() * arr.length)];
-    } catch {
-      return "https://placekitten.com/400/400";
-    }
-  }
-
-  function extractImages(posts) {
-    const images = [];
-    for (const c of posts) {
-      const pd = c.data;
-      if (!pd) continue;
-      const prev = pd.preview;
-      const link = prev?.images?.[0]?.source?.url || pd.url_overridden_by_dest || "";
-      const clean = link.replace(/&amp;/g, "&");
-      if (/\.(jpg|jpeg|png|gif)/i.test(clean)) images.push(clean);
-    }
-    return images;
-  }
-
-  function pickBestPost(posts, searchWords) {
-    let bestUrl = null;
-    let bestScore = -99999;
-    const sw = searchWords.toLowerCase().split(/\s+/);
-
-    for (const c of posts) {
-      const pd = c.data;
-      if (!pd) continue;
-      const images = extractImages([c]);
-      if (!images.length) continue;
-      const title = (pd.title || "").toLowerCase();
-      const score = pd.score || 0;
-      const comm = pd.num_comments || 0;
-      let rel = 0;
-      let allFound = true;
-      for (const w of sw) {
-        if (!title.includes(w)) {
-          allFound = false;
-          break;
-        }
-      }
-      if (allFound) rel += 10;
-      else if (title.includes(searchWords.toLowerCase())) rel += 5;
-      const total = rel + score * 0.1 + comm * 0.01;
-      if (total > bestScore) {
-        bestScore = total;
-        bestUrl = images[0];
-      }
-    }
-    if (!bestUrl || bestScore < -9999) return null;
-    return bestUrl;
-  }
-
-  function pickBestPostsArray(posts, searchWords) {
-    const arr = [];
-    let bestScoreArr = [];
-    const sw = searchWords.toLowerCase().split(/\s+/);
-
-    for (const c of posts) {
-      const pd = c.data;
-      if (!pd) continue;
-      const images = extractImages([c]);
-      if (!images.length) continue;
-      const title = (pd.title || "").toLowerCase();
-      const score = pd.score || 0;
-      const comm = pd.num_comments || 0;
-      let rel = 0;
-      let allFound = true;
-      for (const w of sw) {
-        if (!title.includes(w)) {
-          allFound = false;
-          break;
-        }
-      }
-      if (allFound) rel += 10;
-      else if (title.includes(searchWords.toLowerCase())) rel += 5;
-      const total = rel + score * 0.1 + comm * 0.01;
-      bestScoreArr.push({ url: images[0], val: total });
-    }
-    bestScoreArr.sort((a,b) => b.val - a.val);
-    if (!bestScoreArr.length) return [];
-    return bestScoreArr.map((o,i) => ({ url: o.url, title: "Meme #" + (i+1) }));
-  }
+  // ─────────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
         <title>Meme Assistant</title>
-        <meta name="description" content="Get personalized memes for your mood." />
+        <meta
+          name="description"
+          content="Get personalized memes for your mood. Chat or search for the perfect meme."
+        />
       </Helmet>
 
       <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2 drop-shadow-sm">Get Perfect Memes</h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">Chat or search for a quick laugh.</p>
+        <h1 className="text-3xl md:text-4xl font-bold mb-2">Get the Perfect Meme</h1>
+        <p className="text-lg md:text-xl max-w-2xl mx-auto">Choose Chatbot or Search for a quick laugh</p>
       </div>
 
       <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
@@ -361,16 +407,16 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
 
         {mode === "chatbot" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-            <h2 className="text-xl font-bold text-center mb-4">Chat with Bot</h2>
+            <h2 className="text-xl font-bold text-center mb-4">Chat with Meme Bot</h2>
             <div
               ref={chatContainerRef}
               className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto"
               style={{ minHeight: "32rem", maxHeight: "75vh" }}
             >
-              {!chatMessages.length && !chatLoading && (
+              {chatMessages.length === 0 && !chatLoading && (
                 <p className="text-gray-500 text-center mt-10">No messages yet.</p>
               )}
-              {chatMessages.map((m,i) => {
+              {chatMessages.map((m, i) => {
                 if (m.sender === "bot_text") {
                   return (
                     <div key={i} className="flex justify-start mb-3">
@@ -383,8 +429,16 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
                   return (
                     <div key={i} className="flex justify-start mb-3">
                       <div className="flex flex-col items-start">
-                        <img src={m.content} alt="Bot Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
-                        <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
+                        <img
+                          src={m.content}
+                          alt="Bot Meme"
+                          className="max-w-xs rounded-lg border border-gray-300 shadow-sm"
+                        />
+                        <a
+                          href={m.content}
+                          download
+                          className="text-blue-600 text-sm underline mt-1 flex items-center"
+                        >
                           <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                           </svg>
@@ -418,8 +472,10 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
                 className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
                 placeholder='e.g. "I won the lottery!"'
                 value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSendChatMessage();
+                }}
               />
               <button
                 onClick={handleSendChatMessage}
@@ -442,8 +498,10 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
                 placeholder='e.g. "spiderman pointing"'
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter") handleSearchMeme(); }}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleSearchMeme();
+                }}
               />
             </div>
             <button
@@ -469,10 +527,21 @@ You output only a short phrase (1-5 words). No "meme," no quotes.
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((item, idx) => (
-                  <div key={idx} className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm">
-                    <img src={item.url} alt={item.title || `Meme #${idx + 1}`} className="max-w-full h-auto mb-2 mx-auto" />
+                  <div
+                    key={idx}
+                    className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm"
+                  >
+                    <img
+                      src={item.url}
+                      alt={item.title || `Meme #${idx + 1}`}
+                      className="max-w-full h-auto mb-2 mx-auto"
+                    />
                     <p className="text-gray-700 mb-2">{item.title}</p>
-                    <a href={item.url} download className="text-blue-600 text-sm underline inline-flex items-center">
+                    <a
+                      href={item.url}
+                      download
+                      className="text-blue-600 text-sm underline inline-flex items-center"
+                    >
                       <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                       </svg>
