@@ -41,7 +41,7 @@ export default function HomePage() {
           Authorization: `Bearer ${OPENAI_API_KEY}` 
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-4-turbo",
           messages: [sys, { role: "user", content: userText }],
           max_tokens: 40,
           temperature: 0.8,
