@@ -21,16 +21,14 @@ export default function HomePage() {
     }
   }, [chatMessages]);
 
-  // Revised GPT prompt: Force exactly two lines.
   async function callOpenAIForChatReply(userText) {
-    const curatedList = "Spiderman Pointing, Distracted Boyfriend, Drake Hotline Bling, Surprised Pikachu, Two Buttons, Expanding Brain, Change My Mind, UNO Draw 25";
     const sys = {
       role: "system",
       content: `
-You are a friendly, witty AI assistant. You must produce EXACTLY TWO lines of output.
-Line 1: Provide a friendly, witty reply (1-2 sentences) to the user without mentioning any meme template or the word "meme".
-Line 2: Choose ONE meme template name from the following list: ${curatedList}. If none fits, output the word "funny".
-Output exactly two lines separated by a newline.
+You are a friendly, witty AI assistant. Respond in EXACTLY TWO lines.
+Line 1: Provide a friendly, witty reply (1-2 sentences) to the user.
+Line 2: Provide a short search phrase (1-5 words) that best describes the meme to fetch based solely on the user's input.
+Do not include quotes or the word "meme" in your output.
       `,
     };
     try {
@@ -56,7 +54,6 @@ Output exactly two lines separated by a newline.
       if (lines.length > 2) lines = [lines[0], lines.slice(1).join(" ")];
       const reply = lines[0] || "Interesting!";
       let keywords = lines[1] || "";
-      // Ensure keywords are not blank; if so, default to "funny"
       if (!keywords) keywords = "funny";
       keywords = keywords.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
       keywords = keywords.split(/\s+/).slice(0,5).join(" ");
@@ -179,9 +176,9 @@ Do not include quotes or the word "meme".
     const url = "https://www.reddit.com/r/memes/hot.json?limit=50";
     console.log("Fetching hot memes from:", url);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Hot memes fetch error");
-      const data = await res.json();
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Hot memes fetch error");
+      const data = await r.json();
       const posts = data?.data?.children || [];
       let best = null, bestScore = -Infinity;
       posts.forEach(post => {
@@ -253,10 +250,10 @@ Do not include quotes or the word "meme".
     )}&restrict_sr=1&sort=relevance&limit=50`;
     console.log("Search URL:", url);
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error("Search error");
-      const data = await res.json();
-      const posts = data?.data?.children || [];
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("Search error");
+      const d = await r.json();
+      const posts = d?.data?.children || [];
       if (!posts.length) {
         const fallback = await fetchFromHot();
         return [{ url: fallback, title: "Random Meme" }];
