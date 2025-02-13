@@ -3,15 +3,18 @@ import React, { useState } from "react";
 /** 
  * We still rely on an OpenAI key, stored in .env:
  *   VITE_OPENAI_API_KEY=sk-xxxxx
+ * Optionally, if you have a custom Meme API:
+ *   VITE_API_URL=https://gimme-memes-backend-production.up.railway.app
  */
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
+const BACKEND_API_URL = import.meta.env.VITE_API_URL || "";
 
 /**
- * MemeAssistantPage (OpenAI + Reddit "r/memes" search)
+ * MemeAssistantPage (OpenAI + Reddit search)
  *
- *  1) For Chatbot mode, we take user text -> callOpenAIForKeywords -> fetchRedditRandomMeme(keywords).
- *  2) For Search mode, we do the same but show multiple results from fetchRedditSearch(keywords).
- *  3) If we can’t find relevant memes, we fallback to random top posts from r/memes.
+ *  1) Chatbot mode uses user text -> callOpenAIForKeywords -> fetchRedditRandomMeme(keywords).
+ *  2) Search mode uses user text -> callOpenAIForKeywords -> fetchRedditSearch(keywords) across multiple subreddits.
+ *  3) Fallback to random top/hot r/memes if no results found.
  */
 export default function MemeAssistantPage() {
   const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
@@ -33,7 +36,7 @@ export default function MemeAssistantPage() {
   const [searchCache, setSearchCache] = useState({});
 
   //----------------------------------------------------------------
-  // 1) Use OpenAI to interpret user text => short comma-sep keywords
+  // 1) Use OpenAI to interpret user text => short, advanced search query
   //----------------------------------------------------------------
   async function callOpenAIForKeywords(userText) {
     if (!userText.trim()) return "";
@@ -41,10 +44,12 @@ export default function MemeAssistantPage() {
     const systemMessage = {
       role: "system",
       content: `
-        You are a helpful AI that generates short, comma-separated keywords for a meme search. 
-        The user text might be describing a scenario, mood, or feelings. 
-        Output only a short comma separated list (no more than 5 words) that best captures the comedic essence.
-        Avoid punctuation other than commas.
+        You are a helpful AI that creates concise Reddit search strings for memes. 
+        Given a user description, output a short query that can be used on Reddit to find relevant memes.
+        - Use OR to separate synonyms or related terms
+        - Example: user text: "spiderman pointing" => "spiderman OR pointing"
+        - Keep your output under 10 words. 
+        - Do NOT add extra text or explanations, just the query string.
       `,
     };
     const userMessage = { role: "user", content: userText };
@@ -71,14 +76,14 @@ export default function MemeAssistantPage() {
       const aiOutput = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("OpenAI output:", aiOutput);
 
-      // Clean punctuation
-      let keywords = aiOutput.replace(/[^\w,\s]/g, "");
-      const splitted = keywords
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const limited = splitted.slice(0, 5).join(",");
-      return limited;
+      // Clean up punctuation beyond what we want
+      let query = aiOutput.replace(/[^\w\s|:]/gi, "");
+      // If user typed "spiderman OR pointing", that might be enough.
+      // Just make sure we limit length to avoid nonsense
+      if (query.split(" ").length > 10) {
+        query = query.split(" ").slice(0, 10).join(" ");
+      }
+      return query;
     } catch (err) {
       console.error("OpenAI call failed:", err);
       return "";
@@ -120,7 +125,7 @@ export default function MemeAssistantPage() {
       }
     } catch (err) {
       console.error("handleSendChatMessage error:", err);
-      setChatError("Failed to fetch meme. Please try again or simpler text.");
+      setChatError("Failed to fetch meme. Please try again or use simpler text.");
     } finally {
       setChatLoading(false);
       setChatInput("");
@@ -129,8 +134,8 @@ export default function MemeAssistantPage() {
 
   /**
    * fetchRedditRandomMeme:
-   * - We'll do a search in r/memes with the given keywords, pick 1 random result from the top 10
-   * - If no keywords or none found, fallback to top/hot
+   * - We'll do a search in r/memes with the given keywords, pick 1 random result from top 10
+   * - If no keywords or none found, fallback to top/hot from r/memes
    */
   async function fetchRedditRandomMeme(aiKeywords) {
     try {
@@ -141,9 +146,9 @@ export default function MemeAssistantPage() {
         return randomUrl;
       }
 
-      console.log("Chatbot searching r/memes with keywords:", aiKeywords);
-      // We convert commas to plus for a simple search query
-      const query = encodeURIComponent(aiKeywords.replace(/,/g, " "));
+      console.log("Chatbot searching r/memes with query:", aiKeywords);
+      // For the random meme approach, let's keep it simple in a single subreddit
+      const query = encodeURIComponent(aiKeywords);
       const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
       console.log("Chatbot GET URL:", url);
 
@@ -203,7 +208,7 @@ export default function MemeAssistantPage() {
   }
 
   //----------------------------------------------------------------
-  // 3) Meme Search
+  // 3) Meme Search (multi-subreddit + better queries)
   //----------------------------------------------------------------
   async function handleSearchMeme() {
     if (!searchQuery.trim()) return;
@@ -234,9 +239,12 @@ export default function MemeAssistantPage() {
 
   /**
    * fetchRedditSearch:
-   * - If AI gave no keywords or there's nothing found, fallback to hot
+   *  - We will search multiple subreddits to improve chances of relevant memes
+   *  - If AI gave no keywords or there's nothing found, fallback to random from r/memes/hot
    */
   async function fetchRedditSearch(aiKeywords) {
+    // Subreddits to target for relevant memes
+    const subreddits = ["memes", "dankmemes", "wholesomememes"];
     if (!aiKeywords) {
       console.log("No AI keywords, fallback to random hot search");
       const randomOne = await fetchFromRedditMemesHot();
@@ -247,23 +255,29 @@ export default function MemeAssistantPage() {
         { url: randomOne, title: "Random Meme from r/memes/hot" },
       ];
     }
-    console.log("Search mode with AI keywords:", aiKeywords);
-    const query = encodeURIComponent(aiKeywords.replace(/,/g, " "));
-    const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=6`;
-    console.log("Search GET URL:", url);
 
+    console.log("Search mode with AI query:", aiKeywords);
+    const query = encodeURIComponent(aiKeywords.replace(/\s+/g, " "));
+
+    let allImageLinks = [];
     try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
-      const data = await resp.json();
+      for (const sub of subreddits) {
+        const url = `https://www.reddit.com/r/${sub}/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=8`;
+        console.log("Search GET URL:", url);
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Reddit search error: ${resp.status} for r/${sub}`);
+        const data = await resp.json();
+        const posts = data?.data?.children || [];
+        const imageLinks = extractImagesFromRedditPosts(posts);
+        allImageLinks = allImageLinks.concat(imageLinks);
+      }
 
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      console.log("Search found image links:", imageLinks);
+      // De-duplicate results
+      allImageLinks = [...new Set(allImageLinks)];
 
-      if (!imageLinks.length) {
+      if (!allImageLinks.length) {
         // fallback random
-        console.log("No memes found for AI keywords => fallback random hot...");
+        console.log("No memes found => fallback random hot from r/memes");
         const fallbackOne = await fetchFromRedditMemesHot();
         setSearchResults([
           {
@@ -279,7 +293,7 @@ export default function MemeAssistantPage() {
         ];
       } else {
         // shape
-        const shaped = imageLinks.map((link, i) => ({
+        const shaped = allImageLinks.map((link, i) => ({
           url: link,
           title: `Meme #${i + 1}`,
         }));
@@ -320,7 +334,6 @@ export default function MemeAssistantPage() {
       const pd = p.data;
       if (!pd) continue;
 
-      // 1) Check if there's a preview object
       const preview = pd.preview;
       const maybeImg =
         preview?.images?.[0]?.source?.url ||
@@ -460,12 +473,15 @@ export default function MemeAssistantPage() {
             {searchLoading && (
               <div className="flex justify-center mt-4">
                 <div className="loader mr-2"></div>
-                <p className="text-gray-500">Searching r/memes ...</p>
+                <p className="text-gray-500">Searching Reddit ...</p>
               </div>
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {searchResults.map((item, idx) => (
-                <div key={idx} className="p-4 bg-white rounded border border-gray-200 text-center">
+                <div
+                  key={idx}
+                  className="p-4 bg-white rounded border border-gray-200 text-center"
+                >
                   <img
                     src={item.url}
                     alt={item.title || `Meme #${idx + 1}`}
