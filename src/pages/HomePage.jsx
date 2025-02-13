@@ -95,6 +95,15 @@ export default function HomePage() {
   //----------------------------------------------------------------
   // 2) Chatbot Mode: user text -> AI -> fetch random meme
   //----------------------------------------------------------------
+
+  /**
+   * Helper to append a "bot" message to chat
+   */
+  function addBotMessage(url) {
+    const botMsg = { sender: "bot", content: url };
+    setChatMessages((prev) => [...prev, botMsg]);
+  }
+
   async function handleSendChatMessage() {
     if (!chatInput.trim()) {
       // If user typed nothing, just fetch random top from r/memes
@@ -137,7 +146,7 @@ export default function HomePage() {
   /**
    * fetchRandomMemeFromMultipleSubs:
    * - We'll do a multi-subreddit search with the given keywords, pick 1 random result
-   * - subreddits: r/memes, r/dankmemes, r/wholesomememes
+   * - Subreddits: r/memes, r/dankmemes, r/wholesomememes
    * - If no keywords or none found, fallback to r/memes/hot
    */
   async function fetchRandomMemeFromMultipleSubs(aiKeywords) {
@@ -220,7 +229,7 @@ export default function HomePage() {
 
   /**
    * fetchMultiSubredditSearch:
-   *  - subreddits: r/memes, r/dankmemes, r/wholesomememes
+   *  - Subreddits: r/memes, r/dankmemes, r/wholesomememes
    *  - If no AI keywords or no results, fallback to r/memes/hot
    */
   async function fetchMultiSubredditSearch(aiKeywords) {
@@ -368,7 +377,7 @@ export default function HomePage() {
           Get the Perfect Meme for Your Mood
         </h1>
         <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">
-          Chat or search to find the perfect laugh. 
+          Chat or search to find the perfect laugh.
         </p>
       </div>
 
@@ -406,7 +415,7 @@ export default function HomePage() {
             <div
               ref={chatContainerRef}
               className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto"
-              style={{ minHeight: "32rem", maxHeight: "75vh" }} // Taller area
+              style={{ minHeight: "32rem", maxHeight: "75vh" }}
             >
               {chatMessages.length === 0 && !chatLoading && (
                 <p className="text-gray-500 text-center mt-10">
