@@ -256,44 +256,94 @@ function extractImage(post) {
     }
 }
 
-  return (
-    <div className="font-sans text-gray-800">
-      <Helmet>
-        <title>Meme Assistant</title>
-        <meta name="description" content="Get personalized memes for your mood. Chat or search for the perfect meme." />
-      </Helmet>
-      <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
-        <h1 className="text-3xl md:text-4xl font-bold mb-2">Get the Perfect Meme</h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto">Choose Chatbot or Search for a quick laugh</p>
-      </div>
-      <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
-        <div className="flex justify-center gap-4 mb-8">
-          <button onClick={() => setMode("chatbot")} className={`px-4 py-2 rounded-full font-semibold transition ${mode === "chatbot" ? "bg-green-600 text-white shadow-lg" : "bg-gray-100 text-gray-800 hover:bg-gray-200"}`}>Meme Chatbot</button>
+return (
+  <div className="font-sans text-gray-800">
+    <Helmet>
+      <title>Meme Chatbot</title>
+      <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
+    </Helmet>
+    
+    {/* Header Section */}
+    <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
+      <h1 className="text-3xl md:text-4xl font-bold mb-2">Chat with the Meme Bot</h1>
+      <p className="text-lg md:text-xl max-w-2xl mx-auto">Get memes instantly based on your messages!</p>
+    </div>
+
+    {/* Chatbot Section */}
+    <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
+      <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
+        <h2 className="text-xl font-bold text-center mb-4">Start Chatting</h2>
+        
+        {/* Chat Container */}
+        <div 
+          ref={chatContainerRef} 
+          className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto" 
+          style={{ minHeight: "32rem", maxHeight: "75vh" }}
+        >
+          {chatMessages.length === 0 && !chatLoading && (
+            <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
+          )}
+
+          {chatMessages.map((m, i) => {
+            if (m.sender === "bot_text") {
+              return (
+                <div key={i} className="flex justify-start mb-3">
+                  <div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
+                </div>
+              );
+            } else if (m.sender === "bot_meme") {
+              return (
+                <div key={i} className="flex justify-start mb-3">
+                  <div className="flex flex-col items-start">
+                    <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
+                    <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
+                      </svg>
+                      Download Meme
+                    </a>
+                  </div>
+                </div>
+              );
+            } else {
+              return (
+                <div key={i} className="flex justify-end mb-3">
+                  <div className="bg-green-200 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
+                </div>
+              );
+            }
+          })}
+
+          {chatLoading && (
+            <div className="flex justify-center mt-4">
+              <div className="loader mr-2"></div>
+              <p className="text-gray-600">Generating meme...</p>
+            </div>
+          )}
         </div>
-        {mode === "chatbot" && (
-          <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-            <h2 className="text-xl font-bold text-center mb-4">Chat with Meme Bot</h2>
-            <div ref={chatContainerRef} className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto" style={{ minHeight: "32rem", maxHeight: "75vh" }}>
-              {chatMessages.length === 0 && !chatLoading && <p className="text-gray-500 text-center mt-10">No messages yet.</p>}
-              {chatMessages.map((m, i) => {
-                if (m.sender === "bot_text") {
-                  return <div key={i} className="flex justify-start mb-3"><div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div></div>;
-                } else if (m.sender === "bot_meme") {
-                  return <div key={i} className="flex justify-start mb-3"><div className="flex flex-col items-start"><img src={m.content} alt="Bot Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" /><a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center"><svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" /></svg>Download</a></div></div>;
-                } else {
-                  return <div key={i} className="flex justify-end mb-3"><div className="bg-green-200 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div></div>;
-                }
-              })}
-              {chatLoading && <div className="flex justify-center mt-4"><div className="loader mr-2"></div><p className="text-gray-600">Loading...</p></div>}
-            </div>
-            {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
-            <div className="flex items-center gap-2">
-              <input type="text" className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition" placeholder='e.g. "I won the lottery!"' value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }} />
-              <button onClick={handleSendChatMessage} className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition" disabled={chatLoading}>{chatLoading ? "Sending..." : "Send"}</button>
-            </div>
-          </div>
-        )}
+
+        {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
+
+        {/* Input Section */}
+        <div className="flex items-center gap-2">
+          <input 
+            type="text" 
+            className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition" 
+            placeholder='Type something... e.g. "I need a vacation!"' 
+            value={chatInput} 
+            onChange={e => setChatInput(e.target.value)} 
+            onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }} 
+          />
+          <button 
+            onClick={handleSendChatMessage} 
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition" 
+            disabled={chatLoading}
+          >
+            {chatLoading ? "Sending..." : "Send"}
+          </button>
+        </div>
       </div>
     </div>
-  );
+  </div>
+);
 }
