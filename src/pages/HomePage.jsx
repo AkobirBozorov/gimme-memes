@@ -27,9 +27,10 @@ export default function HomePage() {
       content: `
   You are a witty AI that replies in exactly two lines.
   Line 1: A friendly, witty response based on user input.
-  Line 2: A short, precise search phrase (1-4 words) that describes a meme for the situation. 
-  DO NOT include words like "search phrase", "meme trend", or "meme".
-  Only output two lines without extra text.
+  Line 2: The **most relevant** 1-3 words that best describe the meme concept. 
+  STRICTLY avoid phrases like "Casual meme", "Meme trend", "Meme phrase", etc.
+  DO NOT include the word "meme".
+  ONLY return two lines of text.
       `,
     };
     try {
@@ -47,6 +48,7 @@ export default function HomePage() {
           temperature: 0.8,
         }),
       });
+  
       if (!r.ok) throw new Error(`GPT error: ${r.status}`);
       const d = await r.json();
       const output = d.choices?.[0]?.message?.content?.trim() || "";
@@ -54,20 +56,21 @@ export default function HomePage() {
   
       let lines = output.split("\n").map(s => s.trim()).filter(Boolean);
       if (lines.length > 2) lines = [lines[0], lines.slice(1).join(" ")];
+  
       const reply = lines[0] || "Interesting!";
       let keywords = lines[1] || "";
-      
-      // Clean up keywords to avoid irrelevant searches
+  
+      // Ensure keywords are precise and stripped of unnecessary words
       keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim(); // Remove symbols
-      keywords = keywords.split(/\s+/).slice(0, 4).join(" "); // Limit to 4 words
-      
+      keywords = keywords.split(/\s+/).slice(0, 3).join(" "); // Limit to 3 words max
+  
       console.log("Extracted Chat Reply:", reply, "Keywords:", keywords);
       return { reply, keywords };
     } catch (err) {
       console.error("Error in callOpenAIForChatReply:", err);
       return { reply: "Let's just get a random one!", keywords: "funny" };
     }
-  }
+  }  
 
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
@@ -126,7 +129,7 @@ Do not include quotes or the word "meme".
       `title:"${query}"`, 
       query, 
       words.slice(0, 2).join(" "), 
-      words[0] // Try single-word search
+      words[0]
     ];
     
     let bestMeme = null;
@@ -145,7 +148,7 @@ Do not include quotes or the word "meme".
         const data = await res.json();
         const posts = data?.data?.children || [];
         console.log("Variant", v, "returned", posts.length, "posts");
-        
+  
         posts.forEach(post => {
           const img = extractImage(post);
           if (!img) return;
@@ -158,7 +161,7 @@ Do not include quotes or the word "meme".
           }
         });
   
-        if (bestMeme) break; // Stop early if a good meme is found
+        if (bestMeme) break; // Stop if a good meme is found
       } catch (err) {
         console.error("Error with variant:", v, err);
       }
@@ -183,18 +186,20 @@ Do not include quotes or the word "meme".
     const title = (pd.title || "").toLowerCase();
     const upvotes = pd.score || 0;
     const comments = pd.num_comments || 0;
-    let relevance = 0;
+    const agePenalty = (Date.now() / 1000 - pd.created_utc) / (60 * 60 * 24 * 30); // Older memes get small penalty
   
+    let relevance = 0;
     const words = query.toLowerCase().split(/\s+/);
+  
     let allMatch = words.every(w => title.includes(w));
     let partialMatch = words.some(w => title.includes(w));
   
-    if (allMatch) relevance += 50; // Strong match
-    else if (partialMatch) relevance += 20; // Partial match
-    else relevance -= 10; // Penalize irrelevant memes
+    if (allMatch) relevance += 50;
+    else if (partialMatch) relevance += 30;
+    else relevance -= 20;
   
-    return relevance + upvotes * 0.05 + comments * 0.01;
-  }
+    return relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2; // Favor newer memes
+  }  
 
   async function fetchFromHot() {
     const url = "https://www.reddit.com/r/memes/hot.json?limit=50";
@@ -210,10 +215,15 @@ Do not include quotes or the word "meme".
       posts.forEach(post => {
         const img = extractImage(post);
         if (!img) return;
+  
         const sc = computeScore(post, "");
         
-        // Prefer newer high-score memes
-        if (sc > bestScore && post.data.created_utc > (Date.now() / 1000) - 86400) { 
+        // **Ignore generic meme titles**
+        const ignoreWords = ["meme", "funny", "lol", "random", "haha"];
+        const title = post.data.title.toLowerCase();
+        if (ignoreWords.some(w => title.includes(w))) return;
+  
+        if (sc > bestScore) {
           bestScore = sc;
           best = img;
         }
