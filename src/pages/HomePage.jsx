@@ -5,7 +5,6 @@ import { Helmet } from "react-helmet-async";
 /**
  * We rely on an OpenAI key stored in .env:
  *   VITE_OPENAI_API_KEY=sk-xxxxx
- * Using gpt-3.5-turbo is typically cheaper than GPT-4.
  */
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
@@ -40,29 +39,27 @@ export default function HomePage() {
   }, [chatMessages]);
 
   // ---------------------------------------------------------
-  // 1) GPT PROMPTS: separate for Chatbot vs. Meme Search
+  // 1) GPT PROMPTS
   // ---------------------------------------------------------
 
   /**
    * Chatbot Prompt:
-   * We want EXACTLY two lines:
-   *   Line 1: comedic/empathetic reply (1-2 sentences). 
-   *           Do not mention "meme" or the actual meme name.
-   *   Line 2: short search phrase (1-5 words) referencing the correct meme template 
-   *           (e.g. "Confused Nick Young"), with no quotes or extra text. 
-   * If line 2 is empty, we'll fallback to random.
+   * EXACTLY two lines:
+   *   - Line 1: comedic/empathetic reply (1-2 sentences), not revealing the meme name or using the word "meme."
+   *   - Line 2: short search phrase (1-5 words). 
+   *     => "Do NOT include the word 'meme' or quotes in line 2."
    */
   async function callOpenAIForChatReply(userText) {
     const systemMessage = {
       role: "system",
       content: `
 You are a friendly, empathetic AI. You must produce EXACTLY two lines:
-- Line1: comedic or empathetic reply to the user (1-2 sentences) 
-  WITHOUT saying "meme" or revealing the meme name.
-- Line2: short search phrase (1-5 words) referencing the EXACT meme 
-  if known (e.g. "Confused Nick Young" or "Spiderman pointing").
-No extra lines, no quotes, no punctuation beyond normal sentence usage. 
-If user references a known meme template, use that exact phrase on line 2.
+Line1: comedic or empathetic reply to the user (1-2 sentences), 
+       but do NOT reveal the actual meme name or use the word "meme."
+Line2: a short search phrase (1-5 words) describing the EXACT known meme or concept, 
+       WITHOUT the word "meme," and NO quotes around it.
+
+No extra lines. If user references e.g. "spiderman pointing," line2 should be "spiderman pointing" only. 
       `,
     };
 
@@ -75,7 +72,7 @@ If user references a known meme template, use that exact phrase on line 2.
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo", // cheaper than GPT-4
+          model: "gpt-3.5-turbo",
           messages: [systemMessage, userMessage],
           max_tokens: 60,
           temperature: 0.8,
@@ -90,20 +87,20 @@ If user references a known meme template, use that exact phrase on line 2.
       const fullOutput = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("Chatbot 2-line output:\n", fullOutput);
 
-      // Split lines, removing blank lines
+      // split lines
       let lines = fullOutput
         .split("\n")
         .map((l) => l.trim())
         .filter(Boolean);
 
+      // If GPT returns more than 2 lines, we combine extras or ignore them
       if (lines.length > 2) {
-        // If GPT returns more lines, merge extras into line1 or discard
-        const firstLine = lines[0];
-        const secondLine = lines.slice(1).join(" ");
-        lines = [firstLine, secondLine];
+        const line1 = lines[0];
+        const line2 = lines.slice(1).join(" ");
+        lines = [line1, line2];
       }
 
-      let comedicReply = "Hey, that’s interesting!";
+      let comedicReply = "Hey, that's interesting!";
       let shortPhrase = "";
 
       if (lines.length >= 2) {
@@ -113,10 +110,11 @@ If user references a known meme template, use that exact phrase on line 2.
         comedicReply = lines[0];
       }
 
-      // remove any leading/trailing quotes from shortPhrase
-      shortPhrase = shortPhrase.replace(/^["']|["']$/g, "");
-      // remove extra punctuation beyond normal text
-      shortPhrase = shortPhrase.replace(/[^\w\s]/g, " ").trim();
+      // Remove all quotes. For instance, if GPT includes them anyway
+      shortPhrase = shortPhrase.replaceAll(/["']/g, "");
+      // Remove non alphanumeric spaces/punctuation
+      shortPhrase = shortPhrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim(); 
+      // limit to 5 words
       const words = shortPhrase.split(/\s+/).filter(Boolean).slice(0, 5);
       const finalPhrase = words.join(" ");
 
@@ -135,15 +133,15 @@ If user references a known meme template, use that exact phrase on line 2.
 
   /**
    * Meme Search Prompt:
-   * We only need a short search phrase (1-5 words), no comedic line.
+   * short search phrase (1-5 words), no "meme" or quotes, if user references a known meme
    */
   async function callOpenAIForSearchPhrase(userText) {
     const systemMessage = {
       role: "system",
       content: `
-You are a helpful AI that outputs only a short search phrase (1-5 words) describing the meme the user wants. 
-No extra text, no quotes, no synonyms/OR terms. 
-If the user references a known meme template (e.g. "spiderman pointing"), keep it exact.
+You are a helpful AI that outputs only a short search phrase (1-5 words). 
+No quotes, no synonyms, no "meme" word. 
+If user references "spiderman pointing," output "spiderman pointing."
       `,
     };
     const userMessage = { role: "user", content: userText };
@@ -155,7 +153,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo", 
+          model: "gpt-3.5-turbo",
           messages: [systemMessage, userMessage],
           max_tokens: 30,
           temperature: 0.7,
@@ -169,10 +167,11 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
       let phrase = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("Search phrase from GPT:", phrase);
 
-      // remove any leading/trailing quotes
-      phrase = phrase.replace(/^["']|["']$/g, "");
-      // remove non-alphanumeric punctuation
-      phrase = phrase.replace(/[^\w\s]/g, " ").trim();
+      // remove quotes
+      phrase = phrase.replaceAll(/["']/g, "");
+      // remove non alphanumeric except spaces
+      phrase = phrase.replace(/[^\p{L}\p{N}\s]/giu, " ").trim(); 
+      // limit to 5 words
       const words = phrase.split(/\s+/).filter(Boolean).slice(0, 5);
       const finalPhrase = words.join(" ");
 
@@ -184,7 +183,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
   }
 
   // ---------------------------------------------------------
-  // 2) CHATBOT FLOW (only r/memes to keep it consistent)
+  // 2) CHATBOT FLOW
   // ---------------------------------------------------------
 
   // Adds user message to the chat
@@ -215,9 +214,8 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
     setChatError(null);
     addUserMessage(userText);
 
-    // Cache check
+    // Check cache
     if (chatCache[userText]) {
-      // We only stored a meme in cache, so let's display it
       addBotMemeMessage(chatCache[userText]);
       setChatInput("");
       return;
@@ -225,12 +223,11 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
 
     setChatLoading(true);
     try {
-      // 1) Get comedic reply + short phrase
       const { reply, keywords } = await callOpenAIForChatReply(userText);
-      // 2) Add comedic text
+      // Add comedic text
       addBotTextMessage(reply);
 
-      // 3) fetch meme from r/memes using `keywords`
+      // fetch meme from r/memes with `keywords`
       const memeUrl = await fetchRandomMeme(keywords);
       if (memeUrl) {
         setChatCache((prev) => ({ ...prev, [userText]: memeUrl }));
@@ -246,7 +243,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
 
   /**
    * fetchRandomMeme:
-   * - We'll do a search in r/memes with the given keywords, pick 1 random from up to 10
+   * - We'll do a search in r/memes with the given keywords, pick 1 random
    * - If no keywords or none found, fallback to r/memes/hot
    */
   async function fetchRandomMeme(aiKeywords) {
@@ -294,7 +291,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
   }
 
   // ---------------------------------------------------------
-  // 3) MEME SEARCH FLOW (only r/memes)
+  // 3) MEME SEARCH FLOW
   // ---------------------------------------------------------
 
   async function handleSearchMeme() {
@@ -302,7 +299,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
     if (!userText) return;
     setSearchError(null);
 
-    // cache check
+    // Check cache
     if (searchCache[userText]) {
       setSearchResults(searchCache[userText]);
       setSearchQuery("");
@@ -311,9 +308,9 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
 
     setSearchLoading(true);
     try {
-      // 1) only a short phrase from GPT
+      // 1) a short phrase from GPT
       const phrase = await callOpenAIForSearchPhrase(userText);
-      // 2) fetch from r/memes with that phrase
+      // 2) fetch from r/memes
       const foundMemes = await fetchMemeSearch(phrase);
       if (foundMemes.length) {
         setSearchCache((prev) => ({ ...prev, [userText]: foundMemes }));
@@ -550,7 +547,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
                           >
                             <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                           </svg>
-                          Download Meme
+                          Download
                         </a>
                       </div>
                     </div>
@@ -674,7 +671,7 @@ If the user references a known meme template (e.g. "spiderman pointing"), keep i
                       >
                         <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                       </svg>
-                      Download Meme
+                      Download
                     </a>
                   </div>
                 ))}
