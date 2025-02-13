@@ -27,7 +27,7 @@ export default function HomePage() {
       content: `
   You are a witty AI that replies in exactly two lines.
   Line 1: A fun, engaging response based on user input.
-  Line 2: The most relevant 1-3 words describing a meme topic (NO hashtags, NO emojis, NO unnecessary words).
+  Line 2: The most relevant 1-3 words describing a meme topic (NO hashtags, NO emojis, NO extra words).
   STRICTLY return only these two lines, nothing else.
       `,
     };
@@ -63,7 +63,7 @@ export default function HomePage() {
       const reply = lines[0];
       let keywords = lines[1];
   
-      // Clean up keywords (remove special characters, limit length)
+      // Remove unwanted characters and limit to 3 words max
       keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim();
       keywords = keywords.split(/\s+/).slice(0, 3).join(" "); // Ensure max 3 words
   
@@ -73,8 +73,8 @@ export default function HomePage() {
       console.error("Error in callOpenAIForChatReply:", err);
       return { reply: "Let's just get a random one!", keywords: "random meme" };
     }
-  }  
-  
+  }
+
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
       role: "system",
@@ -121,27 +121,28 @@ Do not include quotes or the word "meme".
     setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
   }
 
+  function cleanKeywords(rawKeywords) {
+    const ignoredWords = ["funny", "humor", "meme", "trend", "joke", "random"];
+    let words = rawKeywords.split(/\s+/).filter(w => !ignoredWords.includes(w));
+  
+    // If all words were filtered, keep the original input
+    if (words.length === 0) words = rawKeywords.split(/\s+/);
+  
+    return words.slice(0, 3).join(" ");
+  }
+  
   async function fetchRedditMeme(query) {
     if (!query) {
       console.log("No keywords provided; falling back to hot memes.");
       return await fetchFromHot();
     }
   
-    // Remove overly generic terms
-    const ignoredWords = ["funny", "humor", "joke", "random", "meme"];
-    const words = query.split(/\s+/).filter(w => !ignoredWords.includes(w));
-  
-    if (words.length === 0) {
-      console.log("Filtered out generic keywords; using fallback.");
-      return await fetchFromHot();
-    }
-  
-    const searchQuery = words.join(" ");
+    const searchQuery = cleanKeywords(query);
     const variants = [
-      `title:"${searchQuery}"`,
+      `title:"${searchQuery}"`, 
       searchQuery,
-      words.slice(0, 2).join(" "),
-      words[0]
+      searchQuery.split(" ").slice(0, 2).join(" "), 
+      searchQuery.split(" ")[0]
     ];
   
     let bestMeme = null;
@@ -165,10 +166,12 @@ Do not include quotes or the word "meme".
         posts.forEach(post => {
           const img = extractImage(post);
           if (!img) return;
+  
           const score = computeScore(post, searchQuery);
           console.log("Post:", post.data.title, "Score:", score);
   
-          if (score > bestScore) {
+          // Ignore low-score memes
+          if (score > 15 && score > bestScore) {
             bestScore = score;
             bestMeme = img;
           }
@@ -199,7 +202,7 @@ Do not include quotes or the word "meme".
     const title = (pd.title || "").toLowerCase();
     const upvotes = pd.score || 0;
     const comments = pd.num_comments || 0;
-    const agePenalty = (Date.now() / 1000 - pd.created_utc) / (60 * 60 * 24 * 30); // Penalizes old memes
+    const agePenalty = (Date.now() / 1000 - pd.created_utc) / (60 * 60 * 24 * 30); // Older memes get small penalty
   
     let relevance = 0;
     const words = query.toLowerCase().split(/\s+/);
@@ -210,8 +213,16 @@ Do not include quotes or the word "meme".
     else if (partialMatch) relevance += 30;
     else relevance -= 20;
   
-    return relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2; // Balance relevance + engagement
-  }
+    let finalScore = relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2;
+  
+    // **Filter out bad memes**
+    if (finalScore < 15) {
+      console.log("Skipping meme due to low score:", finalScore);
+      return -1000; // Forces exclusion
+    }
+  
+    return finalScore;
+  }  
 
   async function fetchFromHot() {
     const url = "https://www.reddit.com/r/memes/hot.json?limit=50";
