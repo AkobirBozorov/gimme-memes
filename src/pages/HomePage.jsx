@@ -1,3 +1,4 @@
+// src/pages/HomePage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 
@@ -8,7 +9,7 @@ import { Helmet } from "react-helmet-async";
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
 export default function HomePage() {
-  // UI Mode
+  // ------------------ STATE ------------------ //
   const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
 
   // Chatbot
@@ -27,55 +28,39 @@ export default function HomePage() {
   const [chatCache, setChatCache] = useState({});
   const [searchCache, setSearchCache] = useState({});
 
-  // Reference to the chat container to auto-scroll
+  // Chat container ref to auto-scroll
   const chatContainerRef = useRef(null);
 
-  /**
-   * Whenever chatMessages changes, scroll to the bottom
-   */
+  // Auto-scroll on new messages
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages]);
 
-  //----------------------------------------------------------------
-  // 1) We do a single GPT call: comedic reply + short search phrase
-  //----------------------------------------------------------------
-  async function callOpenAIForReplyAndKeywords(userText) {
-    if (!userText.trim()) {
-      return { reply: "Alright, here’s a random meme!", keywords: "" };
-    }
+  // ---------------------------------------------------------
+  // 1) GPT PROMPTS: separate for Chatbot vs. Meme Search
+  // ---------------------------------------------------------
 
-    /**
-     * We ask GPT to produce exactly two lines:
-     *   - Line 1: short comedic reply to the user (1-2 sentences)
-     *   - Line 2: short search phrase for a known meme template or scenario
-     *
-     * If the user references a famous meme (e.g., "spiderman pointing"), 
-     * GPT should use that exact name: "spiderman pointing meme".
-     */
+  /**
+   * Chatbot Prompt:
+   * We want exactly two lines:
+   *   1) comedic/empathetic reply to user (1-2 sentences)
+   *   2) a short search phrase (1-5 words) for a relevant meme
+   */
+  async function callOpenAIForChatReply(userText) {
     const systemMessage = {
       role: "system",
       content: `
-You are a comedic AI that does two things:
-1) Provide a short comedic reply (1-2 sentences) to the user's text, 
-   addressing them personally.
-2) Output a short search phrase (1-5 words) referencing the correct meme 
-   or scenario they want, especially if they mention a well-known meme 
-   template. No synonyms or "OR" terms.
-
-Your entire response must be exactly two lines:
-Line1: comedic reply 
-Line2: short search phrase (1-5 words)
-
-No extra commentary or punctuation beyond what's needed. 
-If the user references a well-known meme like “spiderman pointing to each other,” 
-give the exact name "spiderman pointing meme" or something equally direct.
+You are a friendly, comedic AI. You must produce EXACTLY two lines:
+Line1: comedic or empathetic reply to the user (1-2 sentences).
+Line2: a short search phrase (1-5 words) describing the correct meme for their situation. 
+No extra words or lines.
+If user references a known meme template, use that exact name (e.g. "spiderman pointing meme").
       `,
     };
-    const userMessage = { role: "user", content: userText };
 
+    const userMessage = { role: "user", content: userText };
     try {
       const resp = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -91,18 +76,17 @@ give the exact name "spiderman pointing meme" or something equally direct.
         }),
       });
       if (!resp.ok) {
-        console.error("OpenAI error response:", resp);
+        console.error("OpenAI chat error:", resp);
         throw new Error(`OpenAI error: ${resp.status}`);
       }
+
       const data = await resp.json();
       const fullOutput = data.choices?.[0]?.message?.content?.trim() || "";
-      console.log("OpenAI 2-line output:\n", fullOutput);
+      console.log("Chatbot 2-line output:\n", fullOutput);
 
-      // We expect exactly 2 lines. Let's parse them safely:
-      const lines = fullOutput.split("\n").map((ln) => ln.trim()).filter(Boolean);
-      let comedicReply = "Haha, here's a meme for you.";
+      const lines = fullOutput.split("\n").map((l) => l.trim()).filter(Boolean);
+      let comedicReply = "Haha, here's a meme for you...";
       let shortPhrase = "";
-
       if (lines.length >= 2) {
         comedicReply = lines[0];
         shortPhrase = lines[1];
@@ -110,8 +94,8 @@ give the exact name "spiderman pointing meme" or something equally direct.
         comedicReply = lines[0];
       }
 
-      // Quick safety cleanup for shortPhrase
-      shortPhrase = shortPhrase.replace(/[^\w\s]/gi, " ").trim();
+      // sanitize shortPhrase
+      shortPhrase = shortPhrase.replace(/[^\w\s]/g, " ").trim();
       const words = shortPhrase.split(/\s+/).filter(Boolean).slice(0, 5);
       const finalPhrase = words.join(" ");
 
@@ -120,48 +104,85 @@ give the exact name "spiderman pointing meme" or something equally direct.
         keywords: finalPhrase,
       };
     } catch (err) {
-      console.error("OpenAI call for reply+keywords failed:", err);
+      console.error("callOpenAIForChatReply failed:", err);
       return {
-        reply: "Oops, something went wrong. Here's a random meme instead!",
+        reply: "Oops, something went wrong. Let's just get a random meme!",
         keywords: "",
       };
     }
   }
 
-  //----------------------------------------------------------------
-  // 2) Chatbot Flow: user text -> comedic reply + keywords -> search
-  //----------------------------------------------------------------
-
   /**
-   * Helper to add a "bot" text message
+   * Meme Search Prompt:
+   * We only need a short search phrase (1-5 words), no comedic line.
    */
-  function addBotTextMessage(content) {
-    const botMsg = { sender: "bot_text", content };
-    setChatMessages((prev) => [...prev, botMsg]);
+  async function callOpenAIForSearchPhrase(userText) {
+    const systemMessage = {
+      role: "system",
+      content: `
+You are a helpful AI that outputs only a short search phrase (1-5 words), describing the user's requested meme. No extra lines or text. If user references a known meme (like "spiderman pointing"), keep it exact.
+      `,
+    };
+    const userMessage = { role: "user", content: userText };
+    try {
+      const resp = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-3.5-turbo",
+          messages: [systemMessage, userMessage],
+          max_tokens: 30,
+          temperature: 0.7,
+        }),
+      });
+      if (!resp.ok) {
+        console.error("OpenAI search error:", resp);
+        throw new Error(`OpenAI error: ${resp.status}`);
+      }
+      const data = await resp.json();
+      let phrase = data.choices?.[0]?.message?.content?.trim() || "";
+      console.log("Search phrase from GPT:", phrase);
+
+      // sanitize
+      phrase = phrase.replace(/[^\w\s]/g, " ").trim();
+      const words = phrase.split(/\s+/).filter(Boolean).slice(0, 5);
+      const finalPhrase = words.join(" ");
+
+      return finalPhrase;
+    } catch (err) {
+      console.error("callOpenAIForSearchPhrase failed:", err);
+      return "";
+    }
   }
 
-  /**
-   * Helper to add a "bot" meme message (image)
-   */
-  function addBotMemeMessage(url) {
-    const botMsg = { sender: "bot_meme", content: url };
-    setChatMessages((prev) => [...prev, botMsg]);
-  }
+  // ---------------------------------------------------------
+  // 2) CHATBOT FLOW
+  // ---------------------------------------------------------
 
-  /**
-   * Helper to add a "user" text message
-   */
+  // Adds user message to the chat
   function addUserMessage(content) {
-    const userMsg = { sender: "user", content };
-    setChatMessages((prev) => [...prev, userMsg]);
+    setChatMessages((prev) => [...prev, { sender: "user", content }]);
+  }
+
+  // Adds a text-based bot response
+  function addBotTextMessage(content) {
+    setChatMessages((prev) => [...prev, { sender: "bot_text", content }]);
+  }
+
+  // Adds a meme-based bot response
+  function addBotMemeMessage(url) {
+    setChatMessages((prev) => [...prev, { sender: "bot_meme", content: url }]);
   }
 
   async function handleSendChatMessage() {
     const userText = chatInput.trim();
     if (!userText) {
-      // If user typed nothing, just fetch random from r/memes/hot
+      // If empty, fetch random from fallback
       addUserMessage("(Random Meme)");
-      await fetchRandomMemeFromMultipleSubs("");
+      await fetchRandomMemeFromMultipleSubs(""); 
       setChatInput("");
       return;
     }
@@ -169,10 +190,9 @@ give the exact name "spiderman pointing meme" or something equally direct.
     setChatError(null);
     addUserMessage(userText);
 
-    // If we have a cached meme for the exact text, return it
+    // Cache check
     if (chatCache[userText]) {
-      // For a "better" experience, we might want to also store a comedic reply
-      // but let's keep it simple. We'll just display the meme.
+      // We only stored a meme in cache, so let's display it
       addBotMemeMessage(chatCache[userText]);
       setChatInput("");
       return;
@@ -180,18 +200,18 @@ give the exact name "spiderman pointing meme" or something equally direct.
 
     setChatLoading(true);
     try {
-      const { reply, keywords } = await callOpenAIForReplyAndKeywords(userText);
-      // Add comedic text as a separate message
+      // 1) Get comedic reply + short phrase
+      const { reply, keywords } = await callOpenAIForChatReply(userText);
+      // 2) Add comedic text
       addBotTextMessage(reply);
-
-      // Now fetch a random meme from multi-subreddit using `keywords`
+      // 3) fetch meme from multi-subreddits using `keywords`
       const memeUrl = await fetchRandomMemeFromMultipleSubs(keywords);
       if (memeUrl) {
         setChatCache((prev) => ({ ...prev, [userText]: memeUrl }));
       }
     } catch (err) {
       console.error("handleSendChatMessage error:", err);
-      setChatError("Failed to fetch meme. Please try again or use simpler text.");
+      setChatError("Failed to fetch meme. Please try again or simpler text.");
     } finally {
       setChatLoading(false);
       setChatInput("");
@@ -199,15 +219,14 @@ give the exact name "spiderman pointing meme" or something equally direct.
   }
 
   /**
-   * fetchRandomMemeFromMultipleSubs:
-   * - We'll do a multi-subreddit search with the given keywords, pick 1 random result
-   * - Subreddits: r/memes, r/dankmemes, r/wholesomememes
-   * - If no keywords or none found, fallback to r/memes/hot
+   * We do multi-subreddit for the chatbot (broader coverage):
+   *   r/memes, r/dankmemes, r/wholesomememes
+   * If nothing found, fallback to random from r/memes/hot
    */
   async function fetchRandomMemeFromMultipleSubs(aiKeywords) {
     try {
       if (!aiKeywords) {
-        console.log("No keywords => fallback random hot from r/memes");
+        console.log("Chatbot: no keywords => fallback hot from r/memes");
         const randomUrl = await fetchFromRedditMemesHot();
         addBotMemeMessage(randomUrl);
         return randomUrl;
@@ -230,9 +249,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
         }
       }
 
-      // De-duplicate
       const uniqueLinks = [...new Set(allLinks)];
-
       if (!uniqueLinks.length) {
         console.log("No results => fallback hot r/memes");
         const fallbackUrl = await fetchFromRedditMemesHot();
@@ -245,37 +262,35 @@ give the exact name "spiderman pointing meme" or something equally direct.
       return randomPick;
     } catch (err) {
       console.error("fetchRandomMemeFromMultipleSubs error:", err);
-      // fallback
       const fallbackUrl = await fetchFromRedditMemesHot();
       addBotMemeMessage(fallbackUrl);
       return fallbackUrl;
     }
   }
 
-  //----------------------------------------------------------------
-  // 3) Meme Search Flow
-  //----------------------------------------------------------------
+  // ---------------------------------------------------------
+  // 3) MEME SEARCH FLOW (Simpler)
+  // ---------------------------------------------------------
+
   async function handleSearchMeme() {
-    const queryText = searchQuery.trim();
-    if (!queryText) return;
+    const userText = searchQuery.trim();
+    if (!userText) return;
     setSearchError(null);
 
-    // check cache
-    if (searchCache[queryText]) {
-      setSearchResults(searchCache[queryText]);
+    // cache check
+    if (searchCache[userText]) {
+      setSearchResults(searchCache[userText]);
       setSearchQuery("");
       return;
     }
 
     setSearchLoading(true);
     try {
-      // We'll do the new approach: comedic reply + keywords,
-      // but for searching we only need the keywords. We won't show
-      // the comedic text in the Search UI, though you could if you wanted.
-      const { keywords } = await callOpenAIForReplyAndKeywords(queryText);
-      const foundMemes = await fetchMultiSubredditSearch(keywords);
+      // Only a short phrase from GPT
+      const phrase = await callOpenAIForSearchPhrase(userText);
+      const foundMemes = await fetchMemeSearchFromMemes(phrase);
       if (foundMemes.length) {
-        setSearchCache((prev) => ({ ...prev, [queryText]: foundMemes }));
+        setSearchCache((prev) => ({ ...prev, [userText]: foundMemes }));
       }
     } catch (err) {
       console.error("handleSearchMeme error:", err);
@@ -287,44 +302,30 @@ give the exact name "spiderman pointing meme" or something equally direct.
   }
 
   /**
-   * fetchMultiSubredditSearch:
-   *  - subreddits: r/memes, r/dankmemes, r/wholesomememes
-   *  - If no AI keywords or no results, fallback to r/memes/hot
+   * This time we only use r/memes to keep it more focused.
+   * If no results, fallback random hot.
    */
-  async function fetchMultiSubredditSearch(aiKeywords) {
+  async function fetchMemeSearchFromMemes(aiKeywords) {
     if (!aiKeywords) {
-      console.log("No AI keywords => fallback to random hot from r/memes");
-      const fallbackOne = await fetchFromRedditMemesHot();
-      setSearchResults([
-        { url: fallbackOne, title: "Random Meme from r/memes/hot" },
-      ]);
-      return [{ url: fallbackOne, title: "Random Meme from r/memes/hot" }];
+      console.log("Search: no AI keywords => fallback random hot from r/memes");
+      const fallback = await fetchFromRedditMemesHot();
+      setSearchResults([{ url: fallback, title: "Random Meme from r/memes/hot" }]);
+      return [{ url: fallback, title: "Random Meme from r/memes/hot" }];
     }
 
-    const subreddits = ["memes", "dankmemes", "wholesomememes"];
-    let allLinks = [];
-
     try {
-      for (const sub of subreddits) {
-        const query = encodeURIComponent(aiKeywords);
-        const url = `https://www.reddit.com/r/${sub}/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=6`;
-        console.log(`Search GET from /r/${sub}:`, url);
+      const query = encodeURIComponent(aiKeywords);
+      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
+      console.log("Search GET from /r/memes:", url);
 
-        const resp = await fetch(url);
-        if (!resp.ok) {
-          console.error(`Reddit search error: ${resp.status} for /r/${sub}`);
-          continue;
-        }
-        const data = await resp.json();
-        const posts = data?.data?.children || [];
-        const imageLinks = extractImagesFromRedditPosts(posts);
-        allLinks = [...allLinks, ...imageLinks];
-      }
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
+      const data = await resp.json();
+      const posts = data?.data?.children || [];
+      const imageLinks = extractImagesFromRedditPosts(posts);
 
-      // remove duplicates
-      const uniqueLinks = [...new Set(allLinks)];
-
-      if (!uniqueLinks.length) {
+      if (!imageLinks.length) {
+        // fallback
         console.log("No memes found => fallback random hot from r/memes");
         const fallbackOne = await fetchFromRedditMemesHot();
         setSearchResults([
@@ -341,15 +342,15 @@ give the exact name "spiderman pointing meme" or something equally direct.
         ];
       }
 
-      const shaped = uniqueLinks.map((link, i) => ({
+      // shape
+      const shaped = imageLinks.map((link, i) => ({
         url: link,
         title: `Meme #${i + 1}`,
       }));
       setSearchResults(shaped);
       return shaped;
     } catch (err) {
-      console.error("fetchMultiSubredditSearch error:", err);
-      // fallback
+      console.error("fetchMemeSearchFromMemes error:", err);
       const fallbackOne = await fetchFromRedditMemesHot();
       setSearchResults([
         {
@@ -366,9 +367,9 @@ give the exact name "spiderman pointing meme" or something equally direct.
     }
   }
 
-  //----------------------------------------------------------------
-  // fetchFromRedditMemesHot: fallback random from r/memes/hot
-  //----------------------------------------------------------------
+  // ---------------------------------------------------------
+  // 4) Fallback to random from r/memes/hot
+  // ---------------------------------------------------------
   async function fetchFromRedditMemesHot() {
     const hotUrl = `https://www.reddit.com/r/memes/hot.json?limit=20`;
     console.log("Fetching from /r/memes/hot:", hotUrl);
@@ -379,36 +380,31 @@ give the exact name "spiderman pointing meme" or something equally direct.
       const posts = data?.data?.children || [];
       const imageLinks = extractImagesFromRedditPosts(posts);
       if (!imageLinks.length) {
-        console.log("No images found even in hot!");
         return "https://placekitten.com/400/400";
       }
       const randomPick = imageLinks[Math.floor(Math.random() * imageLinks.length)];
       return randomPick;
     } catch (err) {
       console.error("fetchFromRedditMemesHot error:", err);
-      // final fallback
       return "https://placekitten.com/400/400";
     }
   }
 
-  //----------------------------------------------------------------
-  //  Utility: parse Reddit post data into image links
-  //----------------------------------------------------------------
+  // ---------------------------------------------------------
+  // 5) Helper: extract images from reddit posts
+  // ---------------------------------------------------------
   function extractImagesFromRedditPosts(posts) {
     const images = [];
     for (const p of posts) {
       const pd = p.data;
       if (!pd) continue;
-
       const preview = pd.preview;
       const maybeImg =
         preview?.images?.[0]?.source?.url ||
         pd.url_overridden_by_dest ||
         "";
-      // Some reddit links have &amp; or HTML escapes
+      // fix &amp;
       const sanitized = maybeImg.replace(/&amp;/g, "&");
-
-      // Make sure it's an image extension or looks like an image
       if (/\.(jpg|jpeg|png|gif)/i.test(sanitized)) {
         images.push(sanitized);
       }
@@ -416,27 +412,27 @@ give the exact name "spiderman pointing meme" or something equally direct.
     return images;
   }
 
-  //----------------------------------------------------------------
-  //  UI
-  //----------------------------------------------------------------
+  // ---------------------------------------------------------
+  // 6) RENDER
+  // ---------------------------------------------------------
   return (
     <div className="font-sans text-gray-800">
       <Helmet>
         <title>Meme Assistant</title>
         <meta 
           name="description" 
-          content="Get personalized memes tailored to your mood. Instantly search or chat with our Meme Assistant!"
+          content="Get personalized memes for your mood! Chat or search for the perfect meme."
         />
         <link rel="canonical" href="https://www.gimmememes.com/" />
       </Helmet>
 
-      {/* Simple top banner (title + tagline) */}
+      {/* Simple top banner */}
       <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
         <h1 className="text-3xl md:text-4xl font-bold mb-2 drop-shadow-sm">
           Get the Perfect Meme for Your Mood
         </h1>
         <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">
-          Chat or search to find the perfect laugh.
+          Choose Chatbot or Search to find the best laugh.
         </p>
       </div>
 
@@ -465,7 +461,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
           </button>
         </div>
 
-        {/* Chatbot UI */}
+        {/* -------------- Chatbot UI -------------- */}
         {mode === "chatbot" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
             <h2 className="text-xl font-bold text-center mb-4">
@@ -483,7 +479,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
               )}
               {chatMessages.map((msg, idx) => {
                 if (msg.sender === "bot_text") {
-                  // Comedic text reply from GPT
+                  // comedic text line
                   return (
                     <div key={idx} className="flex justify-start mb-3">
                       <div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">
@@ -492,7 +488,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
                     </div>
                   );
                 } else if (msg.sender === "bot_meme") {
-                  // Meme image
+                  // meme
                   return (
                     <div key={idx} className="flex justify-start mb-3">
                       <div className="flex flex-col items-start">
@@ -501,7 +497,6 @@ give the exact name "spiderman pointing meme" or something equally direct.
                           alt="Bot Meme"
                           className="max-w-xs rounded-lg border border-gray-300 shadow-sm"
                         />
-                        {/* Download link */}
                         <a
                           href={msg.content}
                           download
@@ -530,7 +525,6 @@ give the exact name "spiderman pointing meme" or something equally direct.
                   );
                 }
               })}
-
               {chatLoading && (
                 <div className="flex justify-center mt-4">
                   <div className="loader mr-2"></div>
@@ -538,6 +532,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
                 </div>
               )}
             </div>
+
             {chatError && (
               <div className="text-red-600 mb-4 text-center">{chatError}</div>
             )}
@@ -564,7 +559,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
           </div>
         )}
 
-        {/* Search UI */}
+        {/* -------------- Search UI -------------- */}
         {mode === "search" && (
           <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
             <h2 className="text-xl font-bold text-center mb-4">
@@ -577,7 +572,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
-                placeholder='e.g. "spiderman pointing to each other" or "awkward office cat"'
+                placeholder='e.g. "spiderman pointing to each other" or "drake meme"'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -585,6 +580,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
                 }}
               />
             </div>
+
             <button
               onClick={handleSearchMeme}
               className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
@@ -592,6 +588,7 @@ give the exact name "spiderman pointing meme" or something equally direct.
             >
               {searchLoading ? "Searching..." : "Search Meme"}
             </button>
+
             {searchError && (
               <div className="text-red-600 mt-4 text-center">{searchError}</div>
             )}
@@ -640,9 +637,10 @@ give the exact name "spiderman pointing meme" or something equally direct.
                   </div>
                 ))}
               </div>
+
               {!searchLoading && searchResults.length === 0 && (
                 <p className="text-gray-500 text-center mt-8">
-                  No memes found yet. Try describing your meme above!
+                  No memes found. Try describing your meme differently!
                 </p>
               )}
             </div>
