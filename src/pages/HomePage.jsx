@@ -73,8 +73,8 @@ export default function HomePage() {
       console.error("Error in callOpenAIForChatReply:", err);
       return { reply: "Let's just get a random one!", keywords: "random meme" };
     }
-  }
-
+  }  
+  
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
       role: "system",
@@ -129,7 +129,7 @@ Do not include quotes or the word "meme".
     if (words.length === 0) words = rawKeywords.split(/\s+/);
   
     return words.slice(0, 3).join(" ");
-  }
+  }  
   
   async function fetchRedditMeme(query) {
     if (!query) {
@@ -170,8 +170,8 @@ Do not include quotes or the word "meme".
           const score = computeScore(post, searchQuery);
           console.log("Post:", post.data.title, "Score:", score);
   
-          // Ignore low-score memes
-          if (score > 15 && score > bestScore) {
+          // Keep a wider range of scores instead of filtering out everything
+          if (score > 10 && score > bestScore) {
             bestScore = score;
             bestMeme = img;
           }
@@ -215,8 +215,8 @@ Do not include quotes or the word "meme".
   
     let finalScore = relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2;
   
-    // **Filter out bad memes**
-    if (finalScore < 15) {
+    // **Lower the threshold for filtering out memes**
+    if (finalScore < 10) {
       console.log("Skipping meme due to low score:", finalScore);
       return -1000; // Forces exclusion
     }
