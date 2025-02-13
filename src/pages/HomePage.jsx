@@ -23,57 +23,57 @@ export default function HomePage() {
 
   async function callOpenAIForChatReply(userText) {
     const sys = {
-      role: "system",
-      content: `
-  You are a witty AI that replies in exactly two lines.
-  Line 1: A fun, engaging response based on user input.
-  Line 2: The most relevant 1-3 words describing a meme topic (NO hashtags, NO emojis, NO extra words).
-  STRICTLY return only these two lines, nothing else.
-      `,
+        role: "system",
+        content: `
+        You are a witty AI that replies in exactly two lines.
+        Line 1: A fun, engaging response based on user input.
+        Line 2: The most relevant 1-3 words describing a meme topic (NO hashtags, NO emojis, NO extra words).
+        STRICTLY return only these two lines, nothing else.
+        `,
     };
-  
+
     try {
-      console.log("GPT Chat Reply Request with:", userText);
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${OPENAI_API_KEY}` 
-        },
-        body: JSON.stringify({
-          model: "gpt-4-turbo",
-          messages: [sys, { role: "user", content: userText }],
-          max_tokens: 40,
-          temperature: 0.8,
-        }),
-      });
-  
-      if (!response.ok) throw new Error(`GPT error: ${response.status}`);
-      const data = await response.json();
-      const output = data.choices?.[0]?.message?.content?.trim() || "";
-      console.log("GPT Chat Reply Raw Output:", output);
-  
-      let lines = output.split("\n").map(s => s.trim()).filter(Boolean);
-  
-      if (lines.length !== 2) {
-        console.error("Unexpected GPT format:", output);
-        return { reply: "Let's just get a random one!", keywords: "random meme" };
-      }
-  
-      const reply = lines[0];
-      let keywords = lines[1];
-  
-      // Remove unwanted characters and limit to 3 words max
-      keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim();
-      keywords = keywords.split(/\s+/).slice(0, 3).join(" "); // Ensure max 3 words
-  
-      console.log("Extracted Chat Reply:", reply, "Keywords:", keywords);
-      return { reply, keywords };
+        console.log("GPT Chat Reply Request with:", userText);
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json", 
+                Authorization: `Bearer ${OPENAI_API_KEY}` 
+            },
+            body: JSON.stringify({
+                model: "gpt-4-turbo",
+                messages: [sys, { role: "user", content: userText }],
+                max_tokens: 40,
+                temperature: 0.8,
+            }),
+        });
+
+        if (!response.ok) throw new Error(`GPT error: ${response.status}`);
+        const data = await response.json();
+        const output = data.choices?.[0]?.message?.content?.trim() || "";
+        console.log("GPT Chat Reply Raw Output:", output);
+
+        let lines = output.split("\n").map(s => s.trim()).filter(Boolean);
+
+        if (lines.length !== 2) {
+            console.error("Unexpected GPT format:", output);
+            return { reply: "Let's just get a random one!", keywords: "random meme" };
+        }
+
+        const reply = lines[0];
+        let keywords = lines[1];
+
+        // **Ensure keywords are valid** by limiting to 3 words & cleaning input
+        keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim();
+        keywords = keywords.split(/\s+/).slice(0, 3).join(" ");
+
+        console.log("Extracted Chat Reply:", reply, "Keywords:", keywords);
+        return { reply, keywords };
     } catch (err) {
-      console.error("Error in callOpenAIForChatReply:", err);
-      return { reply: "Let's just get a random one!", keywords: "random meme" };
+        console.error("Error in callOpenAIForChatReply:", err);
+        return { reply: "Let's just get a random one!", keywords: "random meme" };
     }
-  }  
+}
   
   async function callOpenAIForSearchPhrase(userText) {
     const sys = {
@@ -124,68 +124,68 @@ Do not include quotes or the word "meme".
   function cleanKeywords(rawKeywords) {
     const ignoredWords = ["funny", "humor", "meme", "trend", "joke", "random"];
     let words = rawKeywords.split(/\s+/).filter(w => !ignoredWords.includes(w));
-  
-    // If all words were filtered, keep the original input
+
+    // **Allow up to 3 words instead of filtering everything**
     if (words.length === 0) words = rawKeywords.split(/\s+/);
   
-    return words.slice(0, 3).join(" ");
-  }  
+    return words.slice(0, 3).join(" "); 
+} 
   
-  async function fetchRedditMeme(query) {
-    if (!query) {
+async function fetchRedditMeme(query) {
+  if (!query) {
       console.log("No keywords provided; falling back to hot memes.");
       return await fetchFromHot();
-    }
-  
-    const searchQuery = cleanKeywords(query);
-    const variants = [
+  }
+
+  const searchQuery = cleanKeywords(query);
+  const variants = [
       `title:"${searchQuery}"`, 
       searchQuery,
       searchQuery.split(" ").slice(0, 2).join(" "), 
       searchQuery.split(" ")[0]
-    ];
-  
-    let bestMeme = null;
-    let bestScore = -Infinity;
-  
-    for (const variant of variants) {
+  ];
+
+  let bestMeme = null;
+  let bestScore = -Infinity;
+
+  for (const variant of variants) {
       const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(variant)}&restrict_sr=1&sort=relevance&limit=50`;
       console.log("Searching variant:", variant, "URL:", url);
-  
+
       try {
-        const res = await fetch(url);
-        if (!res.ok) {
-          console.log("Variant query failed with status", res.status);
-          continue;
-        }
-  
-        const data = await res.json();
-        const posts = data?.data?.children || [];
-        console.log("Variant", variant, "returned", posts.length, "posts");
-  
-        posts.forEach(post => {
-          const img = extractImage(post);
-          if (!img) return;
-  
-          const score = computeScore(post, searchQuery);
-          console.log("Post:", post.data.title, "Score:", score);
-  
-          // Keep a wider range of scores instead of filtering out everything
-          if (score > 10 && score > bestScore) {
-            bestScore = score;
-            bestMeme = img;
+          const res = await fetch(url);
+          if (!res.ok) {
+              console.log("Variant query failed with status", res.status);
+              continue;
           }
-        });
-  
-        if (bestMeme) break; // Stop early if a good meme is found
+
+          const data = await res.json();
+          const posts = data?.data?.children || [];
+          console.log("Variant", variant, "returned", posts.length, "posts");
+
+          posts.forEach(post => {
+              const img = extractImage(post);
+              if (!img) return;
+
+              const score = computeScore(post, searchQuery);
+              console.log("Post:", post.data.title, "Score:", score);
+
+              // **Reduce filtering threshold slightly** 
+              if (score > 5 && score > bestScore) {
+                  bestScore = score;
+                  bestMeme = img;
+              }
+          });
+
+          if (bestMeme) break; // Stop early if a good meme is found
       } catch (err) {
-        console.error("Error with variant:", variant, err);
+          console.error("Error with variant:", variant, err);
       }
-    }
-  
-    console.log("Best meme score:", bestScore);
-    return bestMeme || await fetchFromHot();
-  }  
+  }
+
+  console.log("Best meme score:", bestScore);
+  return bestMeme || await fetchFromHot();
+}
 
   function extractImage(post) {
     const pd = post.data;
@@ -263,27 +263,33 @@ Do not include quotes or the word "meme".
   async function handleSendChatMessage() {
     const text = chatInput.trim();
     if (!text) {
-      addUserMessage("(Random)");
-      const fallback = await fetchFromHot();
-      addBotMemeMessage(fallback);
-      setChatInput("");
-      return;
+        addUserMessage("(Random)");
+        const fallback = await fetchFromHot();
+        addBotMemeMessage(fallback);
+        setChatInput("");
+        return;
     }
+
     addUserMessage(text);
     setChatLoading(true);
+
     try {
-      const { reply, keywords } = await callOpenAIForChatReply(text);
-      addBotTextMessage(reply);
-      const memeUrl = await fetchRedditMeme(keywords);
-      addBotMemeMessage(memeUrl);
+        const { reply, keywords } = await callOpenAIForChatReply(text);
+        addBotTextMessage(reply);
+        
+        // **Ensure meme is always returned, even if keywords are wrong**
+        let memeUrl = await fetchRedditMeme(keywords);
+        if (!memeUrl) memeUrl = await fetchFromHot();
+        
+        addBotMemeMessage(memeUrl);
     } catch (err) {
-      console.error("Chatbot error:", err);
-      addBotTextMessage("Couldn't fetch meme. Try again.");
+        console.error("Chatbot error:", err);
+        addBotTextMessage("Couldn't fetch meme. Try again.");
     } finally {
-      setChatLoading(false);
-      setChatInput("");
+        setChatLoading(false);
+        setChatInput("");
     }
-  }
+}
 
   async function handleSearchMeme() {
     const text = searchQuery.trim();
