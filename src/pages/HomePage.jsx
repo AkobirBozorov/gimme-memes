@@ -21,22 +21,26 @@ export default function HomePage() {
     }
   }, [chatMessages]);
 
+  // Revised GPT prompt: Force exactly two lines.
   async function callOpenAIForChatReply(userText) {
     const curatedList = "Spiderman Pointing, Distracted Boyfriend, Drake Hotline Bling, Surprised Pikachu, Two Buttons, Expanding Brain, Change My Mind, UNO Draw 25";
     const sys = {
       role: "system",
       content: `
-Respond in EXACTLY 2 lines.
-Line 1: A friendly, witty reply to the user (1-2 sentences) without revealing the meme template.
-Line 2: Choose ONE meme template name from the following list if appropriate: ${curatedList}. If none match, output a relevant generic keyword.
-Do not include quotes or extra words.
+You are a friendly, witty AI assistant. You must produce EXACTLY TWO lines of output.
+Line 1: Provide a friendly, witty reply (1-2 sentences) to the user without mentioning any meme template or the word "meme".
+Line 2: Choose ONE meme template name from the following list: ${curatedList}. If none fits, output the word "funny".
+Output exactly two lines separated by a newline.
       `,
     };
     try {
       console.log("GPT Chat Reply Request with:", userText);
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${OPENAI_API_KEY}` 
+        },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
           messages: [sys, { role: "user", content: userText }],
@@ -52,13 +56,15 @@ Do not include quotes or extra words.
       if (lines.length > 2) lines = [lines[0], lines.slice(1).join(" ")];
       const reply = lines[0] || "Interesting!";
       let keywords = lines[1] || "";
+      // Ensure keywords are not blank; if so, default to "funny"
+      if (!keywords) keywords = "funny";
       keywords = keywords.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
-      keywords = keywords.split(/\s+/).slice(0, 5).join(" ");
+      keywords = keywords.split(/\s+/).slice(0,5).join(" ");
       console.log("Extracted Chat Reply:", reply, "Keywords:", keywords);
       return { reply, keywords };
     } catch (err) {
       console.error("Error in callOpenAIForChatReply:", err);
-      return { reply: "Let's grab a random one!", keywords: "" };
+      return { reply: "Let's just get a random one!", keywords: "funny" };
     }
   }
 
@@ -74,7 +80,10 @@ Do not include quotes or the word "meme".
       console.log("GPT Search Phrase Request with:", userText);
       const r = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${OPENAI_API_KEY}` },
+        headers: { 
+          "Content-Type": "application/json", 
+          Authorization: `Bearer ${OPENAI_API_KEY}` 
+        },
         body: JSON.stringify({
           model: "gpt-3.5-turbo",
           messages: [sys, { role: "user", content: userText }],
@@ -86,7 +95,7 @@ Do not include quotes or the word "meme".
       const d = await r.json();
       let phrase = d.choices?.[0]?.message?.content?.trim() || "";
       phrase = phrase.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
-      phrase = phrase.split(/\s+/).slice(0, 5).join(" ");
+      phrase = phrase.split(/\s+/).slice(0,5).join(" ");
       console.log("Extracted Search Phrase:", phrase);
       return phrase;
     } catch (err) {
@@ -95,19 +104,19 @@ Do not include quotes or the word "meme".
     }
   }
 
-  function addUserMessage(msg) {
-    setChatMessages(prev => [...prev, { sender: "user", content: msg }]);
+  function addUserMessage(c) {
+    setChatMessages(p => [...p, { sender: "user", content: c }]);
   }
-  function addBotTextMessage(msg) {
-    setChatMessages(prev => [...prev, { sender: "bot_text", content: msg }]);
+  function addBotTextMessage(c) {
+    setChatMessages(p => [...p, { sender: "bot_text", content: c }]);
   }
-  function addBotMemeMessage(url) {
-    setChatMessages(prev => [...prev, { sender: "bot_meme", content: url }]);
+  function addBotMemeMessage(u) {
+    setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
   }
 
   async function fetchRedditMeme(query) {
     if (!query) {
-      console.log("No keywords; using fallback hot memes.");
+      console.log("No keywords provided; falling back to hot memes.");
       return await fetchFromHot();
     }
     const variants = [`title:"${query}"`, query, `${query} meme`];
@@ -129,14 +138,14 @@ Do not include quotes or the word "meme".
           const img = extractImage(post);
           if (!img) return;
           const score = computeScore(post, query);
-          console.log("Post title:", post.data.title, "Score:", score);
+          console.log("Post:", post.data.title, "Score:", score);
           if (score > bestScore) {
             bestScore = score;
             bestMeme = img;
           }
         });
       } catch (err) {
-        console.error("Error with variant", v, err);
+        console.error("Error with variant:", v, err);
       }
     }
     console.log("Best meme score:", bestScore);
@@ -171,6 +180,7 @@ Do not include quotes or the word "meme".
     console.log("Fetching hot memes from:", url);
     try {
       const res = await fetch(url);
+      if (!res.ok) throw new Error("Hot memes fetch error");
       const data = await res.json();
       const posts = data?.data?.children || [];
       let best = null, bestScore = -Infinity;
@@ -238,7 +248,9 @@ Do not include quotes or the word "meme".
       const fallback = await fetchFromHot();
       return [{ url: fallback, title: "Random Meme" }];
     }
-    const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(`title:"${query}"`)}&restrict_sr=1&sort=relevance&limit=50`;
+    const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(
+      `title:"${query}"`
+    )}&restrict_sr=1&sort=relevance&limit=50`;
     console.log("Search URL:", url);
     try {
       const res = await fetch(url);
