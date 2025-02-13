@@ -75,41 +75,48 @@ export default function HomePage() {
     }
 }
   
-  async function callOpenAIForSearchPhrase(userText) {
-    const sys = {
-      role: "system",
-      content: `
-Return only a short phrase (1-5 words) describing the requested meme.
-Do not include quotes or the word "meme".
-      `,
-    };
-    try {
+async function callOpenAIForSearchPhrase(userText) {
+  const sys = {
+    role: "system",
+    content: `
+You are a meme topic generator. 
+- Respond with only a short, meaningful meme topic (1-4 words) based on the input. 
+- Do NOT include phrases like "funny," "humor," "meme," "trend," or extra words. 
+- Example: If user says "I need money," return "broke life" or "cash problems" (no unnecessary words). 
+    `,
+  };
+
+  try {
       console.log("GPT Search Phrase Request with:", userText);
-      const r = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json", 
-          Authorization: `Bearer ${OPENAI_API_KEY}` 
-        },
-        body: JSON.stringify({
-          model: "gpt-4-turbo",
-          messages: [sys, { role: "user", content: userText }],
-          max_tokens: 30,
-          temperature: 0.7,
-        }),
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+          method: "POST",
+          headers: { 
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${OPENAI_API_KEY}`
+          },
+          body: JSON.stringify({
+              model: "gpt-4-turbo", // Use GPT-4 for better topic accuracy
+              messages: [sys, { role: "user", content: userText }],
+              max_tokens: 20,
+              temperature: 0.6,
+          }),
       });
-      if (!r.ok) throw new Error(`GPT search error: ${r.status}`);
-      const d = await r.json();
-      let phrase = d.choices?.[0]?.message?.content?.trim() || "";
-      phrase = phrase.replaceAll(/["']/g, "").replace(/[^\p{L}\p{N}\s]/giu, " ").trim();
-      phrase = phrase.split(/\s+/).slice(0,5).join(" ");
+
+      if (!response.ok) throw new Error(`GPT search error: ${response.status}`);
+      const data = await response.json();
+      let phrase = data.choices?.[0]?.message?.content?.trim() || "";
+
+      // ✅ Remove unwanted characters & limit to 4 words
+      phrase = phrase.replace(/[^\w\s-]/g, "").trim();
+      phrase = phrase.split(/\s+/).slice(0, 4).join(" ");
+
       console.log("Extracted Search Phrase:", phrase);
       return phrase;
-    } catch (err) {
+  } catch (err) {
       console.error("Error in callOpenAIForSearchPhrase:", err);
       return "";
-    }
   }
+}
 
   function addUserMessage(c) {
     setChatMessages(p => [...p, { sender: "user", content: c }]);
@@ -315,35 +322,54 @@ function extractImage(post) {
 
   async function fetchMultiSearchArray(query) {
     if (!query) {
-      const fallback = await fetchFromHot();
-      return [{ url: fallback, title: "Random Meme" }];
-    }
-    const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(
-      `title:"${query}"`
-    )}&restrict_sr=1&sort=relevance&limit=50`;
-    console.log("Search URL:", url);
-    try {
-      const r = await fetch(url);
-      if (!r.ok) throw new Error("Search error");
-      const d = await r.json();
-      const posts = d?.data?.children || [];
-      if (!posts.length) {
         const fallback = await fetchFromHot();
         return [{ url: fallback, title: "Random Meme" }];
-      }
-      const arr = [];
-      posts.forEach(post => {
-        const img = extractImage(post);
-        if (img) arr.push({ url: img, title: post.data.title });
-      });
-      arr.sort((a, b) => b.title.length - a.title.length);
-      return arr.slice(0, 10).map((o, i) => ({ url: o.url, title: `Meme #${i + 1}` }));
-    } catch (err) {
-      console.error("Error in fetchMultiSearchArray:", err);
-      const fallback = await fetchFromHot();
-      return [{ url: fallback, title: "Random Meme" }];
     }
-  }
+
+    const cleanQuery = query.replace(/[^\w\s]/g, "").trim(); // Clean search term
+    const searchVariants = [
+        `title:"${cleanQuery}"`, 
+        cleanQuery,
+        cleanQuery.split(" ").slice(0, 2).join(" "),
+        cleanQuery.split(" ")[0]
+    ];
+
+    let bestMemes = [];
+    
+    for (const variant of searchVariants) {
+        const url = `https://www.reddit.com/r/memes/search.json?q=${encodeURIComponent(variant)}&restrict_sr=1&sort=relevance&limit=50`;
+        console.log("Searching variant:", variant, "URL:", url);
+
+        try {
+            const res = await fetch(url);
+            if (!res.ok) {
+                console.log("Variant query failed:", res.status);
+                continue;
+            }
+
+            const data = await res.json();
+            const posts = data?.data?.children || [];
+
+            posts.forEach(post => {
+                const img = extractImage(post);
+                if (!img) return;
+
+                bestMemes.push({ url: img, title: post.data.title });
+            });
+
+            if (bestMemes.length > 0) break; // Stop if good memes are found
+        } catch (err) {
+            console.error("Error in fetchMultiSearchArray:", err);
+        }
+    }
+
+    if (bestMemes.length === 0) {
+        const fallback = await fetchFromHot();
+        return [{ url: fallback, title: "Random Meme" }];
+    }
+
+    return bestMemes.slice(0, 10);
+}
 
   return (
     <div className="font-sans text-gray-800">
