@@ -2,14 +2,17 @@
 import React, { useState } from "react";
 import { Helmet } from "react-helmet-async";
 
-/** 
+/**
  * We rely on an OpenAI key stored in .env:
  *   VITE_OPENAI_API_KEY=sk-xxxxx
  */
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
+/**
+ * HomePage merges a hero + MemeAssistant UI in one place
+ */
 export default function HomePage() {
-  // Page (Meme Assistant) State
+  // UI Mode
   const [mode, setMode] = useState("chatbot"); // "chatbot" or "search"
 
   // Chatbot
@@ -39,7 +42,7 @@ export default function HomePage() {
       content: `
         You are a helpful AI that generates a concise phrase (1-3 words) 
         to search for relevant memes. 
-        - Do not provide synonyms or multiple OR terms. 
+        - Avoid providing synonyms or multiple OR terms. 
         - Output only a very short phrase (1 to 3 words), 
           capturing the comedic essence of the user's text. 
         - Do NOT include punctuation beyond spaces.
@@ -81,14 +84,14 @@ export default function HomePage() {
   }
 
   //----------------------------------------------------------------
-  // 2) Chatbot Mode: get user text -> call AI -> fetch random meme
+  // 2) Chatbot Mode: user text -> AI -> fetch random meme
   //----------------------------------------------------------------
   async function handleSendChatMessage() {
     if (!chatInput.trim()) {
-      // If user typed nothing, just fetch random top
+      // If user typed nothing, just fetch random top from r/memes
       const userMsg = { sender: "user", content: "(Random Meme)" };
       setChatMessages((prev) => [...prev, userMsg]);
-      await fetchRedditRandomMeme("");
+      await fetchRandomMemeFromMultipleSubs("");
       setChatInput("");
       return;
     }
@@ -109,7 +112,7 @@ export default function HomePage() {
     setChatLoading(true);
     try {
       const aiKeywords = await callOpenAIForKeywords(chatInput);
-      const memeUrl = await fetchRedditRandomMeme(aiKeywords);
+      const memeUrl = await fetchRandomMemeFromMultipleSubs(aiKeywords);
       if (memeUrl) {
         setChatCache((prev) => ({ ...prev, [chatInput]: memeUrl }));
       }
@@ -123,44 +126,52 @@ export default function HomePage() {
   }
 
   /**
-   * fetchRedditRandomMeme:
-   * - We'll do a search in r/memes with the given keywords, pick 1 random result from up to 10 results
-   * - If no keywords or none found, fallback to top/hot from r/memes
+   * fetchRandomMemeFromMultipleSubs:
+   * - We'll do a multi-subreddit search with the given keywords, pick 1 random result from up to 15 results total
+   * - Subreddits: r/memes, r/dankmemes, r/wholesomememes
+   * - If no keywords or none found, fallback to r/memes/hot
    */
-  async function fetchRedditRandomMeme(aiKeywords) {
+  async function fetchRandomMemeFromMultipleSubs(aiKeywords) {
     try {
       if (!aiKeywords) {
-        console.log("Chatbot random approach with no keywords. Fetching /r/memes/hot");
+        console.log("No AI keywords, fallback to random hot from r/memes");
         const randomUrl = await fetchFromRedditMemesHot();
         addBotMessage(randomUrl);
         return randomUrl;
       }
 
-      console.log("Chatbot searching r/memes with query:", aiKeywords);
-      const query = encodeURIComponent(aiKeywords);
-      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
-      console.log("Chatbot GET URL:", url);
+      const subreddits = ["memes", "dankmemes", "wholesomememes"];
+      let allLinks = [];
 
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
-      const data = await resp.json();
+      for (const sub of subreddits) {
+        const query = encodeURIComponent(aiKeywords);
+        const url = `https://www.reddit.com/r/${sub}/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=5`;
+        console.log(`Chatbot GET from /r/${sub}:`, url);
 
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      if (!imageLinks.length) {
-        // fallback
-        console.log("No results from search, fallback to random hot memes");
+        const resp = await fetch(url);
+        if (resp.ok) {
+          const data = await resp.json();
+          const posts = data?.data?.children || [];
+          const imageLinks = extractImagesFromRedditPosts(posts);
+          allLinks = [...allLinks, ...imageLinks];
+        }
+      }
+
+      // De-duplicate
+      const uniqueLinks = [...new Set(allLinks)];
+
+      if (!uniqueLinks.length) {
+        console.log("No results from multi-subreddit search => fallback hot r/memes");
         const fallbackUrl = await fetchFromRedditMemesHot();
         addBotMessage(fallbackUrl);
         return fallbackUrl;
       }
 
-      // pick a random one
-      const randomPick = imageLinks[Math.floor(Math.random() * imageLinks.length)];
+      const randomPick = uniqueLinks[Math.floor(Math.random() * uniqueLinks.length)];
       addBotMessage(randomPick);
       return randomPick;
     } catch (err) {
-      console.error("fetchRedditRandomMeme error:", err);
+      console.error("fetchRandomMemeFromMultipleSubs error:", err);
       // fallback
       const fallbackUrl = await fetchFromRedditMemesHot();
       addBotMessage(fallbackUrl);
@@ -168,7 +179,7 @@ export default function HomePage() {
     }
   }
 
-  // Fetch from the "hot" listing of r/memes, pick 1 random
+  // fallback: fetch from the "hot" listing of r/memes, pick 1 random
   async function fetchFromRedditMemesHot() {
     const hotUrl = `https://www.reddit.com/r/memes/hot.json?limit=20`;
     console.log("Fetching from /r/memes/hot:", hotUrl);
@@ -197,7 +208,7 @@ export default function HomePage() {
   }
 
   //----------------------------------------------------------------
-  // 3) Meme Search
+  // 3) Meme Search (multi-subreddit)
   //----------------------------------------------------------------
   async function handleSearchMeme() {
     if (!searchQuery.trim()) return;
@@ -213,8 +224,8 @@ export default function HomePage() {
     setSearchLoading(true);
     try {
       const aiKeywords = await callOpenAIForKeywords(searchQuery);
-      const foundMemes = await fetchRedditSearch(aiKeywords);
-      if (foundMemes.length && searchQuery.trim()) {
+      const foundMemes = await fetchMultiSubredditSearch(aiKeywords);
+      if (foundMemes.length) {
         setSearchCache((prev) => ({ ...prev, [searchQuery]: foundMemes }));
       }
     } catch (err) {
@@ -227,37 +238,42 @@ export default function HomePage() {
   }
 
   /**
-   * fetchRedditSearch:
-   * - If AI gave no keywords or there's nothing found, fallback to random from r/memes/hot
+   * fetchMultiSubredditSearch:
+   *  - subreddits: r/memes, r/dankmemes, r/wholesomememes
+   *  - If no AI keywords or no results, fallback to r/memes/hot
    */
-  async function fetchRedditSearch(aiKeywords) {
+  async function fetchMultiSubredditSearch(aiKeywords) {
     if (!aiKeywords) {
-      console.log("No AI keywords, fallback to random hot search");
-      const randomOne = await fetchFromRedditMemesHot();
-      setSearchResults([
-        { url: randomOne, title: "Random Meme from r/memes/hot" },
-      ]);
-      return [
-        { url: randomOne, title: "Random Meme from r/memes/hot" },
-      ];
+      console.log("No AI keywords => fallback to random hot from r/memes");
+      const fallbackOne = await fetchFromRedditMemesHot();
+      setSearchResults([{ url: fallbackOne, title: "Random Meme from r/memes/hot" }]);
+      return [{ url: fallbackOne, title: "Random Meme from r/memes/hot" }];
     }
 
-    console.log("Search mode with AI query:", aiKeywords);
-    const query = encodeURIComponent(aiKeywords);
-    const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
-    console.log("Search GET URL:", url);
+    const subreddits = ["memes", "dankmemes", "wholesomememes"];
+    let allLinks = [];
 
     try {
-      const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
-      const data = await resp.json();
+      for (const sub of subreddits) {
+        const query = encodeURIComponent(aiKeywords);
+        const url = `https://www.reddit.com/r/${sub}/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=6`;
+        console.log(`Search GET from /r/${sub}:`, url);
 
-      const posts = data?.data?.children || [];
-      const imageLinks = extractImagesFromRedditPosts(posts);
-      console.log("Search found image links:", imageLinks);
+        const resp = await fetch(url);
+        if (!resp.ok) {
+          console.error(`Reddit search error: ${resp.status} for /r/${sub}`);
+          continue;
+        }
+        const data = await resp.json();
+        const posts = data?.data?.children || [];
+        const imageLinks = extractImagesFromRedditPosts(posts);
+        allLinks = [...allLinks, ...imageLinks];
+      }
 
-      if (!imageLinks.length) {
-        // fallback random
+      // remove duplicates
+      const uniqueLinks = [...new Set(allLinks)];
+
+      if (!uniqueLinks.length) {
         console.log("No memes found => fallback random hot from r/memes");
         const fallbackOne = await fetchFromRedditMemesHot();
         setSearchResults([
@@ -272,17 +288,16 @@ export default function HomePage() {
             title: "No relevant memes found. Here's a random hot meme.",
           },
         ];
-      } else {
-        // shape
-        const shaped = imageLinks.map((link, i) => ({
-          url: link,
-          title: `Meme #${i + 1}`,
-        }));
-        setSearchResults(shaped);
-        return shaped;
       }
+
+      const shaped = uniqueLinks.map((link, i) => ({
+        url: link,
+        title: `Meme #${i + 1}`,
+      }));
+      setSearchResults(shaped);
+      return shaped;
     } catch (err) {
-      console.error("fetchRedditSearch error:", err);
+      console.error("fetchMultiSubredditSearch error:", err);
       // fallback
       const fallbackOne = await fetchFromRedditMemesHot();
       setSearchResults([
@@ -340,24 +355,30 @@ export default function HomePage() {
         <title>GimmeMemes - Meme Chatbot</title>
         <meta 
           name="description" 
-          content="Interact with our Meme Chatbot to receive memes that match your mood. Powered by the Humor API." 
+          content="Interact with our Meme Chatbot to receive memes that match your mood. Powered by multiple subreddits." 
         />
         <link rel="canonical" href="https://www.gimmememes.com/" />
-
-        {/* Any other meta tags you'd like to keep from your old homepage */}
       </Helmet>
 
-      <div className="max-w-3xl mx-auto py-8 px-4">
-        <h1 className="text-3xl font-bold text-center mb-6">
-          Meme Assistant (OpenAI + Reddit)
+      {/* Hero Banner */}
+      <div className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 py-12 text-white text-center mb-8 shadow-lg">
+        <h1 className="text-4xl md:text-5xl font-bold mb-3 drop-shadow-sm">
+          GimmeMemes
         </h1>
+        <p className="text-lg md:text-xl max-w-2xl mx-auto drop-shadow-sm">
+          Your Ultimate Meme Assistant — Powered by OpenAI & multi-subreddit search.
+        </p>
+      </div>
 
+      <div className="max-w-3xl mx-auto px-4 pb-10">
         {/* Mode buttons */}
         <div className="flex justify-center gap-4 mb-8">
           <button
             onClick={() => setMode("chatbot")}
             className={`px-4 py-2 rounded-full font-semibold transition ${
-              mode === "chatbot" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
+              mode === "chatbot"
+                ? "bg-green-600 text-white shadow-lg"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
           >
             Meme Chatbot
@@ -365,7 +386,9 @@ export default function HomePage() {
           <button
             onClick={() => setMode("search")}
             className={`px-4 py-2 rounded-full font-semibold transition ${
-              mode === "search" ? "bg-blue-600 text-white" : "bg-gray-200 text-gray-800"
+              mode === "search"
+                ? "bg-green-600 text-white shadow-lg"
+                : "bg-gray-100 text-gray-800 hover:bg-gray-200"
             }`}
           >
             Meme Search
@@ -374,10 +397,13 @@ export default function HomePage() {
 
         {/* Chatbot UI */}
         {mode === "chatbot" && (
-          <div>
-            <div className="border border-gray-200 rounded-lg p-4 mb-4 h-80 overflow-y-auto">
+          <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
+            <h2 className="text-xl font-bold text-center mb-4">Chat with Meme Bot</h2>
+            <div className="border border-gray-100 rounded-lg p-4 mb-4 h-80 overflow-y-auto bg-gray-50">
               {chatMessages.length === 0 && !chatLoading && (
-                <p className="text-gray-500">No messages yet. Type something!</p>
+                <p className="text-gray-500 text-center mt-10">
+                  No messages yet. Type something to get a meme!
+                </p>
               )}
               {chatMessages.map((msg, idx) => (
                 <div
@@ -390,10 +416,10 @@ export default function HomePage() {
                     <img
                       src={msg.content}
                       alt="Bot Meme"
-                      className="max-w-xs rounded-lg border border-gray-300"
+                      className="max-w-xs rounded-lg border border-gray-300 shadow-sm"
                     />
                   ) : (
-                    <div className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg max-w-xs">
+                    <div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">
                       {msg.content}
                     </div>
                   )}
@@ -402,16 +428,18 @@ export default function HomePage() {
               {chatLoading && (
                 <div className="flex justify-center mt-4">
                   <div className="loader mr-2"></div>
-                  <p className="text-gray-500">Fetching from OpenAI + Reddit ...</p>
+                  <p className="text-gray-600">Fetching from OpenAI + Reddit ...</p>
                 </div>
               )}
             </div>
-            {chatError && <div className="text-red-500 mb-4">{chatError}</div>}
+            {chatError && (
+              <div className="text-red-600 mb-4 text-center">{chatError}</div>
+            )}
 
             <div className="flex items-center gap-2">
               <input
                 type="text"
-                className="flex-grow border border-gray-300 rounded px-3 py-2"
+                className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
                 placeholder='e.g. "I won the lottery!"'
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
@@ -421,7 +449,7 @@ export default function HomePage() {
               />
               <button
                 onClick={handleSendChatMessage}
-                className="bg-blue-600 text-white px-4 py-2 rounded"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
                 disabled={chatLoading}
               >
                 {chatLoading ? "Sending..." : "Send"}
@@ -432,14 +460,15 @@ export default function HomePage() {
 
         {/* Search UI */}
         {mode === "search" && (
-          <div>
+          <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
+            <h2 className="text-xl font-bold text-center mb-4">Search Memes</h2>
             <div className="mb-4">
               <label className="block text-gray-700 mb-1 font-semibold">
                 Describe the Meme:
               </label>
               <input
                 type="text"
-                className="w-full border border-gray-300 rounded px-3 py-2"
+                className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
                 placeholder='e.g. "spiderman pointing" or "awkward office cat"'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -450,30 +479,34 @@ export default function HomePage() {
             </div>
             <button
               onClick={handleSearchMeme}
-              className="bg-blue-600 text-white px-4 py-2 rounded"
+              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition"
               disabled={searchLoading}
             >
               {searchLoading ? "Searching..." : "Search Meme"}
             </button>
-            {searchError && <div className="text-red-500 mt-4">{searchError}</div>}
+            {searchError && (
+              <div className="text-red-600 mt-4 text-center">{searchError}</div>
+            )}
 
-            <div className="mt-6">
+            <div className="mt-6 min-h-[300px] bg-gray-50 border border-gray-100 rounded p-4">
               {searchResults.length > 0 && (
                 <h3 className="text-lg font-semibold mb-2">
-                  {searchResults.length === 1 ? "Your Meme Match" : "Top Meme Results"}
+                  {searchResults.length === 1
+                    ? "Your Meme Match"
+                    : "Top Meme Results"}
                 </h3>
               )}
               {searchLoading && (
                 <div className="flex justify-center mt-4">
                   <div className="loader mr-2"></div>
-                  <p className="text-gray-500">Searching r/memes ...</p>
+                  <p className="text-gray-600">Searching subreddits...</p>
                 </div>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {searchResults.map((item, idx) => (
                   <div
                     key={idx}
-                    className="p-4 bg-white rounded border border-gray-200 text-center"
+                    className="p-4 bg-white rounded border border-gray-200 text-center shadow-sm"
                   >
                     <img
                       src={item.url}
@@ -484,6 +517,12 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
+              {/* No results fallback or final UI */}
+              {!searchLoading && searchResults.length === 0 && (
+                <p className="text-gray-500 text-center mt-8">
+                  No memes found yet. Try describing your meme above!
+                </p>
+              )}
             </div>
           </div>
         )}
