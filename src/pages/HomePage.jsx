@@ -5,6 +5,7 @@ import { Helmet } from "react-helmet-async";
 /**
  * We rely on an OpenAI key stored in .env:
  *   VITE_OPENAI_API_KEY=sk-xxxxx
+ * Using gpt-3.5-turbo is typically cheaper than GPT-4.
  */
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "";
 
@@ -44,19 +45,24 @@ export default function HomePage() {
 
   /**
    * Chatbot Prompt:
-   * We want exactly two lines:
-   *   1) comedic/empathetic reply to user (1-2 sentences)
-   *   2) a short search phrase (1-5 words) for a relevant meme
+   * We want EXACTLY two lines:
+   *   Line 1: comedic/empathetic reply (1-2 sentences). 
+   *           Do not mention "meme" or the actual meme name.
+   *   Line 2: short search phrase (1-5 words) referencing the correct meme template 
+   *           (e.g. "Confused Nick Young"), with no quotes or extra text. 
+   * If line 2 is empty, we'll fallback to random.
    */
   async function callOpenAIForChatReply(userText) {
     const systemMessage = {
       role: "system",
       content: `
-You are a friendly, comedic AI. You must produce EXACTLY two lines:
-Line1: comedic or empathetic reply to the user (1-2 sentences).
-Line2: a short search phrase (1-5 words) describing the correct meme for their situation. 
-No extra words or lines.
-If user references a known meme template, use that exact name (e.g. "spiderman pointing meme").
+You are a friendly, empathetic AI. You must produce EXACTLY two lines:
+- Line1: comedic or empathetic reply to the user (1-2 sentences) 
+  WITHOUT saying "meme" or revealing the meme name.
+- Line2: short search phrase (1-5 words) referencing the EXACT meme 
+  if known (e.g. "Confused Nick Young" or "Spiderman pointing").
+No extra lines, no quotes, no punctuation beyond normal sentence usage. 
+If user references a known meme template, use that exact phrase on line 2.
       `,
     };
 
@@ -69,7 +75,7 @@ If user references a known meme template, use that exact name (e.g. "spiderman p
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-3.5-turbo", // cheaper than GPT-4
           messages: [systemMessage, userMessage],
           max_tokens: 60,
           temperature: 0.8,
@@ -84,9 +90,22 @@ If user references a known meme template, use that exact name (e.g. "spiderman p
       const fullOutput = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("Chatbot 2-line output:\n", fullOutput);
 
-      const lines = fullOutput.split("\n").map((l) => l.trim()).filter(Boolean);
-      let comedicReply = "Haha, here's a meme for you...";
+      // Split lines, removing blank lines
+      let lines = fullOutput
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      if (lines.length > 2) {
+        // If GPT returns more lines, merge extras into line1 or discard
+        const firstLine = lines[0];
+        const secondLine = lines.slice(1).join(" ");
+        lines = [firstLine, secondLine];
+      }
+
+      let comedicReply = "Hey, that’s interesting!";
       let shortPhrase = "";
+
       if (lines.length >= 2) {
         comedicReply = lines[0];
         shortPhrase = lines[1];
@@ -94,7 +113,9 @@ If user references a known meme template, use that exact name (e.g. "spiderman p
         comedicReply = lines[0];
       }
 
-      // sanitize shortPhrase
+      // remove any leading/trailing quotes from shortPhrase
+      shortPhrase = shortPhrase.replace(/^["']|["']$/g, "");
+      // remove extra punctuation beyond normal text
       shortPhrase = shortPhrase.replace(/[^\w\s]/g, " ").trim();
       const words = shortPhrase.split(/\s+/).filter(Boolean).slice(0, 5);
       const finalPhrase = words.join(" ");
@@ -106,7 +127,7 @@ If user references a known meme template, use that exact name (e.g. "spiderman p
     } catch (err) {
       console.error("callOpenAIForChatReply failed:", err);
       return {
-        reply: "Oops, something went wrong. Let's just get a random meme!",
+        reply: "Oops, something went wrong. Let’s just get a random one!",
         keywords: "",
       };
     }
@@ -120,7 +141,9 @@ If user references a known meme template, use that exact name (e.g. "spiderman p
     const systemMessage = {
       role: "system",
       content: `
-You are a helpful AI that outputs only a short search phrase (1-5 words), describing the user's requested meme. No extra lines or text. If user references a known meme (like "spiderman pointing"), keep it exact.
+You are a helpful AI that outputs only a short search phrase (1-5 words) describing the meme the user wants. 
+No extra text, no quotes, no synonyms/OR terms. 
+If the user references a known meme template (e.g. "spiderman pointing"), keep it exact.
       `,
     };
     const userMessage = { role: "user", content: userText };
@@ -132,7 +155,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
           Authorization: `Bearer ${OPENAI_API_KEY}`,
         },
         body: JSON.stringify({
-          model: "gpt-3.5-turbo",
+          model: "gpt-3.5-turbo", 
           messages: [systemMessage, userMessage],
           max_tokens: 30,
           temperature: 0.7,
@@ -146,7 +169,9 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
       let phrase = data.choices?.[0]?.message?.content?.trim() || "";
       console.log("Search phrase from GPT:", phrase);
 
-      // sanitize
+      // remove any leading/trailing quotes
+      phrase = phrase.replace(/^["']|["']$/g, "");
+      // remove non-alphanumeric punctuation
       phrase = phrase.replace(/[^\w\s]/g, " ").trim();
       const words = phrase.split(/\s+/).filter(Boolean).slice(0, 5);
       const finalPhrase = words.join(" ");
@@ -159,7 +184,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
   }
 
   // ---------------------------------------------------------
-  // 2) CHATBOT FLOW
+  // 2) CHATBOT FLOW (only r/memes to keep it consistent)
   // ---------------------------------------------------------
 
   // Adds user message to the chat
@@ -182,7 +207,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
     if (!userText) {
       // If empty, fetch random from fallback
       addUserMessage("(Random Meme)");
-      await fetchRandomMemeFromMultipleSubs(""); 
+      await fetchRandomMeme(""); 
       setChatInput("");
       return;
     }
@@ -204,8 +229,9 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
       const { reply, keywords } = await callOpenAIForChatReply(userText);
       // 2) Add comedic text
       addBotTextMessage(reply);
-      // 3) fetch meme from multi-subreddits using `keywords`
-      const memeUrl = await fetchRandomMemeFromMultipleSubs(keywords);
+
+      // 3) fetch meme from r/memes using `keywords`
+      const memeUrl = await fetchRandomMeme(keywords);
       if (memeUrl) {
         setChatCache((prev) => ({ ...prev, [userText]: memeUrl }));
       }
@@ -219,11 +245,11 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
   }
 
   /**
-   * We do multi-subreddit for the chatbot (broader coverage):
-   *   r/memes, r/dankmemes, r/wholesomememes
-   * If nothing found, fallback to random from r/memes/hot
+   * fetchRandomMeme:
+   * - We'll do a search in r/memes with the given keywords, pick 1 random from up to 10
+   * - If no keywords or none found, fallback to r/memes/hot
    */
-  async function fetchRandomMemeFromMultipleSubs(aiKeywords) {
+  async function fetchRandomMeme(aiKeywords) {
     try {
       if (!aiKeywords) {
         console.log("Chatbot: no keywords => fallback hot from r/memes");
@@ -232,36 +258,35 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
         return randomUrl;
       }
 
-      const subreddits = ["memes", "dankmemes", "wholesomememes"];
-      let allLinks = [];
+      const query = encodeURIComponent(aiKeywords);
+      const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
+      console.log("Chatbot GET from /r/memes:", url);
 
-      for (const sub of subreddits) {
-        const query = encodeURIComponent(aiKeywords);
-        const url = `https://www.reddit.com/r/${sub}/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=5`;
-        console.log(`Chatbot GET from /r/${sub}:`, url);
-
-        const resp = await fetch(url);
-        if (resp.ok) {
-          const data = await resp.json();
-          const posts = data?.data?.children || [];
-          const imageLinks = extractImagesFromRedditPosts(posts);
-          allLinks = [...allLinks, ...imageLinks];
-        }
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        console.log("Search gave error => fallback hot");
+        const fallback = await fetchFromRedditMemesHot();
+        addBotMemeMessage(fallback);
+        return fallback;
       }
 
-      const uniqueLinks = [...new Set(allLinks)];
+      const data = await resp.json();
+      const posts = data?.data?.children || [];
+      const imageLinks = extractImagesFromRedditPosts(posts);
+      const uniqueLinks = [...new Set(imageLinks)];
+
       if (!uniqueLinks.length) {
-        console.log("No results => fallback hot r/memes");
-        const fallbackUrl = await fetchFromRedditMemesHot();
-        addBotMemeMessage(fallbackUrl);
-        return fallbackUrl;
+        console.log("No results => fallback hot from r/memes");
+        const fallbackOne = await fetchFromRedditMemesHot();
+        addBotMemeMessage(fallbackOne);
+        return fallbackOne;
       }
 
       const randomPick = uniqueLinks[Math.floor(Math.random() * uniqueLinks.length)];
       addBotMemeMessage(randomPick);
       return randomPick;
     } catch (err) {
-      console.error("fetchRandomMemeFromMultipleSubs error:", err);
+      console.error("fetchRandomMeme error => fallback hot");
       const fallbackUrl = await fetchFromRedditMemesHot();
       addBotMemeMessage(fallbackUrl);
       return fallbackUrl;
@@ -269,7 +294,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
   }
 
   // ---------------------------------------------------------
-  // 3) MEME SEARCH FLOW (Simpler)
+  // 3) MEME SEARCH FLOW (only r/memes)
   // ---------------------------------------------------------
 
   async function handleSearchMeme() {
@@ -286,9 +311,10 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
 
     setSearchLoading(true);
     try {
-      // Only a short phrase from GPT
+      // 1) only a short phrase from GPT
       const phrase = await callOpenAIForSearchPhrase(userText);
-      const foundMemes = await fetchMemeSearchFromMemes(phrase);
+      // 2) fetch from r/memes with that phrase
+      const foundMemes = await fetchMemeSearch(phrase);
       if (foundMemes.length) {
         setSearchCache((prev) => ({ ...prev, [userText]: foundMemes }));
       }
@@ -302,30 +328,45 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
   }
 
   /**
-   * This time we only use r/memes to keep it more focused.
-   * If no results, fallback random hot.
+   * fetchMemeSearch:
+   * - r/memes with the given phrase, fallback if nothing found
    */
-  async function fetchMemeSearchFromMemes(aiKeywords) {
+  async function fetchMemeSearch(aiKeywords) {
     if (!aiKeywords) {
       console.log("Search: no AI keywords => fallback random hot from r/memes");
       const fallback = await fetchFromRedditMemesHot();
       setSearchResults([{ url: fallback, title: "Random Meme from r/memes/hot" }]);
       return [{ url: fallback, title: "Random Meme from r/memes/hot" }];
     }
-
     try {
       const query = encodeURIComponent(aiKeywords);
       const url = `https://www.reddit.com/r/memes/search.json?q=${query}&restrict_sr=1&sort=relevance&limit=10`;
       console.log("Search GET from /r/memes:", url);
 
       const resp = await fetch(url);
-      if (!resp.ok) throw new Error(`Reddit search error: ${resp.status}`);
+      if (!resp.ok) {
+        console.log("Search error => fallback random hot");
+        const fallbackOne = await fetchFromRedditMemesHot();
+        setSearchResults([
+          {
+            url: fallbackOne,
+            title: "No relevant memes found. Here's a random hot meme.",
+          },
+        ]);
+        return [
+          {
+            url: fallbackOne,
+            title: "No relevant memes found. Here's a random hot meme.",
+          },
+        ];
+      }
+
       const data = await resp.json();
       const posts = data?.data?.children || [];
       const imageLinks = extractImagesFromRedditPosts(posts);
+      const uniqueLinks = [...new Set(imageLinks)];
 
-      if (!imageLinks.length) {
-        // fallback
+      if (!uniqueLinks.length) {
         console.log("No memes found => fallback random hot from r/memes");
         const fallbackOne = await fetchFromRedditMemesHot();
         setSearchResults([
@@ -342,15 +383,14 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
         ];
       }
 
-      // shape
-      const shaped = imageLinks.map((link, i) => ({
+      const shaped = uniqueLinks.map((link, i) => ({
         url: link,
         title: `Meme #${i + 1}`,
       }));
       setSearchResults(shaped);
       return shaped;
     } catch (err) {
-      console.error("fetchMemeSearchFromMemes error:", err);
+      console.error("fetchMemeSearch error => fallback random hot");
       const fallbackOne = await fetchFromRedditMemesHot();
       setSearchResults([
         {
@@ -368,7 +408,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
   }
 
   // ---------------------------------------------------------
-  // 4) Fallback to random from r/memes/hot
+  // 4) Fallback: random from r/memes/hot
   // ---------------------------------------------------------
   async function fetchFromRedditMemesHot() {
     const hotUrl = `https://www.reddit.com/r/memes/hot.json?limit=20`;
@@ -477,6 +517,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
                   No messages yet. Type something to get a meme!
                 </p>
               )}
+
               {chatMessages.map((msg, idx) => {
                 if (msg.sender === "bot_text") {
                   // comedic text line
@@ -525,6 +566,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
                   );
                 }
               })}
+
               {chatLoading && (
                 <div className="flex justify-center mt-4">
                   <div className="loader mr-2"></div>
@@ -572,7 +614,7 @@ You are a helpful AI that outputs only a short search phrase (1-5 words), descri
               <input
                 type="text"
                 className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition"
-                placeholder='e.g. "spiderman pointing to each other" or "drake meme"'
+                placeholder='e.g. "spiderman pointing" or "drake hotline bling"'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => {
