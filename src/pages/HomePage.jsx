@@ -16,9 +16,9 @@ export default function HomePage() {
     if (chatContainer) {
       setTimeout(() => {
         chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
-      }, 100); // Small delay to ensure smooth animation
+      }, 100);
     }
-  }, [chatMessages]);
+  }, [chatMessages.length]); // Change dependency from `chatMessages` to `chatMessages.length`  
 
   async function callOpenAIForChatReply(userText) {
     const sys = {
@@ -81,8 +81,18 @@ export default function HomePage() {
     setChatMessages(p => [...p, { sender: "bot_text", content: c }]);
   }
   function addBotMemeMessage(u) {
-    setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
-  }
+    setChatMessages(p => {
+      const updatedMessages = [...p, { sender: "bot_meme", content: u }];
+      
+      setTimeout(() => {
+        if (chatContainerRef.current) {
+          chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "smooth" });
+        }
+      }, 100); // Ensure smooth scrolling after the state updates
+      
+      return updatedMessages;
+    });
+  }  
 
   function cleanKeywords(rawKeywords) {
     const ignoredWords = ["funny", "humor", "meme", "trend", "joke", "random"];
