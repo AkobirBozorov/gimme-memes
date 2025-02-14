@@ -257,91 +257,91 @@ function extractImage(post) {
 }
 
 return (
-  <div className="font-sans text-gray-800">
+  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4">
     <Helmet>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
     </Helmet>
-    
-    {/* Header Section */}
-    <div className="bg-gradient-to-r from-green-500 via-green-400 to-green-500 py-8 text-white text-center shadow-lg">
-      <h1 className="text-3xl md:text-4xl font-bold mb-2">Chat with the Meme Bot</h1>
-      <p className="text-lg md:text-xl max-w-2xl mx-auto">Get memes instantly based on your messages!</p>
-    </div>
 
-    {/* Chatbot Section */}
-    <div className="max-w-3xl mx-auto px-4 pb-10 mt-6">
-      <div className="border border-gray-200 rounded-lg bg-white shadow-md p-4">
-        <h2 className="text-xl font-bold text-center mb-4">Start Chatting</h2>
-        
-        {/* Chat Container */}
-        <div 
-          ref={chatContainerRef} 
-          className="border border-gray-100 rounded-lg p-4 mb-4 bg-gray-50 overflow-y-auto" 
-          style={{ minHeight: "32rem", maxHeight: "75vh" }}
-        >
-          {chatMessages.length === 0 && !chatLoading && (
-            <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
-          )}
+    <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 text-center">
+      {/* Header Section */}
+      <div className="flex items-center justify-between">
+        <div className="text-left text-gray-600 font-semibold text-lg">MemeBot</div>
+        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+          <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z" />
+          </svg>
+        </div>
+      </div>
 
-          {chatMessages.map((m, i) => {
-            if (m.sender === "bot_text") {
-              return (
-                <div key={i} className="flex justify-start mb-3">
-                  <div className="bg-green-100 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
-                </div>
-              );
-            } else if (m.sender === "bot_meme") {
-              return (
-                <div key={i} className="flex justify-start mb-3">
-                  <div className="flex flex-col items-start">
-                    <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
-                    <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
-                      </svg>
-                      Download Meme
-                    </a>
-                  </div>
-                </div>
-              );
-            } else {
-              return (
-                <div key={i} className="flex justify-end mb-3">
-                  <div className="bg-green-200 text-green-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
-                </div>
-              );
-            }
-          })}
+      {/* Welcome Message */}
+      <div className="mt-6">
+        <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
+          <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z" />
+          </svg>
+        </div>
+        <h2 className="text-xl font-semibold mt-3">Hi, Meme Lover</h2>
+        <p className="text-gray-600 mt-1">Can I help you with anything?</p>
+        <p className="text-gray-500 text-sm mt-1">Get memes instantly based on your messages!</p>
+      </div>
 
-          {chatLoading && (
-            <div className="flex justify-center mt-4">
-              <div className="loader mr-2"></div>
-              <p className="text-gray-600">Generating meme...</p>
+      {/* Quick Options */}
+      <div className="mt-6 flex gap-3 justify-center">
+        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
+          <p className="text-gray-700 text-sm">Trending Memes</p>
+        </div>
+        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
+          <p className="text-gray-700 text-sm">MemeBot Features</p>
+        </div>
+        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
+          <p className="text-gray-700 text-sm">Memes for Every Mood</p>
+        </div>
+      </div>
+
+      {/* Chat Container */}
+      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-80 overflow-y-auto" ref={chatContainerRef}>
+        {chatMessages.length === 0 && !chatLoading && (
+          <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
+        )}
+
+        {chatMessages.map((m, i) => (
+          <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3`}>
+            <div className={`px-3 py-2 rounded-lg max-w-xs shadow ${m.sender === "user" ? "bg-blue-200 text-blue-900" : "bg-gray-200 text-gray-900"}`}>
+              {m.content}
             </div>
-          )}
-        </div>
+          </div>
+        ))}
 
-        {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
+        {chatLoading && (
+          <div className="flex justify-center mt-4">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-gray-600"></div>
+            <p className="text-gray-600 ml-2">Generating meme...</p>
+          </div>
+        )}
+      </div>
 
-        {/* Input Section */}
-        <div className="flex items-center gap-2">
-          <input 
-            type="text" 
-            className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-green-500 transition" 
-            placeholder='Type something... e.g. "I need a vacation!"' 
-            value={chatInput} 
-            onChange={e => setChatInput(e.target.value)} 
-            onKeyDown={e => { if (e.key === "Enter") handleSendChatMessage(); }} 
-          />
-          <button 
-            onClick={handleSendChatMessage} 
-            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition" 
-            disabled={chatLoading}
-          >
-            {chatLoading ? "Sending..." : "Send"}
-          </button>
-        </div>
+      {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
+
+      {/* Chat Input */}
+      <div className="flex items-center gap-2 mt-4">
+        <input
+          type="text"
+          className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 transition"
+          placeholder='Type something... e.g. "I need a meme!"'
+          value={chatInput}
+          onChange={(e) => setChatInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSendChatMessage();
+          }}
+        />
+        <button
+          onClick={handleSendChatMessage}
+          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          disabled={chatLoading}
+        >
+          {chatLoading ? "Sending..." : "Send"}
+        </button>
       </div>
     </div>
   </div>
