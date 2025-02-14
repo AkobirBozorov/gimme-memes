@@ -269,7 +269,7 @@ function extractImage(post) {
 }
 
 return (
-  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4 overflow-hidden w-full">
+  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4 overflow-hidden w-full max-w-full">
     <Helmet>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
@@ -281,7 +281,7 @@ return (
       <p className="text-gray-600 mt-1">Can I help you with anything?</p>
 
       {/* Chat Container */}
-      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto w-full" ref={chatContainerRef}>
+      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto w-full max-w-full overflow-x-hidden" ref={chatContainerRef}>
         {chatMessages.length === 0 && !chatLoading && (
           <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
         )}
@@ -289,12 +289,10 @@ return (
         {chatMessages.map((m, i) => {
           if (m.sender === "bot_text") {
             return (
-              <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3`}>
-                <div 
-                  className={`px-4 py-2 rounded-lg max-w-xs shadow-md ${
-                    m.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
-                  }`}
-                >
+              <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3 w-full`}>
+                <div className={`px-4 py-2 rounded-lg shadow-md w-fit max-w-[80%] break-words ${
+                  m.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                }`}>
                   {m.content}
                 </div>
               </div>
