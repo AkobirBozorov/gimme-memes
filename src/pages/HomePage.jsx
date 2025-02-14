@@ -265,53 +265,44 @@ return (
 
     <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 text-center">
       {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <div className="text-left text-gray-600 font-semibold text-lg">MemeBot</div>
-        <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-          <svg className="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z" />
-          </svg>
-        </div>
-      </div>
-
-      {/* Welcome Message */}
-      <div className="mt-6">
-        <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-3.3 0-10 1.7-10 5v2h20v-2c0-3.3-6.7-5-10-5z" />
-          </svg>
-        </div>
-        <h2 className="text-xl font-semibold mt-3">Hi, Meme Lover</h2>
-        <p className="text-gray-600 mt-1">Can I help you with anything?</p>
-        <p className="text-gray-500 text-sm mt-1">Get memes instantly based on your messages!</p>
-      </div>
-
-      {/* Quick Options */}
-      <div className="mt-6 flex gap-3 justify-center">
-        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
-          <p className="text-gray-700 text-sm">Trending Memes</p>
-        </div>
-        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
-          <p className="text-gray-700 text-sm">MemeBot Features</p>
-        </div>
-        <div className="p-3 bg-gray-100 rounded-lg shadow-md cursor-pointer">
-          <p className="text-gray-700 text-sm">Memes for Every Mood</p>
-        </div>
-      </div>
+      <h2 className="text-xl font-semibold">Hi, Meme Lover</h2>
+      <p className="text-gray-600 mt-1">Can I help you with anything?</p>
 
       {/* Chat Container */}
-      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-80 overflow-y-auto" ref={chatContainerRef}>
+      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto" ref={chatContainerRef}>
         {chatMessages.length === 0 && !chatLoading && (
           <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
         )}
 
-        {chatMessages.map((m, i) => (
-          <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3`}>
-            <div className={`px-3 py-2 rounded-lg max-w-xs shadow ${m.sender === "user" ? "bg-blue-200 text-blue-900" : "bg-gray-200 text-gray-900"}`}>
-              {m.content}
-            </div>
-          </div>
-        ))}
+        {chatMessages.map((m, i) => {
+          if (m.sender === "bot_text") {
+            return (
+              <div key={i} className="flex justify-start mb-3">
+                <div className="bg-gray-200 text-gray-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
+              </div>
+            );
+          } else if (m.sender === "bot_meme") {
+            return (
+              <div key={i} className="flex justify-start mb-3">
+                <div className="flex flex-col items-start">
+                  <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
+                  <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
+                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
+                    </svg>
+                    Download Meme
+                  </a>
+                </div>
+              </div>
+            );
+          } else {
+            return (
+              <div key={i} className="flex justify-end mb-3">
+                <div className="bg-blue-200 text-blue-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
+              </div>
+            );
+          }
+        })}
 
         {chatLoading && (
           <div className="flex justify-center mt-4">
@@ -346,4 +337,4 @@ return (
     </div>
   </div>
 );
-}
+};
