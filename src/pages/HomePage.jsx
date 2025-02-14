@@ -304,8 +304,26 @@ return (
                   <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
                   <a 
                     href={m.content} 
-                    download="meme.jpg" 
+                    download 
+                    target="_blank" 
+                    rel="noopener noreferrer"
                     className="bg-blue-500 text-white px-3 py-1 rounded-lg mt-1 inline-flex items-center hover:bg-blue-600 transition"
+                    onClick={(e) => {
+                      e.preventDefault(); // Prevents default navigation behavior
+                      fetch(m.content)
+                        .then(response => response.blob())
+                        .then(blob => {
+                          const blobUrl = URL.createObjectURL(blob);
+                          const link = document.createElement("a");
+                          link.href = blobUrl;
+                          link.download = "meme.jpg";
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                          URL.revokeObjectURL(blobUrl);
+                        })
+                        .catch(err => console.error("Error downloading image:", err));
+                    }}
                   >
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
