@@ -81,17 +81,17 @@ export default function HomePage() {
     setChatMessages(p => [...p, { sender: "bot_text", content: c }]);
   }
   function addBotMemeMessage(u) {
-    setChatMessages(p => {
-      const updatedMessages = [...p, { sender: "bot_meme", content: u }];
-      
+    setChatMessages(p => [...p, { sender: "bot_meme", content: u }]);
+  
+    const img = new Image();
+    img.src = u;
+    img.onload = () => {
       setTimeout(() => {
         if (chatContainerRef.current) {
           chatContainerRef.current.scrollTo({ top: chatContainerRef.current.scrollHeight, behavior: "smooth" });
         }
-      }, 100); // Ensure smooth scrolling after the state updates
-      
-      return updatedMessages;
-    });
+      }, 100);
+    };
   }  
 
   function cleanKeywords(rawKeywords) {
@@ -269,7 +269,7 @@ function extractImage(post) {
 }
 
 return (
-  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4">
+  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4 overflow-hidden w-full">
     <Helmet>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
@@ -281,7 +281,7 @@ return (
       <p className="text-gray-600 mt-1">Can I help you with anything?</p>
 
       {/* Chat Container */}
-      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto" ref={chatContainerRef}>
+      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto w-full" ref={chatContainerRef}>
         {chatMessages.length === 0 && !chatLoading && (
           <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
         )}
