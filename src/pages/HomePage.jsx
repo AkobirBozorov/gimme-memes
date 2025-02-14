@@ -305,24 +305,25 @@ return (
                   <a 
                     href={m.content} 
                     download 
-                    target="_blank" 
-                    rel="noopener noreferrer"
                     className="bg-blue-500 text-white px-3 py-1 rounded-lg mt-1 inline-flex items-center hover:bg-blue-600 transition"
-                    onClick={(e) => {
-                      e.preventDefault(); // Prevents default navigation behavior
-                      fetch(m.content)
-                        .then(response => response.blob())
-                        .then(blob => {
-                          const blobUrl = URL.createObjectURL(blob);
-                          const link = document.createElement("a");
-                          link.href = blobUrl;
-                          link.download = "meme.jpg";
-                          document.body.appendChild(link);
-                          link.click();
-                          document.body.removeChild(link);
-                          URL.revokeObjectURL(blobUrl);
-                        })
-                        .catch(err => console.error("Error downloading image:", err));
+                    onClick={async (e) => {
+                      e.preventDefault(); // Prevents the default behavior (opening image in a new tab)
+
+                      try {
+                        const response = await fetch(m.content, { mode: 'cors' }); // Ensures cross-origin fetching
+                        const blob = await response.blob();
+                        const blobUrl = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = blobUrl;
+                        link.download = "meme.jpg"; // Forces download with this filename
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                        URL.revokeObjectURL(blobUrl); // Cleanup
+                      } catch (err) {
+                        console.error("Download failed:", err);
+                        alert("Failed to download meme. Try opening the image and saving manually.");
+                      }
                     }}
                   >
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
