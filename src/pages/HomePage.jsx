@@ -331,7 +331,7 @@ return (
         <input
           type="text"
           className="flex-grow border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:border-[#528265] transition text-lg"
-          placeholder='Send a message"'
+          placeholder='Send a message'
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={(e) => {
