@@ -269,66 +269,67 @@ function extractImage(post) {
 }
 
 return (
-  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-100 to-pink-200 min-h-screen flex items-center justify-center p-4 overflow-hidden w-full max-w-full">
+  <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-50 to-gray-200 min-h-screen flex items-center justify-center p-4">
     <Helmet>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
     </Helmet>
 
-    <div className="w-full max-w-4xl bg-white rounded-3xl shadow-xl p-8 text-center">
+    <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 text-center relative">
       {/* Header Section */}
-      <h2 className="text-xl font-semibold">Hi, Meme Lover</h2>
+      <h2 className="text-2xl font-semibold text-[#528265]">Hi, Meme Lover</h2>
       <p className="text-gray-600 mt-1">Can I help you with anything?</p>
 
-      {/* Chat Container */}
-      <div className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto w-full max-w-full overflow-x-hidden" ref={chatContainerRef}>
-        {chatMessages.length === 0 && !chatLoading && (
-          <p className="text-gray-500 text-center mt-10">No messages yet. Start the chat!</p>
+      {/* Chat Container Animation */}
+      <AnimatePresence>
+        {chatMessages.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.5 }}
+            className="mt-6 border border-gray-200 rounded-lg bg-gray-50 shadow p-4 max-h-[550px] overflow-y-auto w-full max-w-full overflow-x-hidden"
+            ref={chatContainerRef}
+          >
+            {chatMessages.map((m, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.1 }}
+                className={`flex ${
+                  m.sender === "user" ? "justify-end" : "justify-start"
+                } mb-3`}
+              >
+                {m.sender === "bot_meme" ? (
+                  <div className="flex flex-col items-start">
+                    <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
+                  </div>
+                ) : (
+                  <div
+                    className={`px-4 py-2 rounded-lg shadow-md w-fit max-w-[80%] break-words ${
+                      m.sender === "user" ? "bg-[#528265] text-white" : "bg-gray-200 text-gray-900"
+                    }`}
+                  >
+                    {m.content}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
         )}
+      </AnimatePresence>
 
-        {chatMessages.map((m, i) => {
-          if (m.sender === "bot_text") {
-            return (
-              <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3 w-full`}>
-                <div className={`px-4 py-2 rounded-lg shadow-md w-fit max-w-[80%] break-words ${
-                  m.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
-                }`}>
-                  {m.content}
-                </div>
-              </div>
-            );
-          } else if (m.sender === "bot_meme") {
-            return (
-              <div key={i} className="flex justify-start mb-3">
-                <div className="flex flex-col items-start">
-                  <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
-                </div>
-              </div>
-            );
-          } else {
-            return (
-              <div key={i} className="flex justify-end mb-3">
-                <div className="bg-blue-200 text-blue-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
-              </div>
-            );
-          }
-        })}
-
-        {chatLoading && (
-          <div className="flex justify-center mt-4">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-gray-600"></div>
-            <p className="text-gray-600 ml-2">Generating meme...</p>
-          </div>
-        )}
-      </div>
-
-      {chatError && <div className="text-red-600 mb-4 text-center">{chatError}</div>}
-
-      {/* Chat Input */}
-      <div className="flex items-center gap-2 mt-4">
+      {/* Chat Input Field */}
+      <motion.div
+        initial={{ opacity: 0, y: 50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="flex items-center gap-2 mt-4"
+      >
         <input
           type="text"
-          className="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:border-blue-500 transition"
+          className="flex-grow border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:border-[#528265] transition text-lg"
           placeholder='Type something... e.g. "I need a meme!"'
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
@@ -338,12 +339,12 @@ return (
         />
         <button
           onClick={handleSendChatMessage}
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+          className="bg-[#528265] text-white px-6 py-3 rounded-full hover:bg-[#41694c] transition text-lg font-semibold"
           disabled={chatLoading}
         >
           {chatLoading ? "Sending..." : "Send"}
         </button>
-      </div>
+      </motion.div>
     </div>
   </div>
 );

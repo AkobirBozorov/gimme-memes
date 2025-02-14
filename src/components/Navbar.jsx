@@ -8,14 +8,12 @@ const Navbar = () => {
       : "text-gray-700 hover:text-[#528265] font-medium";
 
   return (
-    <nav className="bg-white shadow-md py-4">
+    <nav className="bg-gray-50 shadow-md py-4">
       <div className="max-w-6xl mx-auto px-6 flex justify-between items-center">
-        {/* Logo */}
         <Link to="/" className="text-2xl font-bold text-[#528265]">
           GimmeMemes
         </Link>
 
-        {/* Navigation Links */}
         <div className="flex space-x-6">
           <NavLink to="/" className={navLinkClasses}>
             Home
