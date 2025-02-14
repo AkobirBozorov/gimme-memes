@@ -302,41 +302,6 @@ return (
               <div key={i} className="flex justify-start mb-3">
                 <div className="flex flex-col items-start">
                   <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
-                  <a 
-                    href="#" 
-                    className="bg-blue-500 text-white px-3 py-1 rounded-lg mt-1 inline-flex items-center hover:bg-blue-600 transition"
-                    onClick={async (e) => {
-                      e.preventDefault(); // Prevents the default behavior
-
-                      try {
-                        // Use a proxy server if needed to bypass CORS (Optional)
-                        const proxyUrl = "https://cors-anywhere.herokuapp.com/"; // You can set up your own CORS proxy if needed
-                        const memeUrl = m.content.startsWith("http") ? m.content : `https:${m.content}`; // Ensure valid URL
-
-                        const response = await fetch(memeUrl, { mode: "no-cors" }); // No-cors to handle cross-origin images
-                        const blob = await response.blob();
-                        const blobUrl = URL.createObjectURL(blob);
-                        
-                        const link = document.createElement("a");
-                        link.href = blobUrl;
-                        link.download = "meme.jpg"; // Force download
-                        document.body.appendChild(link);
-                        link.click();
-                        
-                        document.body.removeChild(link);
-                        URL.revokeObjectURL(blobUrl); // Cleanup memory
-                      } catch (err) {
-                        console.error("Download failed:", err);
-                        alert("Failed to download meme. Try opening the image and saving manually.");
-                      }
-                    }}
-                  >
-                    <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
-                    </svg>
-                    Download Meme
-                  </a>
-
                 </div>
               </div>
             );
