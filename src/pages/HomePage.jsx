@@ -12,8 +12,11 @@ export default function HomePage() {
   const chatContainerRef = useRef(null);
 
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    const chatContainer = chatContainerRef.current;
+    if (chatContainer) {
+      setTimeout(() => {
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
+      }, 100); // Small delay to ensure smooth animation
     }
   }, [chatMessages]);
 
@@ -231,10 +234,9 @@ function extractImage(post) {
         addUserMessage("(Random)");
         const fallback = await fetchFromHot();
         addBotMemeMessage(fallback);
-        setChatInput("");
         return;
     }
-
+    setChatInput("")
     addUserMessage(text);
     setChatLoading(true);
 
@@ -277,8 +279,14 @@ return (
         {chatMessages.map((m, i) => {
           if (m.sender === "bot_text") {
             return (
-              <div key={i} className="flex justify-start mb-3">
-                <div className="bg-gray-200 text-gray-900 px-3 py-2 rounded-lg max-w-xs shadow">{m.content}</div>
+              <div key={i} className={`flex ${m.sender === "user" ? "justify-end" : "justify-start"} mb-3`}>
+                <div 
+                  className={`px-4 py-2 rounded-lg max-w-xs shadow-md ${
+                    m.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-gray-900"
+                  }`}
+                >
+                  {m.content}
+                </div>
               </div>
             );
           } else if (m.sender === "bot_meme") {
@@ -286,7 +294,11 @@ return (
               <div key={i} className="flex justify-start mb-3">
                 <div className="flex flex-col items-start">
                   <img src={m.content} alt="Meme" className="max-w-xs rounded-lg border border-gray-300 shadow-sm" />
-                  <a href={m.content} download className="text-blue-600 text-sm underline mt-1 flex items-center">
+                  <a 
+                    href={m.content} 
+                    download="meme.jpg" 
+                    className="bg-blue-500 text-white px-3 py-1 rounded-lg mt-1 inline-flex items-center hover:bg-blue-600 transition"
+                  >
                     <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 16l4-5h-3V4h-2v7H8l4 5zm7 2H5v2h14v-2z" />
                     </svg>
