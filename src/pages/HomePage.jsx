@@ -272,6 +272,14 @@ function extractImage(post) {
 return (
   <div className="font-sans text-gray-800 bg-gradient-to-br from-gray-50 to-gray-200 min-h-screen flex items-center justify-center p-4">
     <Helmet>
+      {/* Google tag (gtag.js) */}
+      <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQEQJR9424"></script>
+        <script>{`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-DQEQJR9424');
+        `}</script>
       <title>Meme Chatbot</title>
       <meta name="description" content="Chat with the Meme Bot and get the perfect meme for any mood!" />
     </Helmet>

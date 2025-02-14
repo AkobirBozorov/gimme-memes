@@ -39,12 +39,13 @@ const LoginPage = ({ setIsAuthenticated }) => {
   return (
     <div className="max-w-md mx-auto p-4 mt-10">
       <Helmet>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        {/* Google tag (gtag.js) */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQEQJR9424"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-CR21WBQXGL');
+          gtag('config', 'G-DQEQJR9424');
         `}</script>
       </Helmet>
 

@@ -8,12 +8,12 @@ const ContactPage = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4 py-10">
       <Helmet>
         {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQEQJR9424"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-CR21WBQXGL');
+          gtag('config', 'G-DQEQJR9424');
         `}</script>
       </Helmet>
 

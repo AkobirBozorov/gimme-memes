@@ -7,12 +7,12 @@ const AboutPage = () => {
     <div className="max-w-6xl mx-auto px-6 py-16">
       <Helmet>
         {/* Google tag (gtag.js) */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-CR21WBQXGL"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-DQEQJR9424"></script>
         <script>{`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', 'G-CR21WBQXGL');
+          gtag('config', 'G-DQEQJR9424');
         `}</script>
       </Helmet>
 
