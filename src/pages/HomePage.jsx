@@ -279,7 +279,7 @@ return (
     <div className="w-full max-w-4xl bg-white rounded-3xl shadow-2xl p-8 text-center relative">
       {/* Header Section */}
       <h2 className="text-2xl font-semibold text-[#528265]">Hi, Meme Lover</h2>
-      <p className="text-gray-600 mt-1">Can I help you with anything?</p>
+      <p className="text-gray-600 mt-1">Do you have anything in your mind?</p>
 
       {/* Chat Container Animation */}
       <AnimatePresence>
@@ -331,7 +331,7 @@ return (
         <input
           type="text"
           className="flex-grow border border-gray-300 rounded-full px-4 py-3 focus:outline-none focus:border-[#528265] transition text-lg"
-          placeholder='Type something... e.g. "I need a meme!"'
+          placeholder='Send a message"'
           value={chatInput}
           onChange={(e) => setChatInput(e.target.value)}
           onKeyDown={(e) => {
