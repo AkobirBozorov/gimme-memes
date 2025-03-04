@@ -1,5 +1,4 @@
 // gimme-memes-frontend/src/pages/ContactPage.jsx
-// gimme-memes-frontend/src/pages/ContactPage.jsx
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
 

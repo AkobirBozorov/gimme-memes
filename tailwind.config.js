@@ -8,7 +8,5 @@ module.exports = {
     extend: {},
   },
   plugins: [
-    // Add official plugins like @tailwindcss/typography if needed
-    // require('@tailwindcss/typography')
   ],
 };
