@@ -19,7 +19,7 @@ export default function HomePage() {
         chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: "smooth" });
       }, 100);
     }
-  }, [chatMessages.length]); // Change dependency from `chatMessages` to `chatMessages.length`  
+  }, [chatMessages.length]);
 
   async function callOpenAIForChatReply(userText) {
     const sys = {
@@ -63,7 +63,6 @@ export default function HomePage() {
         const reply = lines[0];
         let keywords = lines[1];
 
-        // **Ensure keywords are valid** by limiting to 3 words & cleaning input
         keywords = keywords.replace(/[^a-zA-Z0-9\s]/g, "").trim();
         keywords = keywords.split(/\s+/).slice(0, 3).join(" ");
 
@@ -99,7 +98,6 @@ export default function HomePage() {
     const ignoredWords = ["funny", "humor", "meme", "trend", "joke", "random"];
     let words = rawKeywords.split(/\s+/).filter(w => !ignoredWords.includes(w));
 
-    // **Allow up to 3 words instead of filtering everything**
     if (words.length === 0) words = rawKeywords.split(/\s+/);
   
     return words.slice(0, 3).join(" "); 
@@ -144,14 +142,13 @@ async function fetchRedditMeme(query) {
               const score = computeScore(post, searchQuery);
               console.log("Post:", post.data.title, "Score:", score);
 
-              // **Reduce filtering threshold slightly** 
               if (score > 5 && score > bestScore) {
                   bestScore = score;
                   bestMeme = img;
               }
           });
 
-          if (bestMeme) break; // Stop early if a good meme is found
+          if (bestMeme) break;
       } catch (err) {
           console.error("Error with variant:", variant, err);
       }
@@ -165,12 +162,10 @@ function extractImage(post) {
   const pd = post.data;
   let url = pd.url_overridden_by_dest || "";
 
-  // ✅ Only allow static image formats (JPG, JPEG, PNG)
   if (!/\.(jpg|jpeg|png)$/i.test(url)) {
       url = pd.preview?.images?.[0]?.source?.url || "";
   }
 
-  // ✅ Filter again to ensure no GIFs/videos
   if (!/\.(jpg|jpeg|png)$/i.test(url)) return null;
 
   return url.replace(/&amp;/g, "&");
@@ -181,7 +176,7 @@ function extractImage(post) {
     const title = (pd.title || "").toLowerCase();
     const upvotes = pd.score || 0;
     const comments = pd.num_comments || 0;
-    const agePenalty = (Date.now() / 1000 - pd.created_utc) / (60 * 60 * 24 * 30); // Older memes get small penalty
+    const agePenalty = (Date.now() / 1000 - pd.created_utc) / (60 * 60 * 24 * 30);
   
     let relevance = 0;
     const words = query.toLowerCase().split(/\s+/);
@@ -194,10 +189,9 @@ function extractImage(post) {
   
     let finalScore = relevance + upvotes * 0.05 + comments * 0.01 - agePenalty * 2;
   
-    // **Lower the threshold for filtering out memes**
     if (finalScore < 10) {
       console.log("Skipping meme due to low score:", finalScore);
-      return -1000; // Forces exclusion
+      return -1000;
     }
   
     return finalScore;
@@ -220,7 +214,6 @@ function extractImage(post) {
   
         const sc = computeScore(post, "");
         
-        // **Ignore generic meme titles**
         const ignoreWords = ["meme", "funny", "lol", "random", "haha"];
         const title = post.data.title.toLowerCase();
         if (ignoreWords.some(w => title.includes(w))) return;
@@ -255,7 +248,6 @@ function extractImage(post) {
         const { reply, keywords } = await callOpenAIForChatReply(text);
         addBotTextMessage(reply);
         
-        // **Ensure meme is always returned, even if keywords are wrong**
         let memeUrl = await fetchRedditMeme(keywords);
         if (!memeUrl) memeUrl = await fetchFromHot();
         
